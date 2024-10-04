@@ -32,12 +32,16 @@
       "require": "./dist/index.js"
     }
   },
+  "dependencies": {
+    "@govtechsg/open-attestation": "^6.10.0-beta.7"
+  },
   "devDependencies": {
     "@commitlint/cli": "^19.3.0",
     "@commitlint/config-conventional": "^19.2.2",
     "@commitlint/config-nx-scopes": "^19.5.0",
     "@commitlint/prompt": "^19.3.1",
     "@types/conventional-commits-parser": "^5.0.0",
+    "@types/lodash": "^4.17.10",
     "@types/node": "^18.17.0",
     "@vitest/coverage-v8": "^1.6.0",
     "cpy": "^11.1.0",
