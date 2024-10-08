@@ -2,6 +2,7 @@ import { cloneDeep } from 'lodash';
 import {
   BATCHED_SIGNED_WRAPPED_DOCUMENTS_DID,
   SIGNED_WRAPPED_DOCUMENT_DID,
+  WRAPPED_DOCUMENT_DNS_TXT_V2,
 } from '../fixtures/fixtures';
 import { describe, expect, it } from 'vitest';
 import { v4 } from '@govtechsg/open-attestation';
@@ -211,5 +212,28 @@ describe('V4 verify', () => {
         });
       });
     });
+  });
+});
+
+describe('V2 verify', () => {
+  it('given a document with unaltered data, should return true', async () => {
+    expect(await verify(WRAPPED_DOCUMENT_DNS_TXT_V2)).toBe(true);
+  });
+
+  it('given a value of a key in object is changed, should return false', async () => {
+    const newName = 'a775d0db-ef6f-41ce-bb2f-f2366ef0e1a6:string:SG FREIGHT';
+    expect(WRAPPED_DOCUMENT_DNS_TXT_V2.data.recipient.name).not.toBe(newName);
+    expect(
+      await verify({
+        ...WRAPPED_DOCUMENT_DNS_TXT_V2,
+        data: {
+          ...WRAPPED_DOCUMENT_DNS_TXT_V2.data,
+          recipient: {
+            ...WRAPPED_DOCUMENT_DNS_TXT_V2.data.recipient,
+            name: newName,
+          },
+        },
+      }),
+    ).toBe(false);
   });
 });
