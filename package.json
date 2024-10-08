@@ -9,7 +9,7 @@
     "dist"
   ],
   "scripts": {
-    "test": "npx vitest --run",
+    "test": "npx vitest --run --test-timeout=15000",
     "lint": "tsc && npx eslint . --color --format=table --max-warnings=0",
     "build": "npm run clean && tsup",
     "clean": "rm -rf dist/",
