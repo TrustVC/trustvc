@@ -12,7 +12,7 @@ import { verifySignature, utils, v2, v3, v4 } from '@govtechsg/open-attestation'
  * @returns {Promise<boolean>} - A promise that resolves to `true` if the document's signature is valid,
  *                               and `false` if the document type is not recognized or if the signature is invalid.
  */
-export const verify = async (
+export const verifyOASignature = async (
   document: v2.WrappedDocument | v3.WrappedDocument | v4.WrappedDocument,
 ): Promise<boolean> => {
   // Check if the document is of a supported version before verifying its signature

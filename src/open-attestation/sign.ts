@@ -17,7 +17,7 @@ const { signDocument } = v4;
  * @throws {Error} - Any errors thrown by the `signDocument` function will propagate naturally.
  *
  */
-export const sign = async (
+export const signOA = async (
   document: v4.WrappedDocument,
   keyPair: KeyPair | Signer,
 ): Promise<v4.SignedWrappedDocument> => {
