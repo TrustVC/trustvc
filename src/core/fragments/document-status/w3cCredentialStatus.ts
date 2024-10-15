@@ -1,8 +1,8 @@
-import { Verifier } from '@govtechsg/oa-verify';
+import { VerificationFragment, Verifier } from '@govtechsg/oa-verify';
 import { verifyCredentialStatus } from '@trustvc/w3c-vc';
+import { SignedVerifiableCredential } from '../../..';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const w3cCredentialStatus: Verifier<any> = {
+export const w3cCredentialStatus: Verifier<VerificationFragment> = {
   skip: async () => {
     return {
       type: 'DOCUMENT_STATUS',
@@ -15,11 +15,15 @@ export const w3cCredentialStatus: Verifier<any> = {
       status: 'SKIPPED',
     };
   },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  test: (document: any) => document.credentialStatus?.type === 'StatusList2021Entry',
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  verify: async (document: any) => {
-    const verificationResult = await verifyCredentialStatus(document.credentialStatus);
+
+  test: (document: unknown) => {
+    const doc = document as SignedVerifiableCredential;
+    return doc.credentialStatus?.type === 'StatusList2021Entry';
+  },
+
+  verify: async (document: unknown) => {
+    const doc = document as SignedVerifiableCredential;
+    const verificationResult = await verifyCredentialStatus(doc.credentialStatus);
     if (verificationResult.error) {
       return {
         type: 'DOCUMENT_STATUS',

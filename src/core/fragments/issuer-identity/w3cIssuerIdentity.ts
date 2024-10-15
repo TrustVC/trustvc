@@ -1,6 +1,7 @@
-import { Verifier } from '@govtechsg/oa-verify';
+import { VerificationFragment, Verifier } from '@govtechsg/oa-verify';
 import { Resolver } from 'did-resolver';
 import { getResolver as getWebDidResolver } from 'web-did-resolver';
+import { SignedVerifiableCredential } from '../../..';
 
 const checkDidWebResolve = async (did: string): Promise<boolean> => {
   try {
@@ -20,8 +21,7 @@ const checkDidWebResolve = async (did: string): Promise<boolean> => {
   }
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const w3cIssuerIdentity: Verifier<any> = {
+export const w3cIssuerIdentity: Verifier<VerificationFragment> = {
   skip: async () => {
     return {
       type: 'ISSUER_IDENTITY',
@@ -34,11 +34,15 @@ export const w3cIssuerIdentity: Verifier<any> = {
       status: 'SKIPPED',
     };
   },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  test: (document: any) => document.issuer,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  verify: async (document: any) => {
-    if (document.proof?.verificationMethod?.split('#')[0] !== document.issuer) {
+
+  test: (document: unknown) => {
+    const doc = document as SignedVerifiableCredential;
+    return Boolean(doc.issuer);
+  },
+
+  verify: async (document: unknown) => {
+    const doc = document as SignedVerifiableCredential;
+    if (doc.proof?.verificationMethod?.split('#')[0] !== doc.issuer) {
       return {
         type: 'ISSUER_IDENTITY',
         name: 'W3CIssuerIdentity',
@@ -49,7 +53,7 @@ export const w3cIssuerIdentity: Verifier<any> = {
         status: 'INVALID',
       };
     }
-    const resolutionResult = await checkDidWebResolve(document.issuer);
+    const resolutionResult = await checkDidWebResolve(doc.issuer);
 
     if (resolutionResult) {
       return {

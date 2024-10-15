@@ -1,8 +1,7 @@
-import { Verifier } from '@govtechsg/oa-verify';
-import { verifyW3CSignature } from '../..';
+import { VerificationFragment, Verifier } from '@govtechsg/oa-verify';
+import { SignedVerifiableCredential, verifyW3CSignature } from '../../..';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const w3cSignatureIntegrity: Verifier<any> = {
+export const w3cSignatureIntegrity: Verifier<VerificationFragment> = {
   skip: async () => {
     return {
       type: 'DOCUMENT_INTEGRITY',
@@ -15,11 +14,15 @@ export const w3cSignatureIntegrity: Verifier<any> = {
       status: 'SKIPPED',
     };
   },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  test: (document: any) => document.proof?.type === 'BbsBlsSignature2020',
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  verify: async (document: any) => {
-    const verificationResult = await verifyW3CSignature(document);
+
+  test: (document: unknown) => {
+    const doc = document as SignedVerifiableCredential;
+    return doc.proof?.type === 'BbsBlsSignature2020';
+  },
+
+  verify: async (document: unknown) => {
+    const doc = document as SignedVerifiableCredential;
+    const verificationResult = await verifyW3CSignature(doc);
     if (verificationResult.verified) {
       return {
         type: 'DOCUMENT_INTEGRITY',

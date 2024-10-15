@@ -7,9 +7,9 @@ import {
 } from '@govtechsg/oa-verify';
 import { SignedVerifiableCredential } from '../';
 import { ethers } from 'ethers';
-import { w3cSignatureIntegrity } from './fragments/document-integrity';
-import { w3cCredentialStatus } from './fragments/document-status';
-import { w3cIssuerIdentity } from './fragments/issuer-identity';
+import { w3cSignatureIntegrity } from './fragments/document-integrity/w3cSignatureIntegrity';
+import { w3cCredentialStatus } from './fragments/document-status/w3cCredentialStatus';
+import { w3cIssuerIdentity } from './fragments/issuer-identity/w3cIssuerIdentity';
 import { utils } from '@govtechsg/open-attestation';
 
 /**
