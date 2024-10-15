@@ -45,6 +45,7 @@ jobs:
           node-version: 18
           registry-url: https://registry.npmjs.org/
       - run: npm ci
+      - run: npm run build
       - run: npm run release
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
