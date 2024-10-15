@@ -1,11 +1,11 @@
 import { Wallet } from '@ethersproject/wallet';
-import { sign } from '../../open-attestation';
+import { signOA } from '../..';
 import { describe, expect, it } from 'vitest';
 import { WRAPPED_DOCUMENT_DID } from '../fixtures/fixtures';
 
 describe('V4 sign', () => {
   it('should sign a document', async () => {
-    const signedWrappedDocument = await sign(WRAPPED_DOCUMENT_DID, {
+    const signedWrappedDocument = await signOA(WRAPPED_DOCUMENT_DID, {
       public: 'did:ethr:0xE712878f6E8d5d4F9e87E10DA604F9cB564C9a89#controller',
       private: '0x497c85ed89f1874ba37532d1e33519aba15bd533cdcb90774cc497bfe3cde655',
     });
@@ -21,7 +21,7 @@ describe('V4 sign', () => {
     const wallet = Wallet.fromMnemonic(
       'tourist quality multiply denial diary height funny calm disease buddy speed gold',
     );
-    const signedWrappedDocument = await sign(WRAPPED_DOCUMENT_DID, wallet);
+    const signedWrappedDocument = await signOA(WRAPPED_DOCUMENT_DID, wallet);
 
     const { proof } = signedWrappedDocument;
     expect(Object.keys(proof).length).toBe(9);
@@ -32,12 +32,12 @@ describe('V4 sign', () => {
   });
 
   it('should a signed document to be resigned', async () => {
-    const signedDocument = await sign(WRAPPED_DOCUMENT_DID, {
+    const signedDocument = await signOA(WRAPPED_DOCUMENT_DID, {
       public: 'did:ethr:0xb6De3744E1259e1aB692f5a277f053B79429c5a2#controller',
       private: '0x812269266b34d2919f737daf22db95f02642f8cdc0ca673bf3f701599f4971f5',
     });
 
-    const resignedDocument = await sign(WRAPPED_DOCUMENT_DID, {
+    const resignedDocument = await signOA(WRAPPED_DOCUMENT_DID, {
       public: 'did:ethr:0xb6De3744E1259e1aB692f5a277f053B79429c5a2#controller',
       private: '0x812269266b34d2919f737daf22db95f02642f8cdc0ca673bf3f701599f4971f5',
     });
@@ -46,14 +46,16 @@ describe('V4 sign', () => {
   });
 
   it('should throw error if a key or signer is invalid', async () => {
-    await expect(sign(WRAPPED_DOCUMENT_DID, {} as any)).rejects.toThrowErrorMatchingInlineSnapshot(
+    await expect(
+      signOA(WRAPPED_DOCUMENT_DID, {} as any),
+    ).rejects.toThrowErrorMatchingInlineSnapshot(
       `[Error: Either a keypair or ethers.js Signer must be provided]`,
     );
   });
 
   it('should throw error if proof is malformed', async () => {
     await expect(
-      sign(
+      signOA(
         {
           ...WRAPPED_DOCUMENT_DID,
           proof: { ...WRAPPED_DOCUMENT_DID.proof, merkleRoot: undefined as unknown as string },

@@ -6,7 +6,7 @@ import {
 } from '../fixtures/fixtures';
 import { describe, expect, it } from 'vitest';
 import { v4 } from '@govtechsg/open-attestation';
-import { verify } from '../../open-attestation';
+import { verifyOASignature } from '../..';
 
 const TEST_DOCUMENTS = {
   'Documents without proofs mean these documents are wrapped individually (i.e. targetHash == merkleRoot)':
@@ -18,8 +18,8 @@ const TEST_DOCUMENTS = {
 describe('V4 verify', () => {
   Object.entries(TEST_DOCUMENTS).forEach(([description, document]) => {
     describe(`${description}`, () => {
-      it('given a document wiht unaltered data, should return true', async () => {
-        expect(await verify(document)).toBe(true);
+      it('given a document with unaltered data, should return true', async () => {
+        expect(await verifyOASignature(document)).toBe(true);
       });
 
       describe('tampering', () => {
@@ -27,7 +27,7 @@ describe('V4 verify', () => {
           const newName = 'Fake Name';
           expect(document.issuer.name).not.toBe(newName);
           expect(
-            await verify({
+            await verifyOASignature({
               ...document,
               issuer: {
                 ...document.issuer,
@@ -41,7 +41,7 @@ describe('V4 verify', () => {
           const { name, ...issuerWithoutName } = document.issuer;
 
           expect(
-            await verify({
+            await verifyOASignature({
               ...document,
               issuer: {
                 ...issuerWithoutName,
@@ -62,7 +62,7 @@ describe('V4 verify', () => {
           expect(modifiedCredentialSubject.licenses[2].description).toBeDefined();
 
           expect(
-            await verify({
+            await verifyOASignature({
               ...document,
               credentialSubject: modifiedCredentialSubject,
             }),
@@ -76,7 +76,7 @@ describe('V4 verify', () => {
           expect(modifiedCredentialSubject.licenses[0].description).toBeUndefined();
 
           expect(
-            await verify({
+            await verifyOASignature({
               ...document,
               credentialSubject: modifiedCredentialSubject,
             }),
@@ -86,7 +86,7 @@ describe('V4 verify', () => {
         describe('given insertion of an empty object, should return false', () => {
           it('given insertion into an object', async () => {
             expect(
-              await verify({
+              await verifyOASignature({
                 ...document,
                 credentialSubject: {
                   ...document.credentialSubject,
@@ -103,7 +103,7 @@ describe('V4 verify', () => {
             expect(modifiedCredentialSubject.licenses[2]).toEqual({});
 
             expect(
-              await verify({
+              await verifyOASignature({
                 ...document,
                 credentialSubject: modifiedCredentialSubject,
               }),
@@ -114,7 +114,7 @@ describe('V4 verify', () => {
         describe('given insertion of an empty array, should return false', () => {
           it('given insertion into an object', async () => {
             expect(
-              await verify({
+              await verifyOASignature({
                 ...document,
                 credentialSubject: {
                   ...document.credentialSubject,
@@ -131,7 +131,7 @@ describe('V4 verify', () => {
             expect(modifiedCredentialSubject.licenses[2]).toEqual([]);
 
             expect(
-              await verify({
+              await verifyOASignature({
                 ...document,
                 credentialSubject: modifiedCredentialSubject,
               }),
@@ -141,7 +141,7 @@ describe('V4 verify', () => {
 
         it('given insertion of a null value into an object, should return false', async () => {
           expect(
-            await verify({
+            await verifyOASignature({
               ...document,
               credentialSubject: {
                 ...document.credentialSubject,
@@ -156,7 +156,7 @@ describe('V4 verify', () => {
           expect(modifiedCredentialSubject.licenses[2]).toEqual({});
 
           expect(
-            await verify({
+            await verifyOASignature({
               ...document,
               credentialSubject: modifiedCredentialSubject,
             }),
@@ -170,7 +170,7 @@ describe('V4 verify', () => {
           expect(modifiedCredentialSubject.licenses[2]).toBe(null);
 
           expect(
-            await verify({
+            await verifyOASignature({
               ...document,
               credentialSubject: modifiedCredentialSubject,
             }),
@@ -184,7 +184,7 @@ describe('V4 verify', () => {
           expect(typeof modifiedCredentialSubject.licenses[0].class).toBe('number');
 
           expect(
-            await verify({
+            await verifyOASignature({
               ...document,
               credentialSubject: modifiedCredentialSubject,
             }),
@@ -203,7 +203,7 @@ describe('V4 verify', () => {
           expect(modifiedCredentialSubject.id).toBeUndefined();
 
           expect(
-            await verify({
+            await verifyOASignature({
               ...document,
               id,
               credentialSubject: modifiedCredentialSubject,
@@ -217,14 +217,14 @@ describe('V4 verify', () => {
 
 describe('V2 verify', () => {
   it('given a document with unaltered data, should return true', async () => {
-    expect(await verify(WRAPPED_DOCUMENT_DNS_TXT_V2)).toBe(true);
+    expect(await verifyOASignature(WRAPPED_DOCUMENT_DNS_TXT_V2)).toBe(true);
   });
 
   it('given a value of a key in object is changed, should return false', async () => {
     const newName = 'a775d0db-ef6f-41ce-bb2f-f2366ef0e1a6:string:SG FREIGHT';
     expect(WRAPPED_DOCUMENT_DNS_TXT_V2.data.recipient.name).not.toBe(newName);
     expect(
-      await verify({
+      await verifyOASignature({
         ...WRAPPED_DOCUMENT_DNS_TXT_V2,
         data: {
           ...WRAPPED_DOCUMENT_DNS_TXT_V2.data,

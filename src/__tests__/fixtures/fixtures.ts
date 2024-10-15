@@ -683,6 +683,39 @@ export const WRAPPED_DOCUMENT_DNS_TXT_V2 = freezeObject({
   },
 } satisfies unknown as v2.WrappedDocument);
 
+export const W3C_VERIFIABLE_DOCUMENT = freezeObject({
+  '@context': [
+    'https://www.w3.org/2018/credentials/v1',
+    'https://w3c-ccg.github.io/citizenship-vocab/contexts/citizenship-v1.jsonld',
+    'https://w3id.org/security/bbs/v1',
+    'https://w3id.org/vc/status-list/2021/v1',
+  ],
+  credentialStatus: {
+    id: 'https://trustvc.github.io/did/credentials/statuslist/1#1',
+    type: 'StatusList2021Entry',
+    statusPurpose: 'revocation',
+    statusListIndex: '10',
+    statusListCredential: 'https://trustvc.github.io/did/credentials/statuslist/1',
+  },
+  credentialSubject: {
+    name: 'TrustVC',
+    birthDate: '2024-04-01T12:19:52Z',
+    type: ['PermanentResident', 'Person'],
+  },
+  expirationDate: '2029-12-03T12:19:52Z',
+  issuer: 'did:web:trustvc.github.io:did:1',
+  type: ['VerifiableCredential'],
+  issuanceDate: '2024-04-01T12:19:52Z',
+  proof: {
+    type: 'BbsBlsSignature2020',
+    created: '2024-10-14T04:11:49Z',
+    proofPurpose: 'assertionMethod',
+    proofValue:
+      'l79dlFQMowalep+WCFqgCvpVBcCAr0GDEFUV6S7gRVY/TQ+sp/wcwaT61PaD19rJYUHlKfzccE4m7waZyoLEkBLFiK2g54Q2i+CdtYBgDdkUDsoULSBMcH1MwGHwdjfXpldFNFrHFx/IAvLVniyeMQ==',
+    verificationMethod: 'did:web:trustvc.github.io:did:1#keys-1',
+  },
+});
+
 // Freeze fixture to prevent accidental changes during tests
 function freezeObject<T>(obj: T): T {
   return deepFreeze(obj) as T;

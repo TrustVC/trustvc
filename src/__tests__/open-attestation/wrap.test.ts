@@ -1,10 +1,10 @@
 import { v4 } from '@govtechsg/open-attestation';
-import { wrap } from '../../open-attestation';
+import { wrapOA } from '../..';
 import { describe, expect, it } from 'vitest';
 
 describe('V4.0 wrap document', () => {
   it('given a valid v4 document, should wrap correctly', async () => {
-    const wrapped = await wrap({
+    const wrapped = await wrapOA({
       '@context': [
         'https://www.w3.org/ns/credentials/v2',
         'https://schemata.openattestation.com/com/openattestation/4.0/context.json',
@@ -35,7 +35,7 @@ describe('V4.0 wrap document', () => {
 
   it('given a document with explicit v4 contexts, but does not conform to the V4 document schema, should throw', async () => {
     await expect(
-      wrap({
+      wrapOA({
         '@context': [
           'https://www.w3.org/ns/credentials/v2',
           'https://schemata.openattestation.com/com/openattestation/4.0/context.json',
@@ -74,7 +74,7 @@ describe('V4.0 wrap document', () => {
 
   it('given a valid v4 document but has an extra field, should throw', async () => {
     await expect(
-      wrap({
+      wrapOA({
         '@context': [
           'https://www.w3.org/ns/credentials/v2',
           'https://schemata.openattestation.com/com/openattestation/4.0/context.json',
@@ -122,7 +122,7 @@ describe('V4.0 wrap document', () => {
         id: 'https://example.com/issuer/123',
       },
     };
-    const wrapped = await wrap(genericW3cVc as unknown as v4.OpenAttestationDocument);
+    const wrapped = await wrapOA(genericW3cVc as unknown as v4.OpenAttestationDocument);
     expect(wrapped.proof.merkleRoot.length).toBe(64);
     expect(wrapped.proof.privacy.obfuscated).toEqual([]);
     expect(wrapped.proof.proofPurpose).toBe('assertionMethod');
