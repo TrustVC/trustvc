@@ -54,7 +54,7 @@ export default defineConfig([
     legacyOutput: true,
     outDir: 'dist',
     platform: 'node',
-    entry: ['src/**/*.ts', '!src/**/*.{test,spec}.ts'],
+    entry: ['src/**/*.ts', '!src/**/*.{test,spec}.ts', '!src/__tests__/**'],
     format: ['cjs', 'esm'],
     tsconfig: 'tsconfig.build.json',
     shims: true,

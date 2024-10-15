@@ -12,5 +12,5 @@
       "src/**/*.ts",
       "src/**/*.json"
     ],
-    "exclude": ["node_modules", ".coverage", "src/**/*.spec.ts", "src/**/*.test.ts"]
+    "exclude": ["node_modules", ".coverage", "src/**/*.spec.ts", "src/**/*.test.ts", "src/__tests__/**"]
   }

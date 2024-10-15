@@ -11,7 +11,7 @@ export default defineConfig({
       tsconfigPath: 'tsconfig.test.json',
     }),
   ],
-  cacheDir: './node_modules/.vitest',
+  cacheDir: 'node_modules/.vitest',
   test: {
     include: ['**/*.test.{ts,js}'],
     server: {
