@@ -9,7 +9,7 @@
     "dist"
   ],
   "scripts": {
-    "test": "npx vitest --run",
+    "test": "npx vitest --run --test-timeout=15000",
     "lint": "tsc && npx eslint . --color --format=table --max-warnings=0",
     "build": "npm run clean && tsup",
     "clean": "rm -rf dist/",
@@ -32,6 +32,17 @@
       "require": "./dist/index.js"
     }
   },
+  "dependencies": {
+    "@govtechsg/oa-verify": "9.3.0-beta.4",
+    "@govtechsg/open-attestation": "6.10.0-beta.7",
+    "js-sha3": "^0.9.3",
+    "ts-chacha20": "^1.2.0",
+    "@trustvc/w3c-issuer": "1.0.0-alpha.1",
+    "@trustvc/w3c-vc": "1.0.0-alpha.1",
+    "@trustvc/w3c-context": "1.0.0-alpha.1",
+    "did-resolver": "^4.1.0",
+    "web-did-resolver": "^2.0.27"
+  },
   "devDependencies": {
     "@commitlint/cli": "^19.3.0",
     "@commitlint/config-conventional": "^19.2.2",
@@ -39,6 +50,7 @@
     "@commitlint/prompt": "^19.3.1",
     "@semantic-release/npm": "^9.0.2",
     "@types/conventional-commits-parser": "^5.0.0",
+    "@types/lodash": "^4.17.10",
     "@types/node": "^18.17.0",
     "@vitest/coverage-v8": "^1.6.0",
     "cpy": "^11.1.0",
