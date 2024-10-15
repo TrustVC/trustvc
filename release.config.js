@@ -8,7 +8,6 @@ module.exports = {
     {
       name: 'v1',
       prerelease: 'alpha',
-      range: '1.x',
     },
   ],
   github: true,
@@ -20,28 +19,37 @@ module.exports = {
   debug: true,
   plugins: [
     [
+      '@semantic-release/commit-analyzer',
+      {
+        releaseRules: [
+          {
+            subject: '*BREAKING CHANGE*',
+            release: 'major',
+          },
+          {
+            type: 'feat',
+            release: 'minor',
+          },
+          {
+            type: 'fix',
+            release: 'patch',
+          },
+          {
+            type: 'perf',
+            release: 'patch',
+          },
+        ],
+      },
+    ],
+    '@semantic-release/release-notes-generator',
+    '@semantic-release/changelog',
+    [
       '@semantic-release/npm',
       {
         npmPublish: true,
       },
     ],
-  ],
-  releaseRules: [
-    {
-      subject: '*BREAKING CHANGE*',
-      release: 'major',
-    },
-    {
-      type: 'feat',
-      release: 'minor',
-    },
-    {
-      type: 'fix',
-      release: 'patch',
-    },
-    {
-      type: 'perf',
-      release: 'patch',
-    },
+    '@semantic-release/git',
+    '@semantic-release/github',
   ],
 };

@@ -35,12 +35,12 @@
   "dependencies": {
     "@govtechsg/oa-verify": "9.3.0-beta.4",
     "@govtechsg/open-attestation": "6.10.0-beta.7",
-    "js-sha3": "^0.9.3",
-    "ts-chacha20": "^1.2.0",
+    "@trustvc/w3c-context": "1.0.0-alpha.1",
     "@trustvc/w3c-issuer": "1.0.0-alpha.1",
     "@trustvc/w3c-vc": "1.0.0-alpha.1",
-    "@trustvc/w3c-context": "1.0.0-alpha.1",
     "did-resolver": "^4.1.0",
+    "js-sha3": "^0.9.3",
+    "ts-chacha20": "^1.2.0",
     "web-did-resolver": "^2.0.27"
   },
   "devDependencies": {
@@ -48,6 +48,8 @@
     "@commitlint/config-conventional": "^19.2.2",
     "@commitlint/config-nx-scopes": "^19.5.0",
     "@commitlint/prompt": "^19.3.1",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
     "@semantic-release/npm": "^9.0.2",
     "@types/conventional-commits-parser": "^5.0.0",
     "@types/lodash": "^4.17.10",
