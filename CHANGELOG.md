@@ -1,3 +1,10 @@
+# [1.0.0-alpha.2](https://github.com/TrustVC/trustvc/compare/v1.0.0-alpha.1...v1.0.0-alpha.2) (2024-10-15)
+
+
+### Bug Fixes
+
+* fix published package ([8362c43](https://github.com/TrustVC/trustvc/commit/8362c43c502a0284239633797486ba7e1550bbe8))
+
 # [1.0.0-alpha.1](https://github.com/TrustVC/trustvc/compare/v0.0.0...v1.0.0-alpha.1) (2024-10-15)
 
 
