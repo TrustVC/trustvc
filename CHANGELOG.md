@@ -1,3 +1,10 @@
+# [1.0.0-alpha.3](https://github.com/TrustVC/trustvc/compare/v1.0.0-alpha.2...v1.0.0-alpha.3) (2024-10-15)
+
+
+### Bug Fixes
+
+* resolve build output ([aa214b3](https://github.com/TrustVC/trustvc/commit/aa214b3587a3af086e45f170e617569b8bd58f1b))
+
 # [1.0.0-alpha.2](https://github.com/TrustVC/trustvc/compare/v1.0.0-alpha.1...v1.0.0-alpha.2) (2024-10-15)
 
 
