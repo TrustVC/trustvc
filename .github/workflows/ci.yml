@@ -8,6 +8,7 @@ on:
       - dev
       - feat/*
       - feature/*
+      - v[0-9]*
 
 permissions:
   actions: read
