@@ -1,15 +1,17 @@
 # TrustVC
 
 ## About
-A wrapper lib to facilitate the signing and verifying of TrustVC W3C [Verifiable Credentials (VC)](https://github.com/TrustVC/w3c/tree/alpha) 1.0.0-alpha, adhering to W3C [VC](https://www.w3.org/TR/vc-data-model/) Data Model v1.1 and OpenAttestation [Verifiable Documents (VD)](https://github.com/Open-Attestation/open-attestation/tree/beta) v6.10.0-beta.
+TrustVC is a wrapper library that facilitates the signing and verification of TrustVC W3C [Verifiable Credentials (VC)](https://github.com/TrustVC/w3c/tree/alpha) 1.0.0-alpha, adhering to the W3C [VC](https://www.w3.org/TR/vc-data-model/) Data Model v1.1 and OpenAttestation [Verifiable Documents (VD)](https://github.com/Open-Attestation/open-attestation/tree/beta) v6.10.0-beta.
 
 
 ## Functions
-1. **Signing**
+### 1. **Signing**
 
-> Idenpendent signing function for TrustVC W3C VC and OpenAttestation VD
+> Independent signing function for TrustVC W3C VC and OpenAttestation VD
 
   1. OpenAttestation Signing (signOA), supporting only OA Schema [v4](https://github.com/Open-Attestation/open-attestation/tree/beta/src/4.0)
+    
+  > [!NOTE]
   > Do not confuse OA Schema V4 with OA package version.
 
 ```ts
@@ -83,11 +85,12 @@ const signingResult = await signW3C(rawDocument, {
 });
 ```
 
-2. **Verifying**
+### 2. **Verifying**
 
-Single verifying function to simplify the process
+> Single verifying function to simplify the process
 
   1. Verify
+
 ```ts
 import { verifyDocument } from '@trustvc/trustvc';
 
