@@ -1,4 +1,4 @@
-import { stringToUint8Array, generate32ByteKey, generate12ByteNonce } from 'src/utils/stringUtils';
+import { stringToUint8Array, generate32ByteKey, generate12ByteNonce } from '../utils/stringUtils';
 import { Chacha20 } from 'ts-chacha20';
 
 /**
