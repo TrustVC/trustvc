@@ -1,3 +1,10 @@
+# [1.0.0-alpha.6](https://github.com/TrustVC/trustvc/compare/v1.0.0-alpha.5...v1.0.0-alpha.6) (2024-10-22)
+
+
+### Bug Fixes
+
+* update encoding function ([#11](https://github.com/TrustVC/trustvc/issues/11)) ([777e128](https://github.com/TrustVC/trustvc/commit/777e128683c89b2b05d658c8a86ed4c45f372a56))
+
 # [1.0.0-alpha.5](https://github.com/TrustVC/trustvc/compare/v1.0.0-alpha.4...v1.0.0-alpha.5) (2024-10-22)
 
 
