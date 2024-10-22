@@ -1,3 +1,10 @@
+# [1.0.0-alpha.5](https://github.com/TrustVC/trustvc/compare/v1.0.0-alpha.4...v1.0.0-alpha.5) (2024-10-22)
+
+
+### Bug Fixes
+
+* resolve import error ([#10](https://github.com/TrustVC/trustvc/issues/10)) ([b1f72fe](https://github.com/TrustVC/trustvc/commit/b1f72fe91aa1c334e7a0328838a4ffe28245ad56))
+
 # [1.0.0-alpha.4](https://github.com/TrustVC/trustvc/compare/v1.0.0-alpha.3...v1.0.0-alpha.4) (2024-10-22)
 
 
