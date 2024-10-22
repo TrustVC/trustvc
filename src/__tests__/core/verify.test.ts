@@ -1,14 +1,18 @@
+import { beforeEach } from 'node:test';
+import { describe, it, vi } from 'vitest';
 import { verifyDocument } from '../..';
+import * as transferableRecordsUtils from '../../core/fragments/document-status/transferableRecords/utils';
 import {
   SIGNED_WRAPPED_DOCUMENT_DID,
-  WRAPPED_DOCUMENT_DNS_TXT_V2,
+  W3C_TRANSFERABLE_RECORD,
   W3C_VERIFIABLE_DOCUMENT,
+  WRAPPED_DOCUMENT_DNS_TXT_V2,
 } from '../fixtures/fixtures';
-import { describe, expect, it } from 'vitest';
 
-describe('W3C verify', () => {
-  it('should verify the document and return all valid fragments', async () => {
-    expect(await verifyDocument(W3C_VERIFIABLE_DOCUMENT, '')).toMatchInlineSnapshot(`
+describe.concurrent('W3C verify', () => {
+  describe('W3C_VERIFIABLE_DOCUMENT', () => {
+    it('should verify the document and return all valid fragments', async ({ expect }) => {
+      expect(await verifyDocument(W3C_VERIFIABLE_DOCUMENT, '')).toMatchInlineSnapshot(`
       [
         {
           "data": true,
@@ -28,181 +32,358 @@ describe('W3C verify', () => {
           "status": "VALID",
           "type": "ISSUER_IDENTITY",
         },
+        {
+          "name": "TransferableRecords",
+          "reason": {
+            "code": 4,
+            "codeString": "SKIPPED",
+            "message": "Document does not have TransferableRecords status",
+          },
+          "status": "SKIPPED",
+          "type": "DOCUMENT_STATUS",
+        },
       ]
     `);
+    });
+
+    it('should return INVALID status for DOCUMENT_INTEGRITY when signature is tampered', async ({
+      expect,
+    }) => {
+      const tampered = { ...W3C_VERIFIABLE_DOCUMENT, expirationDate: '2029-12-03T12:19:53Z' };
+      expect(await verifyDocument(tampered, '')).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            data: false,
+            name: 'W3CSignatureIntegrity',
+            reason: {
+              message: 'Invalid signature.',
+            },
+            status: 'INVALID',
+            type: 'DOCUMENT_INTEGRITY',
+          }),
+        ]),
+      );
+    });
+
+    it('should skip DOCUMENT_INTEGRITY verification for unsupported proof type', async ({
+      expect,
+    }) => {
+      const tampered = {
+        ...W3C_VERIFIABLE_DOCUMENT,
+        proof: {
+          ...W3C_VERIFIABLE_DOCUMENT.proof,
+          type: 'Ed25519Signature2020',
+        },
+      };
+
+      expect(await verifyDocument(tampered, '')).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            name: 'W3CSignatureIntegrity',
+            reason: {
+              code: 0,
+              codeString: 'SKIPPED',
+              message: "Document either has no proof or proof.type is not 'BbsBlsSignature2020'.",
+            },
+            status: 'SKIPPED',
+            type: 'DOCUMENT_INTEGRITY',
+          }),
+        ]),
+      );
+    });
+
+    it('should skip ISSUER_IDENTITY verification when issuer field is missing', async ({
+      expect,
+    }) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { issuer, ...documentWithoutIssuer } = W3C_VERIFIABLE_DOCUMENT;
+
+      expect(await verifyDocument(documentWithoutIssuer, '')).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            name: 'W3CIssuerIdentity',
+            reason: {
+              code: 0,
+              codeString: 'SKIPPED',
+              message: 'Document has no issuer field.',
+            },
+            status: 'SKIPPED',
+            type: 'ISSUER_IDENTITY',
+          }),
+        ]),
+      );
+    });
+
+    it('should return INVALID status for ISSUER_IDENTITY when DID cannot be resolved', async ({
+      expect,
+    }) => {
+      const tampered = {
+        ...W3C_VERIFIABLE_DOCUMENT,
+        issuer: 'did:example:abc',
+        proof: {
+          ...W3C_VERIFIABLE_DOCUMENT.proof,
+          verificationMethod: 'did:example:abc#keys-1',
+        },
+      };
+
+      expect(await verifyDocument(tampered, '')).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            data: false,
+            name: 'W3CIssuerIdentity',
+            reason: {
+              message: 'The DID cannot be resolved.',
+            },
+            status: 'INVALID',
+            type: 'ISSUER_IDENTITY',
+          }),
+        ]),
+      );
+    });
+
+    it('should return INVALID status for ISSUER_IDENTITY when issuer and verification method do not match', async ({
+      expect,
+    }) => {
+      const tampered = { ...W3C_VERIFIABLE_DOCUMENT, issuer: 'did:example:abc' };
+      expect(await verifyDocument(tampered, '')).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            data: false,
+            name: 'W3CIssuerIdentity',
+            reason: {
+              message: 'Issuer and verification method do not match.',
+            },
+            status: 'INVALID',
+            type: 'ISSUER_IDENTITY',
+          }),
+        ]),
+      );
+    });
+
+    it('should skip DOCUMENT_STATUS verification when credentialStatus is missing', async ({
+      expect,
+    }) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { credentialStatus, ...documentWithoutCredentialStatus } = W3C_VERIFIABLE_DOCUMENT;
+
+      expect(await verifyDocument(documentWithoutCredentialStatus, '')).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            name: 'W3CCredentialStatus',
+            reason: {
+              code: 0,
+              codeString: 'SKIPPED',
+              message: 'Document does not have a valid credentialStatus or type.',
+            },
+            status: 'SKIPPED',
+            type: 'DOCUMENT_STATUS',
+          }),
+        ]),
+      );
+    });
+
+    it('should return INVALID status for DOCUMENT_STATUS when credential is revoked', async ({
+      expect,
+    }) => {
+      const tampered = {
+        ...W3C_VERIFIABLE_DOCUMENT,
+        credentialStatus: {
+          ...W3C_VERIFIABLE_DOCUMENT.credentialStatus,
+          statusListIndex: '5',
+        },
+      };
+
+      expect(await verifyDocument(tampered, '')).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            data: false,
+            name: 'W3CCredentialStatus',
+            status: 'INVALID',
+            type: 'DOCUMENT_STATUS',
+          }),
+        ]),
+      );
+    });
+
+    it('should return ERROR status for DOCUMENT_STATUS when statusListIndex is out of range', async ({
+      expect,
+    }) => {
+      const tampered = {
+        ...W3C_VERIFIABLE_DOCUMENT,
+        credentialStatus: {
+          ...W3C_VERIFIABLE_DOCUMENT.credentialStatus,
+          statusListIndex: '131072',
+        },
+      };
+
+      expect(await verifyDocument(tampered, '')).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            name: 'W3CCredentialStatus',
+            reason: {
+              message: 'Invalid statusListIndex: Index out of range: min=0, max=131071',
+            },
+            status: 'ERROR',
+            type: 'DOCUMENT_STATUS',
+          }),
+        ]),
+      );
+    });
   });
 
-  it('should return INVALID status for DOCUMENT_INTEGRITY when signature is tampered', async () => {
-    const tampered = { ...W3C_VERIFIABLE_DOCUMENT, expirationDate: '2029-12-03T12:19:53Z' };
-    expect(await verifyDocument(tampered, '')).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          data: false,
-          name: 'W3CSignatureIntegrity',
-          reason: {
-            message: 'Invalid signature.',
+  describe('W3C_TRANSFERABLE_RECORD', () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+      vi.resetAllMocks();
+    });
+
+    it('should return VALID status for TransferableRecords', async ({ expect }) => {
+      expect(await verifyDocument(W3C_TRANSFERABLE_RECORD, 'https://rpc-amoy.polygon.technology'))
+        .toMatchInlineSnapshot(`
+          [
+            {
+              "data": true,
+              "name": "W3CSignatureIntegrity",
+              "status": "VALID",
+              "type": "DOCUMENT_INTEGRITY",
+            },
+            {
+              "name": "W3CCredentialStatus",
+              "reason": {
+                "code": 0,
+                "codeString": "SKIPPED",
+                "message": "Document does not have a valid credentialStatus or type.",
+              },
+              "status": "SKIPPED",
+              "type": "DOCUMENT_STATUS",
+            },
+            {
+              "data": true,
+              "name": "W3CIssuerIdentity",
+              "status": "VALID",
+              "type": "ISSUER_IDENTITY",
+            },
+            {
+              "data": {
+                "tokenRegistry": "0x6c2a002A5833a100f38458c50F11E71Aa1A342c6",
+              },
+              "name": "TransferableRecords",
+              "status": "VALID",
+              "type": "DOCUMENT_STATUS",
+            },
+          ]
+        `);
+    });
+
+    it('should return INVALID status for TransferableRecords when tokenRegistry is missing', async ({
+      expect,
+    }) => {
+      const tampered = {
+        ...W3C_TRANSFERABLE_RECORD,
+        credentialStatus: {
+          ...W3C_TRANSFERABLE_RECORD.credentialStatus,
+          tokenRegistry: '',
+        },
+      };
+      expect(await verifyDocument(tampered, 'https://rpc-amoy.polygon.technology')).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            name: 'TransferableRecords',
+            reason: {
+              code: 9,
+              codeString: 'UNRECOGNIZED_DOCUMENT',
+              message: "Document's credentialStatus does not have tokenRegistry",
+            },
+            status: 'ERROR',
+            type: 'DOCUMENT_STATUS',
+          }),
+        ]),
+      );
+    });
+
+    it('should return INVALID status for TransferableRecords when tokenNetwork.chainId is missing', async ({
+      expect,
+    }) => {
+      const tampered = {
+        ...W3C_TRANSFERABLE_RECORD,
+        credentialStatus: {
+          ...W3C_TRANSFERABLE_RECORD.credentialStatus,
+          tokenNetwork: {
+            chainId: '',
           },
-          status: 'INVALID',
-          type: 'DOCUMENT_INTEGRITY',
-        }),
-      ]),
-    );
-  });
+        },
+      };
+      expect(await verifyDocument(tampered, 'https://rpc-amoy.polygon.technology')).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            name: 'TransferableRecords',
+            reason: {
+              code: 9,
+              codeString: 'UNRECOGNIZED_DOCUMENT',
+              message: "Document's credentialStatus does not have tokenNetwork.chainId",
+            },
+            status: 'ERROR',
+            type: 'DOCUMENT_STATUS',
+          }),
+        ]),
+      );
+    });
 
-  it('should skip DOCUMENT_INTEGRITY verification for unsupported proof type', async () => {
-    const tampered = {
-      ...W3C_VERIFIABLE_DOCUMENT,
-      proof: {
-        ...W3C_VERIFIABLE_DOCUMENT.proof,
-        type: 'Ed25519Signature2020',
-      },
-    };
+    it('should return INVALID status for TransferableRecords when token is not minted', async ({
+      expect,
+    }) => {
+      const tampered = {
+        ...W3C_TRANSFERABLE_RECORD,
+        credentialStatus: {
+          ...W3C_TRANSFERABLE_RECORD.credentialStatus,
+          tokenId: '123',
+        },
+      };
+      expect(await verifyDocument(tampered, 'https://rpc-amoy.polygon.technology')).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            name: 'TransferableRecords',
+            reason: {
+              code: 1,
+              codeString: 'DOCUMENT_NOT_MINTED',
+              message: 'Document has not been issued under token registry',
+            },
+            status: 'INVALID',
+            type: 'DOCUMENT_STATUS',
+          }),
+        ]),
+      );
+    });
 
-    expect(await verifyDocument(tampered, '')).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          name: 'W3CSignatureIntegrity',
-          reason: {
-            code: 0,
-            codeString: 'SKIPPED',
-            message: "Document either has no proof or proof.type is not 'BbsBlsSignature2020'.",
-          },
-          status: 'SKIPPED',
-          type: 'DOCUMENT_INTEGRITY',
-        }),
-      ]),
-    );
-  });
+    it('should return ERROR status for TransferableRecords when unexpected error', async ({
+      expect,
+    }) => {
+      vi.spyOn(transferableRecordsUtils, 'isTokenMintedOnRegistry').mockRejectedValue(
+        new Error('Unexpected error'),
+      );
 
-  it('should skip ISSUER_IDENTITY verification when issuer field is missing', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { issuer, ...documentWithoutIssuer } = W3C_VERIFIABLE_DOCUMENT;
-
-    expect(await verifyDocument(documentWithoutIssuer, '')).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          name: 'W3CIssuerIdentity',
-          reason: {
-            code: 0,
-            codeString: 'SKIPPED',
-            message: 'Document has no issuer field.',
-          },
-          status: 'SKIPPED',
-          type: 'ISSUER_IDENTITY',
-        }),
-      ]),
-    );
-  });
-
-  it('should return INVALID status for ISSUER_IDENTITY when DID cannot be resolved', async () => {
-    const tampered = {
-      ...W3C_VERIFIABLE_DOCUMENT,
-      issuer: 'did:example:abc',
-      proof: {
-        ...W3C_VERIFIABLE_DOCUMENT.proof,
-        verificationMethod: 'did:example:abc#keys-1',
-      },
-    };
-
-    expect(await verifyDocument(tampered, '')).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          data: false,
-          name: 'W3CIssuerIdentity',
-          reason: {
-            message: 'The DID cannot be resolved.',
-          },
-          status: 'INVALID',
-          type: 'ISSUER_IDENTITY',
-        }),
-      ]),
-    );
-  });
-
-  it('should return INVALID status for ISSUER_IDENTITY when issuer and verification method do not match', async () => {
-    const tampered = { ...W3C_VERIFIABLE_DOCUMENT, issuer: 'did:example:abc' };
-    expect(await verifyDocument(tampered, '')).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          data: false,
-          name: 'W3CIssuerIdentity',
-          reason: {
-            message: 'Issuer and verification method do not match.',
-          },
-          status: 'INVALID',
-          type: 'ISSUER_IDENTITY',
-        }),
-      ]),
-    );
-  });
-
-  it('should skip DOCUMENT_STATUS verification when credentialStatus is missing', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { credentialStatus, ...documentWithoutCredentialStatus } = W3C_VERIFIABLE_DOCUMENT;
-
-    expect(await verifyDocument(documentWithoutCredentialStatus, '')).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          name: 'W3CCredentialStatus',
-          reason: {
-            code: 0,
-            codeString: 'SKIPPED',
-            message: 'Document does not have a valid credentialStatus or type.',
-          },
-          status: 'SKIPPED',
-          type: 'DOCUMENT_STATUS',
-        }),
-      ]),
-    );
-  });
-
-  it('should return INVALID status for DOCUMENT_STATUS when credential is revoked', async () => {
-    const tampered = {
-      ...W3C_VERIFIABLE_DOCUMENT,
-      credentialStatus: {
-        ...W3C_VERIFIABLE_DOCUMENT.credentialStatus,
-        statusListIndex: '5',
-      },
-    };
-
-    expect(await verifyDocument(tampered, '')).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          data: false,
-          name: 'W3CCredentialStatus',
-          status: 'INVALID',
-          type: 'DOCUMENT_STATUS',
-        }),
-      ]),
-    );
-  });
-
-  it('should return ERROR status for DOCUMENT_STATUS when statusListIndex is out of range', async () => {
-    const tampered = {
-      ...W3C_VERIFIABLE_DOCUMENT,
-      credentialStatus: {
-        ...W3C_VERIFIABLE_DOCUMENT.credentialStatus,
-        statusListIndex: '131072',
-      },
-    };
-
-    expect(await verifyDocument(tampered, '')).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          name: 'W3CCredentialStatus',
-          reason: {
-            message: 'Invalid statusListIndex: Index out of range: min=0, max=131071',
-          },
-          status: 'ERROR',
-          type: 'DOCUMENT_STATUS',
-        }),
-      ]),
-    );
+      expect(
+        await verifyDocument(W3C_TRANSFERABLE_RECORD, 'https://rpc-amoy.polygon.technology'),
+      ).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            name: 'TransferableRecords',
+            reason: {
+              code: 0,
+              codeString: 'UNEXPECTED_ERROR',
+              message: 'Unexpected error',
+            },
+            status: 'ERROR',
+            type: 'DOCUMENT_STATUS',
+          }),
+        ]),
+      );
+    });
   });
 });
 
-describe('V4 verify', () => {
-  it('should verify a document and return fragments', async () => {
+describe.concurrent('V4 verify', () => {
+  it('should verify a document and return fragments', async ({ expect }) => {
     expect(await verifyDocument(SIGNED_WRAPPED_DOCUMENT_DID, '')).toMatchInlineSnapshot(`
       [
         {
@@ -279,13 +460,23 @@ describe('V4 verify', () => {
           "status": "SKIPPED",
           "type": "ISSUER_IDENTITY",
         },
+        {
+          "name": "TransferableRecords",
+          "reason": {
+            "code": 4,
+            "codeString": "SKIPPED",
+            "message": "Document does not have TransferableRecords status",
+          },
+          "status": "SKIPPED",
+          "type": "DOCUMENT_STATUS",
+        },
       ]
     `);
   });
 });
 
-describe('V2 verify', () => {
-  it('should verify a document and return fragments', async () => {
+describe.concurrent('V2 verify', () => {
+  it('should verify a document and return fragments', async ({ expect }) => {
     expect(
       await verifyDocument(
         WRAPPED_DOCUMENT_DNS_TXT_V2,
@@ -364,6 +555,16 @@ describe('V2 verify', () => {
           },
           "status": "SKIPPED",
           "type": "ISSUER_IDENTITY",
+        },
+        {
+          "name": "TransferableRecords",
+          "reason": {
+            "code": 4,
+            "codeString": "SKIPPED",
+            "message": "Document does not have TransferableRecords status",
+          },
+          "status": "SKIPPED",
+          "type": "DOCUMENT_STATUS",
         },
       ]
     `);
