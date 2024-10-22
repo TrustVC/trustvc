@@ -29,7 +29,6 @@ export function encrypt(message: string, key: string, nonce?: string): string {
   // Convert the key and nonce from strings to Uint8Array buffers to be compatible with ChaCha20
   const keyBuffer = stringToUint8Array(key);
   const nonceBuffer = stringToUint8Array(nonce);
-  console.log(keyBuffer);
 
   // Initialize a new ChaCha20 instance with the key and nonce buffers
   const chacha20 = new Chacha20(keyBuffer, nonceBuffer);

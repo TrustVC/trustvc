@@ -3,7 +3,7 @@ import { shake256 } from 'js-sha3';
 /**
  * Converts a string into a Uint8Array.
  *
- * This function takes a string input and uses the `TextEncoder` API to encode it into a
+ * This function takes a string input and uses the `Uint8Array` API to encode it into a
  * Uint8Array, which is suitable for binary operations like encryption.
  *
  * @param {string} str - The string to be converted into a Uint8Array.
