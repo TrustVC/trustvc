@@ -1,4 +1,4 @@
-import { stringToUint8Array, generate32ByteKey, generate12ByteNonce } from 'src/utils/stringUtils';
+import { stringToUint8Array, generate32ByteKey, generate12ByteNonce } from '../utils/stringUtils';
 import { Chacha20 } from 'ts-chacha20';
 
 /**
@@ -29,12 +29,13 @@ export function encrypt(message: string, key: string, nonce?: string): string {
   // Convert the key and nonce from strings to Uint8Array buffers to be compatible with ChaCha20
   const keyBuffer = stringToUint8Array(key);
   const nonceBuffer = stringToUint8Array(nonce);
+  console.log(keyBuffer);
 
   // Initialize a new ChaCha20 instance with the key and nonce buffers
   const chacha20 = new Chacha20(keyBuffer, nonceBuffer);
 
   // Convert the message string to a buffer for encryption
-  const messageBuffer = Buffer.from(message, 'utf-8');
+  const messageBuffer = stringToUint8Array(message);
 
   // Encrypt the message buffer using the ChaCha20 instance
   const encrypted = chacha20.encrypt(messageBuffer);
