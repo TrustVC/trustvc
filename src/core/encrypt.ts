@@ -34,7 +34,7 @@ export function encrypt(message: string, key: string, nonce?: string): string {
   const chacha20 = new Chacha20(keyBuffer, nonceBuffer);
 
   // Convert the message string to a buffer for encryption
-  const messageBuffer = Buffer.from(message, 'utf-8');
+  const messageBuffer = stringToUint8Array(message);
 
   // Encrypt the message buffer using the ChaCha20 instance
   const encrypted = chacha20.encrypt(messageBuffer);

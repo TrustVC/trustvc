@@ -3,18 +3,15 @@ import { shake256 } from 'js-sha3';
 /**
  * Converts a string into a Uint8Array.
  *
- * This function takes a string input and uses the `TextEncoder` API to encode it into a
+ * This function takes a string input and uses the `Uint8Array` API to encode it into a
  * Uint8Array, which is suitable for binary operations like encryption.
  *
  * @param {string} str - The string to be converted into a Uint8Array.
  * @returns {Uint8Array} - The encoded Uint8Array representation of the input string.
  */
 export function stringToUint8Array(str: string): Uint8Array {
-  // Create a TextEncoder instance for encoding the string
-  const encoder = new TextEncoder();
-
-  // Encode the string into a Uint8Array using UTF-8 encoding
-  return encoder.encode(str);
+  // convert a string to uint8array to be used in chacha20
+  return new Uint8Array(Buffer.from(str, 'utf-8'));
 }
 
 /**
