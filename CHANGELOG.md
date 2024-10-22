@@ -1,3 +1,10 @@
+# [1.0.0-alpha.4](https://github.com/TrustVC/trustvc/compare/v1.0.0-alpha.3...v1.0.0-alpha.4) (2024-10-22)
+
+
+### Bug Fixes
+
+* update package ([#9](https://github.com/TrustVC/trustvc/issues/9)) ([0ca2a6b](https://github.com/TrustVC/trustvc/commit/0ca2a6b087f6883e5b39fabe80231d71269b58c1))
+
 # [1.0.0-alpha.3](https://github.com/TrustVC/trustvc/compare/v1.0.0-alpha.2...v1.0.0-alpha.3) (2024-10-15)
 
 
