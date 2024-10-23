@@ -27,6 +27,10 @@ module.exports = {
             release: 'major',
           },
           {
+            footer: '*BREAKING CHANGE*',
+            release: 'major',
+          },
+          {
             type: 'feat',
             release: 'minor',
           },
@@ -41,7 +45,27 @@ module.exports = {
         ],
       },
     ],
-    '@semantic-release/release-notes-generator',
+    [
+      '@semantic-release/release-notes-generator',
+      {
+        /*
+            use conventionalcommits instead of conventional-changelog-angular (default)
+            to introduce new sections in changelog
+        */
+        preset: 'conventionalcommits',
+        presetConfig: {
+          types: [
+            { type: 'feat', section: 'Features', hidden: false },
+            { type: 'fix', section: 'Bug Fixes', hidden: false },
+            { type: 'docs', section: 'Miscellaneous Chores', hidden: false },
+            { type: 'chore', section: 'Miscellaneous Chores', hidden: false },
+          ],
+        },
+        parserOpts: {
+          noteKeywords: ['BREAKING CHANGE', 'BREAKING CHANGES', 'BREAKING'],
+        },
+      },
+    ],
     '@semantic-release/changelog',
     [
       '@semantic-release/npm',

@@ -11,6 +11,7 @@ import { w3cSignatureIntegrity } from './fragments/document-integrity/w3cSignatu
 import { w3cCredentialStatus } from './fragments/document-status/w3cCredentialStatus';
 import { w3cIssuerIdentity } from './fragments/issuer-identity/w3cIssuerIdentity';
 import { utils } from '@govtechsg/open-attestation';
+import { credentialStatusTransferableRecordVerifier } from './fragments/document-status/transferableRecords/transferableRecordVerifier';
 
 /**
  * Asynchronously verifies a document (OpenAttestation or W3C Verifiable Credential) using a specified Ethereum-compatible JSON-RPC provider.
@@ -40,7 +41,11 @@ export const verifyDocument = async (
   ) {
     // Build the verification process using OpenAttestation verifiers and DID identity proof
     const verify = verificationBuilder(
-      [...openAttestationVerifiers, openAttestationDidIdentityProof],
+      [
+        ...openAttestationVerifiers,
+        openAttestationDidIdentityProof,
+        credentialStatusTransferableRecordVerifier,
+      ],
       {
         provider: new ethers.providers.JsonRpcProvider(rpcProviderUrl), // Use user-provided provider URL
       },
@@ -51,7 +56,12 @@ export const verifyDocument = async (
   } else {
     // Build the verification process using w3c fragments
     const verify = verificationBuilder(
-      [w3cSignatureIntegrity, w3cCredentialStatus, w3cIssuerIdentity],
+      [
+        w3cSignatureIntegrity,
+        w3cCredentialStatus,
+        w3cIssuerIdentity,
+        credentialStatusTransferableRecordVerifier,
+      ],
       {
         provider: new ethers.providers.JsonRpcProvider(rpcProviderUrl), // Use user-provided provider URL
       },
