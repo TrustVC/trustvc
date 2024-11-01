@@ -1,3 +1,4 @@
+import { DEFAULT_KEY } from 'src/config';
 import { stringToUint8Array, generate32ByteKey, generate12ByteNonce } from '../utils/stringUtils';
 import { Chacha20 } from 'ts-chacha20';
 
@@ -15,12 +16,11 @@ import { Chacha20 } from 'ts-chacha20';
  * @throws {Error} - Throws if the decryption process encounters any issues.
  */
 export function decrypt(encryptedMessage: string, key: string, nonce?: string): string {
-  // Check if the key length is 0 and throw an error if it is
-  if (key.length === 0) {
-    throw new Error('Key length must not be 0');
-  }
+  // Use a default key if the provided key is empty
+  key = key.length > 0 ? key : DEFAULT_KEY;
+
   // Ensure the key is transformed into a 32-byte key
-  key = generate32ByteKey(key ?? '');
+  key = generate32ByteKey(key);
 
   // Generate a 12-byte nonce if not provided, using the generate12ByteNonce function
   nonce = generate12ByteNonce(nonce ?? '');
@@ -32,8 +32,8 @@ export function decrypt(encryptedMessage: string, key: string, nonce?: string): 
   // Initialize a new ChaCha20 instance with the key and nonce buffers
   const chacha20 = new Chacha20(keyBuffer, nonceBuffer);
 
-  // Convert the encrypted message (in base64 format) back to a buffer for decryption
-  const encryptedBuffer = Buffer.from(encryptedMessage, 'hex');
+  // Convert the encrypted message (in hex format) back to a Uint8Array for decryption
+  const encryptedBuffer = new Uint8Array(Buffer.from(encryptedMessage, 'hex'));
 
   // Decrypt the encrypted buffer using the ChaCha20 instance
   const decrypted = chacha20.decrypt(encryptedBuffer);
