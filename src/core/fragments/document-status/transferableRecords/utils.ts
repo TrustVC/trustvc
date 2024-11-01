@@ -7,8 +7,16 @@ import {
 import { TradeTrustToken__factory } from '@tradetrust-tt/token-registry/dist/contracts';
 import { errors, providers, constants } from 'ethers';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const isNonExistentToken = (error: any) => {
+// TODO: Remove and replace with ethers v6 ERROR interfaces https://github.com/ethers-io/ethers.js/blob/v6.13.4/src.ts/utils/errors.ts#L156
+type EthersError = {
+  message?: string;
+  data?: string;
+  method?: string;
+  reason?: string;
+  code?: errors;
+};
+
+const isNonExistentToken = (error: EthersError) => {
   const message: string | undefined = error.message;
   if (!message) {
     // ERC721NonexistentToken error
@@ -17,8 +25,7 @@ const isNonExistentToken = (error: any) => {
   return message.includes('owner query for nonexistent token');
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const isMissingTokenRegistry = (error: any) => {
+const isMissingTokenRegistry = (error: EthersError) => {
   return (
     !error.reason &&
     error.method?.toLowerCase() === 'ownerOf(uint256)'.toLowerCase() &&
@@ -26,8 +33,7 @@ const isMissingTokenRegistry = (error: any) => {
   );
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const decodeError = (error: any) => {
+export const decodeError = (error: EthersError) => {
   const reason =
     error.reason && Array.isArray(error.reason) ? error.reason[0] : (error.reason ?? '');
   switch (true) {
