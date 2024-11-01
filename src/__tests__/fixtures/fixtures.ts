@@ -716,6 +716,42 @@ export const W3C_VERIFIABLE_DOCUMENT = freezeObject({
   },
 });
 
+export const W3C_TRANSFERABLE_RECORD = freezeObject({
+  id: 'urn:uuid:0192b20e-0ba5-76d8-b682-7538c86a4d69',
+  '@context': [
+    'https://www.w3.org/2018/credentials/v1',
+    'https://w3c-ccg.github.io/citizenship-vocab/contexts/citizenship-v1.jsonld',
+    'https://w3id.org/security/bbs/v1',
+    'https://trustvc.io/context/transferable-records-context.json',
+  ],
+  credentialStatus: {
+    tokenId: '0d292d1eb99bb4fec41790ccb5fc02518ed4f2db1782e41e15ca5f69a95b5729',
+    type: 'TransferableRecords',
+    tokenNetwork: {
+      chain: 'MATIC',
+      chainId: 800002,
+    },
+    tokenRegistry: '0x6c2a002A5833a100f38458c50F11E71Aa1A342c6',
+  },
+  credentialSubject: {
+    name: 'TrustVC',
+    birthDate: '2024-04-01T12:19:52Z',
+    type: ['PermanentResident', 'Person'],
+  },
+  expirationDate: '2029-12-03T12:19:52Z',
+  issuer: 'did:web:trustvc.github.io:did:1',
+  type: ['VerifiableCredential'],
+  issuanceDate: '2024-04-01T12:19:52Z',
+  proof: {
+    type: 'BbsBlsSignature2020',
+    created: '2024-10-22T09:07:28Z',
+    proofPurpose: 'assertionMethod',
+    proofValue:
+      'ozPUW1Ai1SUy8x3kyNMrNNdymNO7sO2Qq+rCF0nUk1BdUQsbqmSLvlx5Q1sEfyylBJpkwbj4m2JCrTVqr8pt1wJDYtxaQrkdYb5VKhONOmAJpAb8iRRjMh+urJV2/I2d5OerIFeERv0kHdW695aBww==',
+    verificationMethod: 'did:web:trustvc.github.io:did:1#keys-1',
+  },
+});
+
 // Freeze fixture to prevent accidental changes during tests
 function freezeObject<T>(obj: T): T {
   return deepFreeze(obj) as T;

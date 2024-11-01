@@ -9,20 +9,23 @@ module.exports = [
   ...tseslint.configs.recommended,
   prettierConfig,
   {
-    "plugins": {
-      "@typescript-eslint": typescriptEslint
-    },
-    "languageOptions": {
-      "parser": typescriptEslintParser
-    },
-    "ignores": ["dist", "build", "node_modules", "**/.*"],
+    // Global ignores:
+    ignores: ['dist', 'build', 'examples', 'node_modules', '**/.*'],
   },
   {
-    "files": ["**/*.config.js"],
-    "rules": {
-      "@typescript-eslint/no-require-imports": "off",
-      "no-undef": "off"
-    }
+    plugins: {
+      '@typescript-eslint': typescriptEslint,
+    },
+    languageOptions: {
+      parser: typescriptEslintParser,
+    },
+  },
+  {
+    files: ['**/*.config.js'],
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+      'no-undef': 'off',
+    },
   },
   // {
   //   "files": ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx", "**/*.mjs", "**/*.cjs"],
@@ -37,22 +40,29 @@ module.exports = [
   //   "rules": {}
   // },
   {
-    "files": ["**/*.spec.ts", "**/*.spec.tsx", "**/*.spec.js", "**/*.spec.jsx"],
-    "env": {
-      "jest": true
+    files: ['**/*.spec.ts', '**/*.spec.tsx', '**/*.spec.js', '**/*.spec.jsx'],
+    env: {
+      jest: true,
     },
-    "rules": {}
+    rules: {},
   },
   {
-    "files": ["types.ts", "**/*.types.ts", "**/*.test.ts", "**/*.test.tsx", "**/*.test.js", "**/*.test.jsx"],
-    "rules": {
-      "@typescript-eslint/no-explicit-any": "off"
-    }
+    files: [
+      'types.ts',
+      '**/*.types.ts',
+      '**/*.test.ts',
+      '**/*.test.tsx',
+      '**/*.test.js',
+      '**/*.test.jsx',
+    ],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
   },
   {
-    "files": ["**/*.config.{ts,js,json}"],
-    "rules": {
-      "@typescript-eslint/no-unused-vars": "off"
-    }
-  }
+    files: ['**/*.config.{ts,js,json}'],
+    rules: {
+      '@typescript-eslint/no-unused-vars': 'off',
+    },
+  },
 ];
