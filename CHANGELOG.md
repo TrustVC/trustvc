@@ -1,3 +1,10 @@
+## [1.0.0-alpha.8](https://github.com/TrustVC/trustvc/compare/v1.0.0-alpha.7...v1.0.0-alpha.8) (2024-11-01)
+
+
+### Bug Fixes
+
+* use uint8array for decryption and default key ([#13](https://github.com/TrustVC/trustvc/issues/13)) ([bfd48de](https://github.com/TrustVC/trustvc/commit/bfd48de51b59d68be05fb941c4c4fc3c58f7b17a))
+
 ## [1.0.0-alpha.7](https://github.com/TrustVC/trustvc/compare/v1.0.0-alpha.6...v1.0.0-alpha.7) (2024-11-01)
 
 
