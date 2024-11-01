@@ -1,3 +1,10 @@
+## [1.0.0-alpha.7](https://github.com/TrustVC/trustvc/compare/v1.0.0-alpha.6...v1.0.0-alpha.7) (2024-11-01)
+
+
+### Features
+
+* add transferable record verifier ([#12](https://github.com/TrustVC/trustvc/issues/12)) ([28b6637](https://github.com/TrustVC/trustvc/commit/28b663747853d8d2aaae2eff88d496a580e3e607))
+
 # [1.0.0-alpha.6](https://github.com/TrustVC/trustvc/compare/v1.0.0-alpha.5...v1.0.0-alpha.6) (2024-10-22)
 
 
