@@ -34,7 +34,7 @@ describe('V4 verify', () => {
 
     expect(encrypted.length).toBe(240);
   });
-  it('successfully decrypts a message when the kek is less than 32 bytes', async () => {
+  it('successfully decrypts a message when the key is less than 32 bytes', async () => {
     const key = 'a013fb9d-bb03-4056-b696';
     expect(key.length).toBeLessThan(32);
     const nonce = '12bytenonce';
@@ -67,13 +67,10 @@ describe('V4 verify', () => {
     const decrypted = decrypt(encrypted, key);
     expect(decrypted).toBe(message);
   });
-  it("should throw an error when we don't pass a key while encryption", async () => {
-    const message = 'Hello, World!';
-    expect(() => encrypt(message, '')).toThrowError('Key length must not be 0');
-  });
-  it("should throw an error when we don't pass a key while decryption", async () => {
-    const message = 'Hello, World!';
-    const encrypted = encrypt(message, 'a');
-    expect(() => decrypt(encrypted, '')).toThrowError('Key length must not be 0');
+  it('successfully encrypts and decrypts a messsage when key is missing', async () => {
+    const message = 'a'.repeat(120);
+    const encrypted = encrypt(message, '');
+    const decrypted = decrypt(encrypted, '');
+    expect(decrypted).toBe(message);
   });
 });
