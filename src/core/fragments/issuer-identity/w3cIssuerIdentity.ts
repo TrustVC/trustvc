@@ -1,4 +1,4 @@
-import { VerificationFragment, Verifier } from '@govtechsg/oa-verify';
+import { VerificationFragment, Verifier } from '@tradetrust-tt/tt-verify';
 import { Resolver } from 'did-resolver';
 import { getResolver as getWebDidResolver } from 'web-did-resolver';
 import { SignedVerifiableCredential } from '../../..';

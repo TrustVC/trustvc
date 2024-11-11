@@ -1,28 +1,15 @@
-import { v4 } from '@govtechsg/open-attestation';
-import { wrapOA } from '../..';
-import { describe, expect, it } from 'vitest';
+import { describe, it } from 'vitest';
+import { wrapDocumentsv2, wrapDocumentsv3, wrapDocumentv2, wrapDocumentv3 } from '../..';
+import {
+  BATCHED_RAW_DOCUMENTS_DID_V2,
+  BATCHED_RAW_DOCUMENTS_DID_V3,
+  RAW_DOCUMENT_DID_V2,
+  RAW_DOCUMENT_DNS_DID_V3,
+} from '../fixtures/fixtures';
 
-describe('V4.0 wrap document', () => {
-  it('given a valid v4 document, should wrap correctly', async () => {
-    const wrapped = await wrapOA({
-      '@context': [
-        'https://www.w3.org/ns/credentials/v2',
-        'https://schemata.openattestation.com/com/openattestation/4.0/context.json',
-      ],
-      type: ['VerifiableCredential', 'OpenAttestationCredential'],
-      credentialSubject: {
-        id: '0x1234567890123456789012345678901234567890',
-        name: 'John Doe',
-        country: 'SG',
-      },
-      issuer: {
-        id: 'did:ethr:0xB26B4941941C51a4885E5B7D3A1B861E54405f90',
-        type: 'OpenAttestationIssuer',
-        name: 'Government Technology Agency of Singapore (GovTech)',
-        identityProof: { identityProofType: 'DNS-DID', identifier: 'example.openattestation.com' },
-      },
-    });
-
+describe.concurrent('v3.0 wrap document', () => {
+  it('given a valid v3 document, should wrap correctly', async ({ expect }) => {
+    const wrapped = await wrapDocumentv3(RAW_DOCUMENT_DNS_DID_V3);
     const { proof } = wrapped;
     expect(proof.merkleRoot.length).toBe(64);
     expect(proof.privacy.obfuscated).toEqual([]);
@@ -31,104 +18,141 @@ describe('V4.0 wrap document', () => {
     expect(proof.salts.length).toBeGreaterThan(0);
     expect(proof.targetHash.length).toBe(64);
     expect(proof.type).toBe('OpenAttestationMerkleProofSignature2018');
+    expect(proof).not.toHaveProperty('key');
+    expect(proof).not.toHaveProperty('signature');
   });
 
-  it('given a document with explicit v4 contexts, but does not conform to the V4 document schema, should throw', async () => {
+  it('given a document with explicit v3 contexts, but does not conform to the v3 document schema, should throw', async ({
+    expect,
+  }) => {
     await expect(
-      wrapOA({
+      wrapDocumentv3({
+        version: 'https://schema.openattestation.com/3.0/schema.json',
         '@context': [
-          'https://www.w3.org/ns/credentials/v2',
-          'https://schemata.openattestation.com/com/openattestation/4.0/context.json',
+          'https://www.w3.org/2018/credentials/v1',
+          'https://schemata.openattestation.com/com/openattestation/1.0/OpenAttestation.v3.json',
         ],
+      } as any),
+    ).rejects.toThrowErrorMatchingInlineSnapshot(`[Error: Invalid document]`);
+  });
 
-        type: ['VerifiableCredential', 'OpenAttestationCredential'],
-        credentialSubject: {
-          id: '0x1234567890123456789012345678901234567890',
-          name: 'John Doe',
-          country: 'SG',
-        },
-        issuer: {
-          id: 'did:ethr:0xB26B4941941C51a4885E5B7D3A1B861E54405f90',
-          name: 'Government Technology Agency of Singapore (GovTech)',
-          identityProof: {
-            identityProofType: 'DNS-DID',
-            identifier: 'example.openattestation.com',
-          },
-        } as v4.OpenAttestationDocument['issuer'],
+  it('given a valid v3 document but has an extra field, should throw', async ({ expect }) => {
+    await expect(
+      wrapDocumentv3({
+        ...RAW_DOCUMENT_DNS_DID_V3,
+        UNKNOWN: 'any',
       }),
-    ).rejects.toThrowErrorMatchingInlineSnapshot(`
-      [Error: Input document does not conform to Open Attestation v4.0 Data Model: 
-       {
-        "_errors": [],
-        "issuer": {
-          "_errors": [],
-          "type": {
-            "_errors": [
-              "Invalid literal value, expected \\"OpenAttestationIssuer\\""
-            ]
-          }
-        }
-      }]
-    `);
+    ).rejects.toThrowErrorMatchingInlineSnapshot(
+      `[Error: "The property UNKNOWN in the input was not defined in the context"]`,
+    );
+  });
+});
+
+describe.concurrent('v3.0 wrap documents', () => {
+  it('given an array of valid v3 documents, should wrap correctly', async ({ expect }) => {
+    const wrapped = await wrapDocumentsv3(BATCHED_RAW_DOCUMENTS_DID_V3);
+    expect(wrapped.length).toBe(2);
+    for (const { proof } of wrapped) {
+      expect(proof.type).toBe('OpenAttestationMerkleProofSignature2018');
+      expect(proof.proofPurpose).toBe('assertionMethod');
+      expect(proof.merkleRoot.length).toBe(64);
+      expect(proof.targetHash.length).toBe(64);
+      expect(proof.salts.length).toBeGreaterThan(0);
+      expect(proof.proofs).not.toEqual([]);
+      expect(proof.proofs?.[0]?.length).toBeGreaterThan(0);
+      expect(proof.privacy.obfuscated).toEqual([]);
+      expect(proof).not.toHaveProperty('key');
+      expect(proof).not.toHaveProperty('signature');
+    }
   });
 
-  it('given a valid v4 document but has an extra field, should throw', async () => {
+  it('given an array of documents with explicit v3 contexts, but one of them does not conform to the v3 document schema, should throw', async ({
+    expect,
+  }) => {
     await expect(
-      wrapOA({
-        '@context': [
-          'https://www.w3.org/ns/credentials/v2',
-          'https://schemata.openattestation.com/com/openattestation/4.0/context.json',
-        ],
-
-        type: ['VerifiableCredential', 'OpenAttestationCredential'],
-        credentialSubject: {
-          id: '0x1234567890123456789012345678901234567890',
-          name: 'John Doe',
-          country: 'SG',
+      wrapDocumentsv3([
+        {
+          version: 'https://schema.openattestation.com/3.0/schema.json',
+          '@context': [
+            'https://www.w3.org/2018/credentials/v1',
+            'https://schemata.openattestation.com/com/openattestation/1.0/OpenAttestation.v3.json',
+          ],
         },
-        issuer: {
-          id: 'did:ethr:0xB26B4941941C51a4885E5B7D3A1B861E54405f90',
-          type: 'OpenAttestationIssuer',
-          name: 'Government Technology Agency of Singapore (GovTech)',
-          extraField: 'extra',
-          identityProof: {
-            identityProofType: 'DNS-DID',
-            identifier: 'example.openattestation.com',
-          },
-        },
-        // this should not exist
-        extraField: 'extra',
-      } as v4.OpenAttestationDocument),
-    ).rejects.toThrowErrorMatchingInlineSnapshot(`
-      [Error: Input document does not conform to Open Attestation v4.0 Data Model: 
-       {
-        "_errors": [
-          "Unrecognized key(s) in object: 'extraField'"
-        ]
-      }]
-    `);
+        BATCHED_RAW_DOCUMENTS_DID_V3[1],
+      ] as any),
+    ).rejects.toThrowErrorMatchingInlineSnapshot(`[Error: Invalid document]`);
   });
 
-  it('given a generic w3c vc, should wrap with context and type corrected', async () => {
-    const genericW3cVc: unknown = {
-      '@context': ['https://www.w3.org/ns/credentials/v2'],
-      type: ['VerifiableCredential'],
-      credentialSubject: {
-        id: '0x1234567890123456789012345678901234567890',
-        name: 'John Doe',
-        country: 'SG',
-      },
-      issuer: {
-        id: 'https://example.com/issuer/123',
-      },
-    };
-    const wrapped = await wrapOA(genericW3cVc as unknown as v4.OpenAttestationDocument);
-    expect(wrapped.proof.merkleRoot.length).toBe(64);
-    expect(wrapped.proof.privacy.obfuscated).toEqual([]);
-    expect(wrapped.proof.proofPurpose).toBe('assertionMethod');
-    expect(wrapped.proof.proofs).toEqual([]);
-    expect(wrapped.proof.salts.length).toBeGreaterThan(0);
-    expect(wrapped.proof.targetHash.length).toBe(64);
-    expect(wrapped.proof.type).toBe('OpenAttestationMerkleProofSignature2018');
+  it('given an array of valid v3 documents but one of them has an extra field, should throw', async ({
+    expect,
+  }) => {
+    await expect(
+      wrapDocumentv3([
+        BATCHED_RAW_DOCUMENTS_DID_V3[0],
+        {
+          ...BATCHED_RAW_DOCUMENTS_DID_V3[1],
+          UNKNOWN: 'any',
+        },
+      ] as any),
+    ).rejects.toThrowErrorMatchingInlineSnapshot(`[Error: Invalid document]`);
+  });
+});
+
+describe.concurrent('v2.0 wrap document', () => {
+  it('given a valid v2 document, should wrap correctly', async ({ expect }) => {
+    const wrapped = await wrapDocumentv2(RAW_DOCUMENT_DID_V2);
+    const { signature } = wrapped;
+    expect(signature.merkleRoot.length).toBe(64);
+    expect(signature.targetHash.length).toBe(64);
+    expect(signature.type).toBe('SHA3MerkleProof');
+    expect(signature).not.toHaveProperty('key');
+    expect(signature).not.toHaveProperty('signature');
+  });
+
+  it('given a valid v2 document but has an extra field, should throw', async ({ expect }) => {
+    await expect(
+      wrapDocumentv2({
+        ...RAW_DOCUMENT_DID_V2,
+        issuers: [
+          {
+            ...RAW_DOCUMENT_DID_V2.issuers[0],
+            identityProof: 'any' as any,
+          },
+        ],
+      } as any),
+    ).rejects.toThrowErrorMatchingInlineSnapshot(`[Error: Invalid document]`);
+  });
+});
+
+describe.concurrent('v2.0 wrap documents', () => {
+  it('given an array of valid v2 documents, should wrap correctly', async ({ expect }) => {
+    const wrapped = await wrapDocumentsv2(BATCHED_RAW_DOCUMENTS_DID_V2);
+    expect(wrapped.length).toBe(2);
+    for (const { signature } of wrapped) {
+      expect(signature.merkleRoot.length).toBe(64);
+      expect(signature.targetHash.length).toBe(64);
+      expect(signature.type).toBe('SHA3MerkleProof');
+      expect(signature).not.toHaveProperty('key');
+      expect(signature).not.toHaveProperty('signature');
+    }
+  });
+
+  it('given an array of valid v2 documents but one of them has an extra field, should throw', async ({
+    expect,
+  }) => {
+    await expect(
+      wrapDocumentsv2([
+        BATCHED_RAW_DOCUMENTS_DID_V2[0],
+        {
+          ...BATCHED_RAW_DOCUMENTS_DID_V2[1],
+          issuers: [
+            {
+              ...BATCHED_RAW_DOCUMENTS_DID_V2[1].issuers[0],
+              identityProof: 'any' as any,
+            },
+          ],
+        },
+      ] as any),
+    ).rejects.toThrowErrorMatchingInlineSnapshot(`[Error: Invalid document]`);
   });
 });

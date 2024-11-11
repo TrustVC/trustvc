@@ -3,10 +3,12 @@ const typescriptEslintParser = require('@typescript-eslint/parser');
 const eslint = require('@eslint/js');
 const tseslint = require('typescript-eslint');
 const prettierConfig = require('eslint-config-prettier');
+const eslintPluginPrettierRecommended = require('eslint-plugin-prettier/recommended');
 
 module.exports = [
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
+  eslintPluginPrettierRecommended,
   prettierConfig,
   {
     // Global ignores:

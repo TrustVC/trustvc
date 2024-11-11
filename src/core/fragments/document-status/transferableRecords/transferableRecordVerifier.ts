@@ -4,8 +4,7 @@ import {
   OpenAttestationEthereumTokenRegistryStatusCode,
   ValidTokenRegistryStatus,
   VerifierOptions,
-} from '@govtechsg/oa-verify';
-import { v4 } from '@govtechsg/open-attestation';
+} from '@tradetrust-tt/tt-verify';
 import * as w3cVC from '@trustvc/w3c-vc';
 import { SignedVerifiableCredential } from '@trustvc/w3c-vc';
 import {
@@ -28,10 +27,7 @@ const verify: VerifierType['verify'] = async (
   let signedDocument;
   let tokenId: string;
 
-  if (v4.isSignedWrappedDocument(document)) {
-    signedDocument = document as v4.SignedWrappedDocument;
-    tokenId = '0x' + signedDocument?.proof?.targetHash;
-  } else if (w3cVC.isSignedDocument(document)) {
+  if (w3cVC.isSignedDocument(document)) {
     signedDocument = document as SignedVerifiableCredential;
     tokenId = '0x' + signedDocument?.credentialStatus?.tokenId;
   }
