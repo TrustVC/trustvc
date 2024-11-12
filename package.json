@@ -77,6 +77,9 @@
     "vite-plugin-dts": "^3.9.1",
     "vitest": "^1.6.0"
   },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "~4.25.0"
+  },
   "lint-staged": {
     "*.{js,ts}": [
       "eslint --fix",
