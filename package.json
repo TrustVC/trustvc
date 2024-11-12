@@ -33,9 +33,9 @@
     }
   },
   "dependencies": {
-    "@tradetrust-tt/token-registry": "^5.0.0-alpha.3",
-    "@tradetrust-tt/tradetrust": "^6.9.6",
-    "@tradetrust-tt/tt-verify": "^8.10.0",
+    "@tradetrust-tt/token-registry": "5.0.0-alpha.3",
+    "@tradetrust-tt/tradetrust": "^6.9.7",
+    "@tradetrust-tt/tt-verify": "^8.10.1",
     "@trustvc/w3c-context": "^1.0.0-alpha",
     "@trustvc/w3c-issuer": "^1.0.0-alpha",
     "@trustvc/w3c-vc": "^1.0.0-alpha",
