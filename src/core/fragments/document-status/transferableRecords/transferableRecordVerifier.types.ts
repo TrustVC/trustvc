@@ -3,7 +3,7 @@ import {
   OpenAttestationEthereumTokenRegistryStatusCode,
   VerificationFragment,
   Verifier,
-} from '@govtechsg/oa-verify';
+} from '@tradetrust-tt/tt-verify';
 
 export type TransferableRecordsErrorReason = {
   code: OpenAttestationEthereumTokenRegistryStatusCode;

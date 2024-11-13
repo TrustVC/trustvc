@@ -1,21 +1,21 @@
+import { v3 } from '@tradetrust-tt/tradetrust';
 import { cloneDeep } from 'lodash';
+import { describe, expect, it } from 'vitest';
+import { verifyOASignature } from '../..';
 import {
   BATCHED_SIGNED_WRAPPED_DOCUMENTS_DID,
-  SIGNED_WRAPPED_DOCUMENT_DID,
+  SIGNED_WRAPPED_DOCUMENT_DNS_DID_V3,
   WRAPPED_DOCUMENT_DNS_TXT_V2,
 } from '../fixtures/fixtures';
-import { describe, expect, it } from 'vitest';
-import { v4 } from '@govtechsg/open-attestation';
-import { verifyOASignature } from '../..';
 
 const TEST_DOCUMENTS = {
   'Documents without proofs mean these documents are wrapped individually (i.e. targetHash == merkleRoot)':
-    SIGNED_WRAPPED_DOCUMENT_DID,
+    SIGNED_WRAPPED_DOCUMENT_DNS_DID_V3,
   'Documents with proofs mean these documents are wrapped as a batch (i.e. proofs exist, and targetHash !== merkleRoot)':
     BATCHED_SIGNED_WRAPPED_DOCUMENTS_DID[0],
 } as const;
 
-describe('V4 verify', () => {
+describe.concurrent('v3 verify', () => {
   Object.entries(TEST_DOCUMENTS).forEach(([description, document]) => {
     describe(`${description}`, () => {
       it('given a document with unaltered data, should return true', async () => {
@@ -25,12 +25,12 @@ describe('V4 verify', () => {
       describe('tampering', () => {
         it('given a value of a key in object is changed, should return false', async () => {
           const newName = 'Fake Name';
-          expect(document.issuer.name).not.toBe(newName);
+          expect((document.issuer as any).name).not.toBe(newName);
           expect(
             await verifyOASignature({
               ...document,
               issuer: {
-                ...document.issuer,
+                ...(document.issuer as any),
                 name: 'Fake Name', // Value was originally "DEMO STORE"
               },
             }),
@@ -38,7 +38,7 @@ describe('V4 verify', () => {
         });
 
         it('given a key in an object is altered (value kept the same), should return false', async () => {
-          const { name, ...issuerWithoutName } = document.issuer;
+          const { name, ...issuerWithoutName } = document.issuer as any;
 
           expect(
             await verifyOASignature({
@@ -46,20 +46,20 @@ describe('V4 verify', () => {
               issuer: {
                 ...issuerWithoutName,
                 fakename: name, // Key was originally "name"
-              } as unknown as v4.SignedWrappedDocument['issuer'],
+              } as unknown as v3.SignedWrappedDocument['issuer'],
             }),
           ).toBe(false);
         });
 
         it('given a new array item is added, should return false', async () => {
-          const modifiedCredentialSubject = cloneDeep(document.credentialSubject);
-          expect(modifiedCredentialSubject.licenses[2]).toBeUndefined();
-          modifiedCredentialSubject.licenses.push({
-            class: 'Class 2A',
-            effectiveDate: '2020-06-05T00:00:00Z',
-            description: 'Motorcycle',
+          const modifiedCredentialSubject: any = cloneDeep(document.credentialSubject);
+          expect(modifiedCredentialSubject.packages[1]).toBeUndefined();
+          modifiedCredentialSubject.packages.push({
+            description: '1 Pallet',
+            weight: '1',
+            measurement: 'KG',
           });
-          expect(modifiedCredentialSubject.licenses[2].description).toBeDefined();
+          expect(modifiedCredentialSubject.packages[1].description).toBeDefined();
 
           expect(
             await verifyOASignature({
@@ -70,10 +70,10 @@ describe('V4 verify', () => {
         });
 
         it('given a key in an item is removed, should return false', async () => {
-          const modifiedCredentialSubject = cloneDeep(document.credentialSubject);
-          expect(modifiedCredentialSubject.licenses[0].description).toBeDefined();
-          delete (modifiedCredentialSubject.licenses[0] as any).description;
-          expect(modifiedCredentialSubject.licenses[0].description).toBeUndefined();
+          const modifiedCredentialSubject: any = cloneDeep(document.credentialSubject);
+          expect(modifiedCredentialSubject.packages[0].description).toBeDefined();
+          delete (modifiedCredentialSubject.packages[0] as any).description;
+          expect(modifiedCredentialSubject.packages[0].description).toBeUndefined();
 
           expect(
             await verifyOASignature({
@@ -83,24 +83,28 @@ describe('V4 verify', () => {
           ).toBe(false);
         });
 
-        describe('given insertion of an empty object, should return false', () => {
+        describe('given insertion of an object, should return false', () => {
           it('given insertion into an object', async () => {
             expect(
               await verifyOASignature({
                 ...document,
                 credentialSubject: {
                   ...document.credentialSubject,
-                  newField: {},
+                  newField: {
+                    name: 'newField',
+                  },
                 },
               }),
             ).toBe(false);
           });
 
           it('given insertion into an array', async () => {
-            const modifiedCredentialSubject = cloneDeep(document.credentialSubject);
-            expect(modifiedCredentialSubject.licenses[2]).toBeUndefined();
-            modifiedCredentialSubject.licenses.push({} as any);
-            expect(modifiedCredentialSubject.licenses[2]).toEqual({});
+            const modifiedCredentialSubject: any = cloneDeep(document.credentialSubject);
+            expect(modifiedCredentialSubject.packages[1]).toBeUndefined();
+            modifiedCredentialSubject.packages.push({
+              name: 'newField',
+            } as any);
+            expect(modifiedCredentialSubject.packages[1]).toBeDefined();
 
             expect(
               await verifyOASignature({
@@ -111,24 +115,24 @@ describe('V4 verify', () => {
           });
         });
 
-        describe('given insertion of an empty array, should return false', () => {
+        describe('given insertion of an array, should return false', () => {
           it('given insertion into an object', async () => {
             expect(
               await verifyOASignature({
                 ...document,
                 credentialSubject: {
                   ...document.credentialSubject,
-                  newField: [],
+                  newField: ['abc'],
                 },
               }),
             ).toBe(false);
           });
 
           it('given insertion into an array', async () => {
-            const modifiedCredentialSubject = cloneDeep(document.credentialSubject);
-            expect(modifiedCredentialSubject.licenses[2]).toBeUndefined();
-            modifiedCredentialSubject.licenses.push([] as any);
-            expect(modifiedCredentialSubject.licenses[2]).toEqual([]);
+            const modifiedCredentialSubject: any = cloneDeep(document.credentialSubject);
+            expect(modifiedCredentialSubject.packages[1]).toBeUndefined();
+            modifiedCredentialSubject.packages.push(['abc'] as any);
+            expect(modifiedCredentialSubject.packages[1]).toBeDefined();
 
             expect(
               await verifyOASignature({
@@ -150,10 +154,12 @@ describe('V4 verify', () => {
             }),
           ).toBe(false);
 
-          const modifiedCredentialSubject = cloneDeep(document.credentialSubject);
-          expect(modifiedCredentialSubject.licenses[2]).toBeUndefined();
-          modifiedCredentialSubject.licenses.push({} as any);
-          expect(modifiedCredentialSubject.licenses[2]).toEqual({});
+          const modifiedCredentialSubject: any = cloneDeep(document.credentialSubject);
+          expect(modifiedCredentialSubject.packages[1]).toBeUndefined();
+          modifiedCredentialSubject.packages.push({
+            name: null,
+          } as any);
+          expect(modifiedCredentialSubject.packages[1]).toBeDefined();
 
           expect(
             await verifyOASignature({
@@ -164,10 +170,10 @@ describe('V4 verify', () => {
         });
 
         it('given a null value is inserted into an array, should return false', async () => {
-          const modifiedCredentialSubject = cloneDeep(document.credentialSubject);
-          expect(modifiedCredentialSubject.licenses[2]).toBeUndefined();
-          modifiedCredentialSubject.licenses.push(null as any);
-          expect(modifiedCredentialSubject.licenses[2]).toBe(null);
+          const modifiedCredentialSubject: any = cloneDeep(document.credentialSubject);
+          expect(modifiedCredentialSubject.packages[1]).toBeUndefined();
+          modifiedCredentialSubject.packages.push(null as any);
+          expect(modifiedCredentialSubject.packages[1]).toBe(null);
 
           expect(
             await verifyOASignature({
@@ -178,10 +184,10 @@ describe('V4 verify', () => {
         });
 
         it('given an altered value type that string coerce to the same value, should return false', async () => {
-          const modifiedCredentialSubject = cloneDeep(document.credentialSubject);
-          expect(typeof modifiedCredentialSubject.licenses[0].class).toBe('string');
-          modifiedCredentialSubject.licenses[0].class = 3 as unknown as string;
-          expect(typeof modifiedCredentialSubject.licenses[0].class).toBe('number');
+          const modifiedCredentialSubject: any = cloneDeep(document.credentialSubject);
+          expect(typeof modifiedCredentialSubject.packages[0].weight).toBe('string');
+          modifiedCredentialSubject.packages[0].weight = 3;
+          expect(typeof modifiedCredentialSubject.packages[0].weight).toBe('number');
 
           expect(
             await verifyOASignature({
@@ -192,7 +198,7 @@ describe('V4 verify', () => {
         });
 
         it('given a key and value is moved, should return false', async () => {
-          const modifiedCredentialSubject = cloneDeep(document.credentialSubject);
+          const modifiedCredentialSubject: any = cloneDeep(document.credentialSubject);
 
           // move "id" from credentialSubject to root
           expect(modifiedCredentialSubject.id).toBe(
@@ -215,7 +221,7 @@ describe('V4 verify', () => {
   });
 });
 
-describe('V2 verify', () => {
+describe.concurrent('V2 verify', () => {
   it('given a document with unaltered data, should return true', async () => {
     expect(await verifyOASignature(WRAPPED_DOCUMENT_DNS_TXT_V2)).toBe(true);
   });

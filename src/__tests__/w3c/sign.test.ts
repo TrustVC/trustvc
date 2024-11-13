@@ -6,7 +6,7 @@ import { VerificationType } from '@trustvc/w3c-issuer';
 describe('W3C sign', () => {
   it('should sign a document', async () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { proof, ...documentWithoutProof } = W3C_VERIFIABLE_DOCUMENT;
+    const { proof, id, ...documentWithoutProof } = W3C_VERIFIABLE_DOCUMENT;
 
     const signingResult = await signW3C(documentWithoutProof, {
       id: 'did:web:trustvc.github.io:did:1#keys-1',

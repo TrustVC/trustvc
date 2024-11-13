@@ -3,7 +3,7 @@ import {
   InvalidTokenRegistryStatus,
   OpenAttestationEthereumTokenRegistryStatusCode,
   ValidTokenRegistryStatus,
-} from '@govtechsg/oa-verify';
+} from '@tradetrust-tt/tt-verify';
 import { TradeTrustToken__factory } from '@tradetrust-tt/token-registry/dist/contracts';
 import { errors, providers, constants } from 'ethers';
 

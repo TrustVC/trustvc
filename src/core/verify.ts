@@ -1,17 +1,17 @@
+import { utils } from '@tradetrust-tt/tradetrust';
 import {
   DocumentsToVerify,
-  VerificationFragment,
-  verificationBuilder,
-  openAttestationVerifiers,
   openAttestationDidIdentityProof,
-} from '@govtechsg/oa-verify';
-import { SignedVerifiableCredential } from '../';
+  openAttestationVerifiers,
+  verificationBuilder,
+  VerificationFragment,
+} from '@tradetrust-tt/tt-verify';
+import { SignedVerifiableCredential } from '@trustvc/w3c-vc';
 import { ethers } from 'ethers';
 import { w3cSignatureIntegrity } from './fragments/document-integrity/w3cSignatureIntegrity';
+import { credentialStatusTransferableRecordVerifier } from './fragments/document-status/transferableRecords/transferableRecordVerifier';
 import { w3cCredentialStatus } from './fragments/document-status/w3cCredentialStatus';
 import { w3cIssuerIdentity } from './fragments/issuer-identity/w3cIssuerIdentity';
-import { utils } from '@govtechsg/open-attestation';
-import { credentialStatusTransferableRecordVerifier } from './fragments/document-status/transferableRecords/transferableRecordVerifier';
 
 /**
  * Asynchronously verifies a document (OpenAttestation or W3C Verifiable Credential) using a specified Ethereum-compatible JSON-RPC provider.
@@ -34,18 +34,10 @@ export const verifyDocument = async (
   document: DocumentsToVerify | SignedVerifiableCredential,
   rpcProviderUrl: string, // Ethereum-compatible provider URL as a parameter
 ): Promise<VerificationFragment[]> => {
-  if (
-    utils.isWrappedV2Document(document) ||
-    utils.isWrappedV3Document(document) ||
-    utils.isWrappedV4Document(document)
-  ) {
+  if (utils.isWrappedV2Document(document) || utils.isWrappedV3Document(document)) {
     // Build the verification process using OpenAttestation verifiers and DID identity proof
     const verify = verificationBuilder(
-      [
-        ...openAttestationVerifiers,
-        openAttestationDidIdentityProof,
-        credentialStatusTransferableRecordVerifier,
-      ],
+      [...openAttestationVerifiers, openAttestationDidIdentityProof],
       {
         provider: new ethers.providers.JsonRpcProvider(rpcProviderUrl), // Use user-provided provider URL
       },
@@ -68,6 +60,7 @@ export const verifyDocument = async (
     );
 
     // Perform verification and return the result
-    return verify(document);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return verify(document as any);
   }
 };

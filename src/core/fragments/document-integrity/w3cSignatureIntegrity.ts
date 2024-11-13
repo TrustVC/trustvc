@@ -1,4 +1,4 @@
-import { VerificationFragment, Verifier } from '@govtechsg/oa-verify';
+import { VerificationFragment, Verifier } from '@tradetrust-tt/tt-verify';
 import { SignedVerifiableCredential, verifyW3CSignature } from '../../..';
 
 export const w3cSignatureIntegrity: Verifier<VerificationFragment> = {

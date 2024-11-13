@@ -2,7 +2,7 @@ export {
   OpenAttestationDocument,
   WrappedDocument,
   SignedWrappedDocument,
-} from '@govtechsg/open-attestation';
+} from '@tradetrust-tt/tradetrust';
 
 export type KeyPair = {
   public: string; // Public key in DID format

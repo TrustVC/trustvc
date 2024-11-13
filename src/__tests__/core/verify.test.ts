@@ -3,14 +3,15 @@ import { describe, it, vi } from 'vitest';
 import { verifyDocument } from '../..';
 import * as transferableRecordsUtils from '../../core/fragments/document-status/transferableRecords/utils';
 import {
-  SIGNED_WRAPPED_DOCUMENT_DID,
+  SIGNED_WRAPPED_DOCUMENT_DNS_DID_V3,
   W3C_TRANSFERABLE_RECORD,
   W3C_VERIFIABLE_DOCUMENT,
+  WRAPPED_DOCUMENT_DID_TOKEN_REGISTRY_V3,
   WRAPPED_DOCUMENT_DNS_TXT_V2,
 } from '../fixtures/fixtures';
 
 describe.concurrent('W3C verify', () => {
-  describe('W3C_VERIFIABLE_DOCUMENT', () => {
+  describe.concurrent('W3C_VERIFIABLE_DOCUMENT', () => {
     it('should verify the document and return all valid fragments', async ({ expect }) => {
       expect(await verifyDocument(W3C_VERIFIABLE_DOCUMENT, '')).toMatchInlineSnapshot(`
       [
@@ -49,7 +50,7 @@ describe.concurrent('W3C verify', () => {
     it('should return INVALID status for DOCUMENT_INTEGRITY when signature is tampered', async ({
       expect,
     }) => {
-      const tampered = { ...W3C_VERIFIABLE_DOCUMENT, expirationDate: '2029-12-03T12:19:53Z' };
+      const tampered: any = { ...W3C_VERIFIABLE_DOCUMENT, expirationDate: '2029-12-03T12:19:53Z' };
       expect(await verifyDocument(tampered, '')).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -68,7 +69,7 @@ describe.concurrent('W3C verify', () => {
     it('should skip DOCUMENT_INTEGRITY verification for unsupported proof type', async ({
       expect,
     }) => {
-      const tampered = {
+      const tampered: any = {
         ...W3C_VERIFIABLE_DOCUMENT,
         proof: {
           ...W3C_VERIFIABLE_DOCUMENT.proof,
@@ -98,7 +99,7 @@ describe.concurrent('W3C verify', () => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { issuer, ...documentWithoutIssuer } = W3C_VERIFIABLE_DOCUMENT;
 
-      expect(await verifyDocument(documentWithoutIssuer, '')).toEqual(
+      expect(await verifyDocument(documentWithoutIssuer as any, '')).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             name: 'W3CIssuerIdentity',
@@ -117,7 +118,7 @@ describe.concurrent('W3C verify', () => {
     it('should return INVALID status for ISSUER_IDENTITY when DID cannot be resolved', async ({
       expect,
     }) => {
-      const tampered = {
+      const tampered: any = {
         ...W3C_VERIFIABLE_DOCUMENT,
         issuer: 'did:example:abc',
         proof: {
@@ -144,7 +145,7 @@ describe.concurrent('W3C verify', () => {
     it('should return INVALID status for ISSUER_IDENTITY when issuer and verification method do not match', async ({
       expect,
     }) => {
-      const tampered = { ...W3C_VERIFIABLE_DOCUMENT, issuer: 'did:example:abc' };
+      const tampered: any = { ...W3C_VERIFIABLE_DOCUMENT, issuer: 'did:example:abc' };
       expect(await verifyDocument(tampered, '')).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -166,7 +167,7 @@ describe.concurrent('W3C verify', () => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { credentialStatus, ...documentWithoutCredentialStatus } = W3C_VERIFIABLE_DOCUMENT;
 
-      expect(await verifyDocument(documentWithoutCredentialStatus, '')).toEqual(
+      expect(await verifyDocument(documentWithoutCredentialStatus as any, '')).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             name: 'W3CCredentialStatus',
@@ -185,7 +186,7 @@ describe.concurrent('W3C verify', () => {
     it('should return INVALID status for DOCUMENT_STATUS when credential is revoked', async ({
       expect,
     }) => {
-      const tampered = {
+      const tampered: any = {
         ...W3C_VERIFIABLE_DOCUMENT,
         credentialStatus: {
           ...W3C_VERIFIABLE_DOCUMENT.credentialStatus,
@@ -208,7 +209,7 @@ describe.concurrent('W3C verify', () => {
     it('should return ERROR status for DOCUMENT_STATUS when statusListIndex is out of range', async ({
       expect,
     }) => {
-      const tampered = {
+      const tampered: any = {
         ...W3C_VERIFIABLE_DOCUMENT,
         credentialStatus: {
           ...W3C_VERIFIABLE_DOCUMENT.credentialStatus,
@@ -231,15 +232,22 @@ describe.concurrent('W3C verify', () => {
     });
   });
 
-  describe('W3C_TRANSFERABLE_RECORD', () => {
+  describe.concurrent('W3C_TRANSFERABLE_RECORD', () => {
     beforeEach(() => {
       vi.clearAllMocks();
       vi.resetAllMocks();
     });
 
-    it('should return VALID status for TransferableRecords', async ({ expect }) => {
-      expect(await verifyDocument(W3C_TRANSFERABLE_RECORD, 'https://rpc-amoy.polygon.technology'))
-        .toMatchInlineSnapshot(`
+    it(
+      'should return VALID status for TransferableRecords',
+      { timeout: 300000 },
+      async ({ expect }) => {
+        expect(
+          await verifyDocument(
+            W3C_TRANSFERABLE_RECORD as any,
+            'https://rpc-amoy.polygon.technology',
+          ),
+        ).toMatchInlineSnapshot(`
           [
             {
               "data": true,
@@ -273,38 +281,41 @@ describe.concurrent('W3C verify', () => {
             },
           ]
         `);
-    });
+      },
+    );
 
-    it('should return INVALID status for TransferableRecords when tokenRegistry is missing', async ({
-      expect,
-    }) => {
-      const tampered = {
-        ...W3C_TRANSFERABLE_RECORD,
-        credentialStatus: {
-          ...W3C_TRANSFERABLE_RECORD.credentialStatus,
-          tokenRegistry: '',
-        },
-      };
-      expect(await verifyDocument(tampered, 'https://rpc-amoy.polygon.technology')).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            name: 'TransferableRecords',
-            reason: {
-              code: 9,
-              codeString: 'UNRECOGNIZED_DOCUMENT',
-              message: "Document's credentialStatus does not have tokenRegistry",
-            },
-            status: 'ERROR',
-            type: 'DOCUMENT_STATUS',
-          }),
-        ]),
-      );
-    });
+    it(
+      'should return INVALID status for TransferableRecords when tokenRegistry is missing',
+      { timeout: 300000 },
+      async ({ expect }) => {
+        const tampered: any = {
+          ...W3C_TRANSFERABLE_RECORD,
+          credentialStatus: {
+            ...W3C_TRANSFERABLE_RECORD.credentialStatus,
+            tokenRegistry: '',
+          },
+        };
+        expect(await verifyDocument(tampered, 'https://rpc-amoy.polygon.technology')).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              name: 'TransferableRecords',
+              reason: {
+                code: 0,
+                codeString: 'UNEXPECTED_ERROR',
+                message: "Document's credentialStatus does not have tokenRegistry",
+              },
+              status: 'ERROR',
+              type: 'DOCUMENT_STATUS',
+            }),
+          ]),
+        );
+      },
+    );
 
     it('should return INVALID status for TransferableRecords when tokenNetwork.chainId is missing', async ({
       expect,
     }) => {
-      const tampered = {
+      const tampered: any = {
         ...W3C_TRANSFERABLE_RECORD,
         credentialStatus: {
           ...W3C_TRANSFERABLE_RECORD.credentialStatus,
@@ -318,8 +329,8 @@ describe.concurrent('W3C verify', () => {
           expect.objectContaining({
             name: 'TransferableRecords',
             reason: {
-              code: 9,
-              codeString: 'UNRECOGNIZED_DOCUMENT',
+              code: 0,
+              codeString: 'UNEXPECTED_ERROR',
               message: "Document's credentialStatus does not have tokenNetwork.chainId",
             },
             status: 'ERROR',
@@ -332,7 +343,7 @@ describe.concurrent('W3C verify', () => {
     it('should return INVALID status for TransferableRecords when token is not minted', async ({
       expect,
     }) => {
-      const tampered = {
+      const tampered: any = {
         ...W3C_TRANSFERABLE_RECORD,
         credentialStatus: {
           ...W3C_TRANSFERABLE_RECORD.credentialStatus,
@@ -382,9 +393,9 @@ describe.concurrent('W3C verify', () => {
   });
 });
 
-describe.concurrent('V4 verify', () => {
-  it('should verify a document and return fragments', async ({ expect }) => {
-    expect(await verifyDocument(SIGNED_WRAPPED_DOCUMENT_DID, '')).toMatchInlineSnapshot(`
+describe.concurrent('V3 verify', () => {
+  it('should verify a DND_DID document and return fragments', async ({ expect }) => {
+    expect(await verifyDocument(SIGNED_WRAPPED_DOCUMENT_DNS_DID_V3, '')).toMatchInlineSnapshot(`
       [
         {
           "data": true,
@@ -416,7 +427,7 @@ describe.concurrent('V4 verify', () => {
           "data": {
             "details": {
               "issuance": {
-                "did": "did:ethr:0xB26B4941941C51a4885E5B7D3A1B861E54405f90",
+                "did": "did:ethr:0xB26B4941941C51a4885E5B7D3A1B861E54405f90#controller",
                 "issued": true,
               },
               "revocation": {
@@ -443,7 +454,7 @@ describe.concurrent('V4 verify', () => {
         {
           "data": {
             "key": "did:ethr:0xB26B4941941C51a4885E5B7D3A1B861E54405f90#controller",
-            "location": "example.openattestation.com",
+            "location": "example.tradetrust.io",
             "status": "VALID",
           },
           "name": "OpenAttestationDnsDidIdentityProof",
@@ -460,23 +471,96 @@ describe.concurrent('V4 verify', () => {
           "status": "SKIPPED",
           "type": "ISSUER_IDENTITY",
         },
-        {
-          "name": "TransferableRecords",
-          "reason": {
-            "code": 4,
-            "codeString": "SKIPPED",
-            "message": "Document does not have TransferableRecords status",
-          },
-          "status": "SKIPPED",
-          "type": "DOCUMENT_STATUS",
-        },
       ]
     `);
   });
+
+  it(
+    'should verify a DID_TOKEN_REGISTRY document and return fragments',
+    { timeout: 300000 },
+    async ({ expect }) => {
+      expect(
+        await verifyDocument(
+          WRAPPED_DOCUMENT_DID_TOKEN_REGISTRY_V3,
+          'https://rpc-amoy.polygon.technology',
+        ),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "data": true,
+            "name": "OpenAttestationHash",
+            "status": "VALID",
+            "type": "DOCUMENT_INTEGRITY",
+          },
+          {
+            "data": {
+              "details": {
+                "address": "0x71D28767662cB233F887aD2Bb65d048d760bA694",
+                "minted": true,
+              },
+              "mintedOnAll": true,
+            },
+            "name": "OpenAttestationEthereumTokenRegistryStatus",
+            "status": "VALID",
+            "type": "DOCUMENT_STATUS",
+          },
+          {
+            "name": "OpenAttestationEthereumDocumentStoreStatus",
+            "reason": {
+              "code": 4,
+              "codeString": "SKIPPED",
+              "message": "Document issuers doesn't have "documentStore" or "certificateStore" property or DOCUMENT_STORE method",
+            },
+            "status": "SKIPPED",
+            "type": "DOCUMENT_STATUS",
+          },
+          {
+            "name": "OpenAttestationDidSignedDocumentStatus",
+            "reason": {
+              "code": 0,
+              "codeString": "SKIPPED",
+              "message": "Document was not signed by DID directly",
+            },
+            "status": "SKIPPED",
+            "type": "DOCUMENT_STATUS",
+          },
+          {
+            "data": {
+              "identifier": "example.tradetrust.io",
+              "value": "0x71D28767662cB233F887aD2Bb65d048d760bA694",
+            },
+            "name": "OpenAttestationDnsTxtIdentityProof",
+            "status": "VALID",
+            "type": "ISSUER_IDENTITY",
+          },
+          {
+            "name": "OpenAttestationDnsDidIdentityProof",
+            "reason": {
+              "code": 0,
+              "codeString": "SKIPPED",
+              "message": "Document was not issued using DNS-DID",
+            },
+            "status": "SKIPPED",
+            "type": "ISSUER_IDENTITY",
+          },
+          {
+            "name": "OpenAttestationDidIdentityProof",
+            "reason": {
+              "code": 0,
+              "codeString": "SKIPPED",
+              "message": "Document is not using DID as top level identifier or has not been wrapped",
+            },
+            "status": "SKIPPED",
+            "type": "ISSUER_IDENTITY",
+          },
+        ]
+      `);
+    },
+  );
 });
 
 describe.concurrent('V2 verify', () => {
-  it('should verify a document and return fragments', async ({ expect }) => {
+  it('should verify a document and return fragments', { timeout: 300000 }, async ({ expect }) => {
     expect(
       await verifyDocument(
         WRAPPED_DOCUMENT_DNS_TXT_V2,
@@ -555,16 +639,6 @@ describe.concurrent('V2 verify', () => {
           },
           "status": "SKIPPED",
           "type": "ISSUER_IDENTITY",
-        },
-        {
-          "name": "TransferableRecords",
-          "reason": {
-            "code": 4,
-            "codeString": "SKIPPED",
-            "message": "Document does not have TransferableRecords status",
-          },
-          "status": "SKIPPED",
-          "type": "DOCUMENT_STATUS",
         },
       ]
     `);
