@@ -1,11 +1,93 @@
 import { describe, it } from 'vitest';
-import { wrapDocumentsv2, wrapDocumentsv3, wrapDocumentv2, wrapDocumentv3 } from '../..';
+import {
+  wrapDocument,
+  wrapDocuments,
+  wrapDocumentsv2,
+  wrapDocumentsv3,
+  wrapDocumentv2,
+  wrapDocumentv3,
+} from '../..';
 import {
   BATCHED_RAW_DOCUMENTS_DID_V2,
   BATCHED_RAW_DOCUMENTS_DID_V3,
   RAW_DOCUMENT_DID_V2,
   RAW_DOCUMENT_DNS_DID_V3,
 } from '../fixtures/fixtures';
+
+describe.concurrent('wrap document', () => {
+  it('given a valid v2 document, should wrap correctly', async ({ expect }) => {
+    const wrapped = await wrapDocument(RAW_DOCUMENT_DID_V2);
+    const { signature } = wrapped;
+    expect(signature.merkleRoot.length).toBe(64);
+    expect(signature.targetHash.length).toBe(64);
+    expect(signature.type).toBe('SHA3MerkleProof');
+    expect(signature).not.toHaveProperty('key');
+    expect(signature).not.toHaveProperty('signature');
+  });
+
+  it('given a valid v3 document, should wrap correctly', async ({ expect }) => {
+    const wrapped = await wrapDocument(RAW_DOCUMENT_DNS_DID_V3);
+    const { proof } = wrapped;
+    expect(proof.merkleRoot.length).toBe(64);
+    expect(proof.privacy.obfuscated).toEqual([]);
+    expect(proof.proofPurpose).toBe('assertionMethod');
+    expect(proof.proofs).toEqual([]);
+    expect(proof.salts.length).toBeGreaterThan(0);
+    expect(proof.targetHash.length).toBe(64);
+    expect(proof.type).toBe('OpenAttestationMerkleProofSignature2018');
+    expect(proof).not.toHaveProperty('key');
+    expect(proof).not.toHaveProperty('signature');
+  });
+
+  it('given a invalid document, should throw', async ({ expect }) => {
+    await expect(wrapDocument({} as any)).rejects.toThrowErrorMatchingInlineSnapshot(
+      `[Error: Unsupported document version]`,
+    );
+  });
+});
+
+describe.concurrent('wrap documents', () => {
+  it('given an array of valid v2 documents, should wrap correctly', async ({ expect }) => {
+    const wrapped = await wrapDocuments(BATCHED_RAW_DOCUMENTS_DID_V2);
+    expect(wrapped.length).toBe(2);
+    for (const { signature } of wrapped) {
+      expect(signature.merkleRoot.length).toBe(64);
+      expect(signature.targetHash.length).toBe(64);
+      expect(signature.type).toBe('SHA3MerkleProof');
+      expect(signature).not.toHaveProperty('key');
+      expect(signature).not.toHaveProperty('signature');
+    }
+  });
+
+  it('given an array of valid v3 documents, should wrap correctly', async ({ expect }) => {
+    const wrapped = await wrapDocuments(BATCHED_RAW_DOCUMENTS_DID_V3);
+    expect(wrapped.length).toBe(2);
+    for (const { proof } of wrapped) {
+      expect(proof.type).toBe('OpenAttestationMerkleProofSignature2018');
+      expect(proof.proofPurpose).toBe('assertionMethod');
+      expect(proof.merkleRoot.length).toBe(64);
+      expect(proof.targetHash.length).toBe(64);
+      expect(proof.salts.length).toBeGreaterThan(0);
+      expect(proof.proofs).not.toEqual([]);
+      expect(proof.proofs?.[0]?.length).toBeGreaterThan(0);
+      expect(proof.privacy.obfuscated).toEqual([]);
+      expect(proof).not.toHaveProperty('key');
+      expect(proof).not.toHaveProperty('signature');
+    }
+  });
+
+  it('given an array of documents with different versions, should throw', async ({ expect }) => {
+    await expect(
+      wrapDocuments([BATCHED_RAW_DOCUMENTS_DID_V2[0], BATCHED_RAW_DOCUMENTS_DID_V3[0]]),
+    ).rejects.toThrowErrorMatchingInlineSnapshot(`[Error: Unsupported documents version]`);
+  });
+
+  it('given an array of invalid documents, should throw', async ({ expect }) => {
+    await expect(wrapDocuments([{} as any, {} as any])).rejects.toThrowErrorMatchingInlineSnapshot(
+      `[Error: Unsupported documents version]`,
+    );
+  });
+});
 
 describe.concurrent('v3.0 wrap document', () => {
   it('given a valid v3 document, should wrap correctly', async ({ expect }) => {
