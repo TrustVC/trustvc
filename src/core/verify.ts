@@ -1,17 +1,13 @@
 import { utils } from '@tradetrust-tt/tradetrust';
+import { SignedVerifiableCredential } from '@trustvc/w3c-vc';
+import { ethers } from 'ethers';
 import {
   DocumentsToVerify,
-  openAttestationDidIdentityProof,
   openAttestationVerifiers,
   verificationBuilder,
   VerificationFragment,
-} from '@tradetrust-tt/tt-verify';
-import { SignedVerifiableCredential } from '@trustvc/w3c-vc';
-import { ethers } from 'ethers';
-import { w3cSignatureIntegrity } from './fragments/document-integrity/w3cSignatureIntegrity';
-import { credentialStatusTransferableRecordVerifier } from './fragments/document-status/transferableRecords/transferableRecordVerifier';
-import { w3cCredentialStatus } from './fragments/document-status/w3cCredentialStatus';
-import { w3cIssuerIdentity } from './fragments/issuer-identity/w3cIssuerIdentity';
+  w3cVerifiers,
+} from '../verify';
 
 /**
  * Asynchronously verifies a document (OpenAttestation or W3C Verifiable Credential) using a specified Ethereum-compatible JSON-RPC provider.
@@ -28,7 +24,6 @@ import { w3cIssuerIdentity } from './fragments/issuer-identity/w3cIssuerIdentity
  * @returns {Promise<VerificationFragment[]>} - A promise that resolves to an array of verification fragments,
  *                                              detailing the results of various verification checks such as
  *                                              signature integrity, credential status, issuer identity, etc.
- *
  */
 export const verifyDocument = async (
   document: DocumentsToVerify | SignedVerifiableCredential,
@@ -36,28 +31,17 @@ export const verifyDocument = async (
 ): Promise<VerificationFragment[]> => {
   if (utils.isWrappedV2Document(document) || utils.isWrappedV3Document(document)) {
     // Build the verification process using OpenAttestation verifiers and DID identity proof
-    const verify = verificationBuilder(
-      [...openAttestationVerifiers, openAttestationDidIdentityProof],
-      {
-        provider: new ethers.providers.JsonRpcProvider(rpcProviderUrl), // Use user-provided provider URL
-      },
-    );
+    const verify = verificationBuilder(openAttestationVerifiers, {
+      provider: new ethers.providers.JsonRpcProvider(rpcProviderUrl), // Use user-provided provider URL
+    });
 
     // Perform verification and return the result
     return verify(document);
   } else {
     // Build the verification process using w3c fragments
-    const verify = verificationBuilder(
-      [
-        w3cSignatureIntegrity,
-        w3cCredentialStatus,
-        w3cIssuerIdentity,
-        credentialStatusTransferableRecordVerifier,
-      ],
-      {
-        provider: new ethers.providers.JsonRpcProvider(rpcProviderUrl), // Use user-provided provider URL
-      },
-    );
+    const verify = verificationBuilder(w3cVerifiers, {
+      provider: new ethers.providers.JsonRpcProvider(rpcProviderUrl), // Use user-provided provider URL
+    });
 
     // Perform verification and return the result
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

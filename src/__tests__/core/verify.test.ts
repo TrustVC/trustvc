@@ -1,7 +1,7 @@
 import { beforeEach } from 'node:test';
 import { describe, it, vi } from 'vitest';
 import { verifyDocument } from '../..';
-import * as transferableRecordsUtils from '../../core/fragments/document-status/transferableRecords/utils';
+import * as transferableRecordsUtils from '../../verify/fragments/document-status/transferableRecords/utils';
 import {
   SIGNED_WRAPPED_DOCUMENT_DNS_DID_V3,
   W3C_TRANSFERABLE_RECORD,
@@ -10,41 +10,43 @@ import {
   WRAPPED_DOCUMENT_DNS_TXT_V2,
 } from '../fixtures/fixtures';
 
+const providerUrl = 'https://rpc-amoy.polygon.technology';
+
 describe.concurrent('W3C verify', () => {
   describe.concurrent('W3C_VERIFIABLE_DOCUMENT', () => {
     it('should verify the document and return all valid fragments', async ({ expect }) => {
       expect(await verifyDocument(W3C_VERIFIABLE_DOCUMENT, '')).toMatchInlineSnapshot(`
-      [
-        {
-          "data": true,
-          "name": "W3CSignatureIntegrity",
-          "status": "VALID",
-          "type": "DOCUMENT_INTEGRITY",
-        },
-        {
-          "data": true,
-          "name": "W3CCredentialStatus",
-          "status": "VALID",
-          "type": "DOCUMENT_STATUS",
-        },
-        {
-          "data": true,
-          "name": "W3CIssuerIdentity",
-          "status": "VALID",
-          "type": "ISSUER_IDENTITY",
-        },
-        {
-          "name": "TransferableRecords",
-          "reason": {
-            "code": 4,
-            "codeString": "SKIPPED",
-            "message": "Document does not have TransferableRecords status",
+        [
+          {
+            "data": true,
+            "name": "W3CSignatureIntegrity",
+            "status": "VALID",
+            "type": "DOCUMENT_INTEGRITY",
           },
-          "status": "SKIPPED",
-          "type": "DOCUMENT_STATUS",
-        },
-      ]
-    `);
+          {
+            "data": true,
+            "name": "W3CCredentialStatus",
+            "status": "VALID",
+            "type": "DOCUMENT_STATUS",
+          },
+          {
+            "name": "TransferableRecords",
+            "reason": {
+              "code": 4,
+              "codeString": "SKIPPED",
+              "message": "Document does not have TransferableRecords status",
+            },
+            "status": "SKIPPED",
+            "type": "DOCUMENT_STATUS",
+          },
+          {
+            "data": true,
+            "name": "W3CIssuerIdentity",
+            "status": "VALID",
+            "type": "ISSUER_IDENTITY",
+          },
+        ]
+      `);
     });
 
     it('should return INVALID status for DOCUMENT_INTEGRITY when signature is tampered', async ({
@@ -242,45 +244,41 @@ describe.concurrent('W3C verify', () => {
       'should return VALID status for TransferableRecords',
       { timeout: 300000 },
       async ({ expect }) => {
-        expect(
-          await verifyDocument(
-            W3C_TRANSFERABLE_RECORD as any,
-            'https://rpc-amoy.polygon.technology',
-          ),
-        ).toMatchInlineSnapshot(`
-          [
-            {
-              "data": true,
-              "name": "W3CSignatureIntegrity",
-              "status": "VALID",
-              "type": "DOCUMENT_INTEGRITY",
-            },
-            {
-              "name": "W3CCredentialStatus",
-              "reason": {
-                "code": 0,
-                "codeString": "SKIPPED",
-                "message": "Document does not have a valid credentialStatus or type.",
+        expect(await verifyDocument(W3C_TRANSFERABLE_RECORD as any, providerUrl))
+          .toMatchInlineSnapshot(`
+            [
+              {
+                "data": true,
+                "name": "W3CSignatureIntegrity",
+                "status": "VALID",
+                "type": "DOCUMENT_INTEGRITY",
               },
-              "status": "SKIPPED",
-              "type": "DOCUMENT_STATUS",
-            },
-            {
-              "data": true,
-              "name": "W3CIssuerIdentity",
-              "status": "VALID",
-              "type": "ISSUER_IDENTITY",
-            },
-            {
-              "data": {
-                "tokenRegistry": "0x6c2a002A5833a100f38458c50F11E71Aa1A342c6",
+              {
+                "name": "W3CCredentialStatus",
+                "reason": {
+                  "code": 0,
+                  "codeString": "SKIPPED",
+                  "message": "Document does not have a valid credentialStatus or type.",
+                },
+                "status": "SKIPPED",
+                "type": "DOCUMENT_STATUS",
               },
-              "name": "TransferableRecords",
-              "status": "VALID",
-              "type": "DOCUMENT_STATUS",
-            },
-          ]
-        `);
+              {
+                "data": {
+                  "tokenRegistry": "0x6c2a002A5833a100f38458c50F11E71Aa1A342c6",
+                },
+                "name": "TransferableRecords",
+                "status": "VALID",
+                "type": "DOCUMENT_STATUS",
+              },
+              {
+                "data": true,
+                "name": "W3CIssuerIdentity",
+                "status": "VALID",
+                "type": "ISSUER_IDENTITY",
+              },
+            ]
+          `);
       },
     );
 
@@ -295,7 +293,7 @@ describe.concurrent('W3C verify', () => {
             tokenRegistry: '',
           },
         };
-        expect(await verifyDocument(tampered, 'https://rpc-amoy.polygon.technology')).toEqual(
+        expect(await verifyDocument(tampered, providerUrl)).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
               name: 'TransferableRecords',
@@ -324,7 +322,7 @@ describe.concurrent('W3C verify', () => {
           },
         },
       };
-      expect(await verifyDocument(tampered, 'https://rpc-amoy.polygon.technology')).toEqual(
+      expect(await verifyDocument(tampered, providerUrl)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             name: 'TransferableRecords',
@@ -350,7 +348,7 @@ describe.concurrent('W3C verify', () => {
           tokenId: '123',
         },
       };
-      expect(await verifyDocument(tampered, 'https://rpc-amoy.polygon.technology')).toEqual(
+      expect(await verifyDocument(tampered, providerUrl)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             name: 'TransferableRecords',
@@ -373,9 +371,7 @@ describe.concurrent('W3C verify', () => {
         new Error('Unexpected error'),
       );
 
-      expect(
-        await verifyDocument(W3C_TRANSFERABLE_RECORD, 'https://rpc-amoy.polygon.technology'),
-      ).toEqual(
+      expect(await verifyDocument(W3C_TRANSFERABLE_RECORD, providerUrl)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             name: 'TransferableRecords',
@@ -479,12 +475,8 @@ describe.concurrent('V3 verify', () => {
     'should verify a DID_TOKEN_REGISTRY document and return fragments',
     { timeout: 300000 },
     async ({ expect }) => {
-      expect(
-        await verifyDocument(
-          WRAPPED_DOCUMENT_DID_TOKEN_REGISTRY_V3,
-          'https://rpc-amoy.polygon.technology',
-        ),
-      ).toMatchInlineSnapshot(`
+      expect(await verifyDocument(WRAPPED_DOCUMENT_DID_TOKEN_REGISTRY_V3, providerUrl))
+        .toMatchInlineSnapshot(`
         [
           {
             "data": true,

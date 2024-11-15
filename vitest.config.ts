@@ -16,7 +16,7 @@ export default defineConfig({
     include: ['**/*.test.{ts,js}'],
     server: {
       deps: {
-        inline: ['@govtechsg/oa-verify'], // Inline oa-verify package directly
+        inline: ['@govtechsg/oa-verify', '@tradetrust-tt/tt-verify'], // Inline oa-verify package directly
       },
     },
     exclude: ['dist', 'node_modules', '*/type{s}.{ts,js}'],
