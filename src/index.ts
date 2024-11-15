@@ -8,4 +8,5 @@ export * from './open-attestation';
 export * from './verify';
 export * from './w3c';
 export * from './utils';
+export * from './dnsprove';
 export { v4SupportInterfaceIds, v5SupportInterfaceIds, v4Contracts, v5Contracts };

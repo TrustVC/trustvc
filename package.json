@@ -37,6 +37,11 @@
       "import": "./dist/esm/core/index.js",
       "require": "./dist/core/index.js"
     },
+    "./dnsprove": {
+      "types": "./dist/dnsprove/index.d.ts",
+      "import": "./dist/esm/dnsprove/index.js",
+      "require": "./dist/dnsprove/index.js"
+    },
     "./open-attestation": {
       "types": "./dist/open-attestation/index.d.ts",
       "import": "./dist/esm/open-attestation/index.js",
@@ -104,6 +109,7 @@
     }
   },
   "dependencies": {
+    "@tradetrust-tt/dnsprove": "^2.14.2",
     "@tradetrust-tt/token-registry-v4": "npm:@tradetrust-tt/token-registry@^4.12.1",
     "@tradetrust-tt/token-registry-v5": "npm:@tradetrust-tt/token-registry@^5.0.0-alpha.5",
     "@tradetrust-tt/tradetrust": "^6.9.7",
