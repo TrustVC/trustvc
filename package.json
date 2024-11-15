@@ -10,7 +10,8 @@
   ],
   "scripts": {
     "test": "npx vitest --run --test-timeout=15000",
-    "lint": "tsc && npx eslint . --color --format=table --max-warnings=0 --ignore-pattern=\"node_modules/@tradetrust-tt/token-registry-v5\"",
+    "type-check": "tsc --noEmit",
+    "lint": "npx eslint . --color --format=table --max-warnings=0",
     "build": "npm run clean && tsup",
     "clean": "rm -rf dist/",
     "precommit": "lint-staged",
