@@ -1,3 +1,10 @@
+## [1.0.0-alpha.10](https://github.com/TrustVC/trustvc/compare/v1.0.0-alpha.9...v1.0.0-alpha.10) (2024-11-13)
+
+
+### Bug Fixes
+
+* swap oa lib with tt lib ([#15](https://github.com/TrustVC/trustvc/issues/15)) ([b2def84](https://github.com/TrustVC/trustvc/commit/b2def849dc4305b1300d6a90831fbb9f94fb303b))
+
 ## [1.0.0-alpha.9](https://github.com/TrustVC/trustvc/compare/v1.0.0-alpha.8...v1.0.0-alpha.9) (2024-11-03)
 
 
