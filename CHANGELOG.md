@@ -1,3 +1,10 @@
+## [1.0.0-alpha.11](https://github.com/TrustVC/trustvc/compare/v1.0.0-alpha.10...v1.0.0-alpha.11) (2024-11-18)
+
+
+### Bug Fixes
+
+* expose token registry ([#16](https://github.com/TrustVC/trustvc/issues/16)) ([9246945](https://github.com/TrustVC/trustvc/commit/924694534d9a6e89bea91783d69cf4beb97e1e61))
+
 ## [1.0.0-alpha.10](https://github.com/TrustVC/trustvc/compare/v1.0.0-alpha.9...v1.0.0-alpha.10) (2024-11-13)
 
 
