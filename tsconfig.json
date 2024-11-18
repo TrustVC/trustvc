@@ -7,8 +7,7 @@
     "emitDecoratorMetadata": true,
     "baseUrl": ".",
     "rootDir": ".",
-    "paths": {
-    },
+    "paths": {},
     "resolveJsonModule": true,
     "allowJs": true,
     "checkJs": true,

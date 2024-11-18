@@ -1,11 +1,11 @@
 import { describe, it } from 'vitest';
 import {
-  wrapDocument,
-  wrapDocuments,
-  wrapDocumentsv2,
-  wrapDocumentsv3,
-  wrapDocumentv2,
-  wrapDocumentv3,
+  wrapOADocument,
+  wrapOADocuments,
+  wrapOADocumentsV2,
+  wrapOADocumentsV3,
+  wrapOADocumentV2,
+  wrapOADocumentV3,
 } from '../..';
 import {
   BATCHED_RAW_DOCUMENTS_DID_V2,
@@ -16,7 +16,7 @@ import {
 
 describe.concurrent('wrap document', () => {
   it('given a valid v2 document, should wrap correctly', async ({ expect }) => {
-    const wrapped = await wrapDocument(RAW_DOCUMENT_DID_V2);
+    const wrapped = await wrapOADocument(RAW_DOCUMENT_DID_V2);
     const { signature } = wrapped;
     expect(signature.merkleRoot.length).toBe(64);
     expect(signature.targetHash.length).toBe(64);
@@ -26,7 +26,7 @@ describe.concurrent('wrap document', () => {
   });
 
   it('given a valid v3 document, should wrap correctly', async ({ expect }) => {
-    const wrapped = await wrapDocument(RAW_DOCUMENT_DNS_DID_V3);
+    const wrapped = await wrapOADocument(RAW_DOCUMENT_DNS_DID_V3);
     const { proof } = wrapped;
     expect(proof.merkleRoot.length).toBe(64);
     expect(proof.privacy.obfuscated).toEqual([]);
@@ -40,7 +40,7 @@ describe.concurrent('wrap document', () => {
   });
 
   it('given a invalid document, should throw', async ({ expect }) => {
-    await expect(wrapDocument({} as any)).rejects.toThrowErrorMatchingInlineSnapshot(
+    await expect(wrapOADocument({} as any)).rejects.toThrowErrorMatchingInlineSnapshot(
       `[Error: Unsupported document version]`,
     );
   });
@@ -48,7 +48,7 @@ describe.concurrent('wrap document', () => {
 
 describe.concurrent('wrap documents', () => {
   it('given an array of valid v2 documents, should wrap correctly', async ({ expect }) => {
-    const wrapped = await wrapDocuments(BATCHED_RAW_DOCUMENTS_DID_V2);
+    const wrapped = await wrapOADocuments(BATCHED_RAW_DOCUMENTS_DID_V2);
     expect(wrapped.length).toBe(2);
     for (const { signature } of wrapped) {
       expect(signature.merkleRoot.length).toBe(64);
@@ -60,7 +60,7 @@ describe.concurrent('wrap documents', () => {
   });
 
   it('given an array of valid v3 documents, should wrap correctly', async ({ expect }) => {
-    const wrapped = await wrapDocuments(BATCHED_RAW_DOCUMENTS_DID_V3);
+    const wrapped = await wrapOADocuments(BATCHED_RAW_DOCUMENTS_DID_V3);
     expect(wrapped.length).toBe(2);
     for (const { proof } of wrapped) {
       expect(proof.type).toBe('OpenAttestationMerkleProofSignature2018');
@@ -78,20 +78,20 @@ describe.concurrent('wrap documents', () => {
 
   it('given an array of documents with different versions, should throw', async ({ expect }) => {
     await expect(
-      wrapDocuments([BATCHED_RAW_DOCUMENTS_DID_V2[0], BATCHED_RAW_DOCUMENTS_DID_V3[0]]),
+      wrapOADocuments([BATCHED_RAW_DOCUMENTS_DID_V2[0], BATCHED_RAW_DOCUMENTS_DID_V3[0]]),
     ).rejects.toThrowErrorMatchingInlineSnapshot(`[Error: Unsupported documents version]`);
   });
 
   it('given an array of invalid documents, should throw', async ({ expect }) => {
-    await expect(wrapDocuments([{} as any, {} as any])).rejects.toThrowErrorMatchingInlineSnapshot(
-      `[Error: Unsupported documents version]`,
-    );
+    await expect(
+      wrapOADocuments([{} as any, {} as any]),
+    ).rejects.toThrowErrorMatchingInlineSnapshot(`[Error: Unsupported documents version]`);
   });
 });
 
 describe.concurrent('v3.0 wrap document', () => {
   it('given a valid v3 document, should wrap correctly', async ({ expect }) => {
-    const wrapped = await wrapDocumentv3(RAW_DOCUMENT_DNS_DID_V3);
+    const wrapped = await wrapOADocumentV3(RAW_DOCUMENT_DNS_DID_V3);
     const { proof } = wrapped;
     expect(proof.merkleRoot.length).toBe(64);
     expect(proof.privacy.obfuscated).toEqual([]);
@@ -108,7 +108,7 @@ describe.concurrent('v3.0 wrap document', () => {
     expect,
   }) => {
     await expect(
-      wrapDocumentv3({
+      wrapOADocumentV3({
         version: 'https://schema.openattestation.com/3.0/schema.json',
         '@context': [
           'https://www.w3.org/2018/credentials/v1',
@@ -120,7 +120,7 @@ describe.concurrent('v3.0 wrap document', () => {
 
   it('given a valid v3 document but has an extra field, should throw', async ({ expect }) => {
     await expect(
-      wrapDocumentv3({
+      wrapOADocumentV3({
         ...RAW_DOCUMENT_DNS_DID_V3,
         UNKNOWN: 'any',
       }),
@@ -132,7 +132,7 @@ describe.concurrent('v3.0 wrap document', () => {
 
 describe.concurrent('v3.0 wrap documents', () => {
   it('given an array of valid v3 documents, should wrap correctly', async ({ expect }) => {
-    const wrapped = await wrapDocumentsv3(BATCHED_RAW_DOCUMENTS_DID_V3);
+    const wrapped = await wrapOADocumentsV3(BATCHED_RAW_DOCUMENTS_DID_V3);
     expect(wrapped.length).toBe(2);
     for (const { proof } of wrapped) {
       expect(proof.type).toBe('OpenAttestationMerkleProofSignature2018');
@@ -152,7 +152,7 @@ describe.concurrent('v3.0 wrap documents', () => {
     expect,
   }) => {
     await expect(
-      wrapDocumentsv3([
+      wrapOADocumentsV3([
         {
           version: 'https://schema.openattestation.com/3.0/schema.json',
           '@context': [
@@ -169,7 +169,7 @@ describe.concurrent('v3.0 wrap documents', () => {
     expect,
   }) => {
     await expect(
-      wrapDocumentv3([
+      wrapOADocumentV3([
         BATCHED_RAW_DOCUMENTS_DID_V3[0],
         {
           ...BATCHED_RAW_DOCUMENTS_DID_V3[1],
@@ -182,7 +182,7 @@ describe.concurrent('v3.0 wrap documents', () => {
 
 describe.concurrent('v2.0 wrap document', () => {
   it('given a valid v2 document, should wrap correctly', async ({ expect }) => {
-    const wrapped = await wrapDocumentv2(RAW_DOCUMENT_DID_V2);
+    const wrapped = await wrapOADocumentV2(RAW_DOCUMENT_DID_V2);
     const { signature } = wrapped;
     expect(signature.merkleRoot.length).toBe(64);
     expect(signature.targetHash.length).toBe(64);
@@ -193,7 +193,7 @@ describe.concurrent('v2.0 wrap document', () => {
 
   it('given a valid v2 document but has an extra field, should throw', async ({ expect }) => {
     await expect(
-      wrapDocumentv2({
+      wrapOADocumentV2({
         ...RAW_DOCUMENT_DID_V2,
         issuers: [
           {
@@ -208,7 +208,7 @@ describe.concurrent('v2.0 wrap document', () => {
 
 describe.concurrent('v2.0 wrap documents', () => {
   it('given an array of valid v2 documents, should wrap correctly', async ({ expect }) => {
-    const wrapped = await wrapDocumentsv2(BATCHED_RAW_DOCUMENTS_DID_V2);
+    const wrapped = await wrapOADocumentsV2(BATCHED_RAW_DOCUMENTS_DID_V2);
     expect(wrapped.length).toBe(2);
     for (const { signature } of wrapped) {
       expect(signature.merkleRoot.length).toBe(64);
@@ -223,7 +223,7 @@ describe.concurrent('v2.0 wrap documents', () => {
     expect,
   }) => {
     await expect(
-      wrapDocumentsv2([
+      wrapOADocumentsV2([
         BATCHED_RAW_DOCUMENTS_DID_V2[0],
         {
           ...BATCHED_RAW_DOCUMENTS_DID_V2[1],
