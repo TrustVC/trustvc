@@ -1,3 +1,10 @@
+## [1.0.0-alpha.12](https://github.com/TrustVC/trustvc/compare/v1.0.0-alpha.11...v1.0.0-alpha.12) (2024-12-02)
+
+
+### Bug Fixes
+
+* update packages ([#17](https://github.com/TrustVC/trustvc/issues/17)) ([e7954e2](https://github.com/TrustVC/trustvc/commit/e7954e2011c13f401f0dfacf905bdfda27572486))
+
 ## [1.0.0-alpha.11](https://github.com/TrustVC/trustvc/compare/v1.0.0-alpha.10...v1.0.0-alpha.11) (2024-11-18)
 
 
