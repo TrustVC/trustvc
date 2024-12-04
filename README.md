@@ -11,58 +11,19 @@ TrustVC is a comprehensive wrapper library designed to simplify the signing and 
   - [Installation](#installation)
   - [Functions](#functions)
     - [1. **Wrapping**](#1-wrapping)
-    - [a) wrapOADocument](#a-wrapoadocument)
-      - [Description](#description)
-      - [Parameters](#parameters)
-      - [Returns](#returns)
-      - [Throws](#throws)
-    - [b) wrapOADocuments](#b-wrapoadocuments)
-      - [Description](#description-1)
-      - [Parameters](#parameters-1)
-      - [Returns](#returns-1)
-      - [Throws](#throws-1)
-      - [Example](#example)
+      - [a) wrapOADocument](#a-wrapoadocument)
+      - [b) wrapOADocuments](#b-wrapoadocuments)
     - [2. **Signing**](#2-signing)
+      - [a) OpenAttestation Signing (signOA) v2 v3](#a-openattestation-signing-signoa-v2-v3)
+      - [b) TrustVC W3C Signing (signW3C)](#b-trustvc-w3c-signing-signw3c)
     - [3. **Verifying**](#3-verifying)
     - [4. **Encryption**](#4-encryption)
-  - [Function Signature](#function-signature)
-  - [Description](#description-2)
-  - [Parameters](#parameters-2)
-  - [Returns](#returns-2)
-  - [Errors](#errors)
-  - [Usage](#usage)
-    - [Example 1: Basic Encryption](#example-1-basic-encryption)
-    - [Example 2: Encryption with a Custom Nonce](#example-2-encryption-with-a-custom-nonce)
-  - [Internal Dependencies](#internal-dependencies)
-  - [Output Format](#output-format)
-  - [Notes](#notes)
     - [5. **Decryption**](#5-decryption)
-  - [Function Signature](#function-signature-1)
-  - [Description](#description-3)
-  - [Parameters](#parameters-3)
-  - [Returns](#returns-3)
-  - [Errors](#errors-1)
-  - [Usage](#usage-1)
-    - [Example 1: Basic Decryption](#example-1-basic-decryption)
-    - [Example 2: Decryption with a Custom Nonce](#example-2-decryption-with-a-custom-nonce)
-  - [Internal Dependencies](#internal-dependencies-1)
-  - [Output Format](#output-format-1)
-  - [Notes](#notes-1)
-    - [6. TradeTrust Token Registry V4](#6-tradetrust-token-registry-v4)
-    - [Usage](#usage-2)
-    - [TradeTrustToken](#tradetrusttoken)
-      - [Connect to existing token registry](#connect-to-existing-token-registry)
-      - [Issuing a Document](#issuing-a-document)
-      - [Restoring a Document](#restoring-a-document)
-      - [Accept/Burn a Document](#acceptburn-a-document)
-    - [7. TradeTrust Token Registry V5](#7-tradetrust-token-registry-v5)
-    - [Connect to Token Registry](#connect-to-token-registry)
-    - [Issuing a Document](#issuing-a-document-1)
-    - [Restoring a Document](#restoring-a-document-1)
-    - [Accepting/Burning a Document](#acceptingburning-a-document)
-    - [Connecting to Title Escrow](#connecting-to-title-escrow)
-    - [Surrender to Return to Issuer](#surrender-to-return-to-issuer)
-    - [Rejecting Transfers of Beneficiary/Holder](#rejecting-transfers-of-beneficiaryholder)
+    - [6. **TradeTrust Token Registry**](#6-tradetrust-token-registry)
+      - [Usage](#usage-2)
+      - [TradeTrustToken](#tradetrusttoken)
+      - [a) Token Registry v4](#a-token-registry-v4)
+      - [b) Token Registry V5](#b-token-registry-v5)
 
 ## Installation
 
@@ -76,9 +37,9 @@ npm run test
 
 ### 1. **Wrapping**
 
-> This module provides utility functions for wrapping OpenAttestation documents of version 2 (v2) and version 3 (v3). These functions validate the document version and apply the appropriate wrapping logic using the OpenAttestation library.
+> This module provides utility functions for wrapping OpenAttestation documents of version 2 (v2) and version 3 (v3). These functions validate the document version and apply the appropriate wrapping logic using the OpenAttestation library. Note that wrapping is not required for W3C-compliant documents, as they follow a different format and standard.
 
-### a) wrapOADocument
+#### a) wrapOADocument
 
 #### Description
 
@@ -100,7 +61,7 @@ npm run test
 > If the document version is unsupported or if an error occurs during wrapping.
 
 ```ts
-import { wrapOADocument } from './wrapOADocument';
+import { wrapOADocument } from '@trustvc/trustvc';
 
 const document = {
   /* OpenAttestation document (v2 or v3) */
@@ -109,9 +70,7 @@ const wrappedDocument = await wrapOADocument(document);
 console.log(wrappedDocument);
 ```
 
-1. OpenAttestation Signing (signOA), supporting only OA Schema
-
-### b) wrapOADocuments
+#### b) wrapOADocuments
 
 #### Description
 
@@ -135,7 +94,7 @@ console.log(wrappedDocument);
 #### Example
 
 ```ts
-import { wrapOADocuments } from './wrapOADocument';
+import { wrapOADocuments } from '@trustvc/trustvc';
 
 const documents = [
   {
@@ -151,9 +110,14 @@ console.log(wrappedDocuments);
 
 ### 2. **Signing**
 
-> The TrustVC W3C Signing feature simplifies the signing process for W3C-compliant verifiable credentials using BBS+ signatures. This feature allows you to easily sign W3C Verifiable Credentials (VCs) and ensure they comply with the latest standards.
+> The TrustVC Signing feature simplifies the signing process for OA documents and W3C-compliant verifiable credentials using BBS+ signatures. This feature allows you to easily sign W3C Verifiable Credentials (VCs) and ensure they comply with the latest standards.
 
-1. OpenAttestation Signing (signOA), supporting only OA Schema [v4](https://github.com/Open-Attestation/open-attestation/tree/beta/src/4.0)
+The signing functionality is split into two methods:
+
+1. signOA: Designed specifically for signing OpenAttestation documents.
+2. signW3C: Tailored for signing W3C-compliant verifiable credentials.
+
+#### a) OpenAttestation Signing (signOA) [v2](https://github.com/Open-Attestation/open-attestation/tree/master/src/2.0) [v3](https://github.com/Open-Attestation/open-attestation/tree/master/src/3.0)
 
 ```ts
 import { wrapOA, signOA } from '@trustvc/trustvc';
@@ -185,7 +149,7 @@ const signedWrappedDocument = await signOA(wrappedDocument, {
 });
 ```
 
-2. TrustVC W3C Signing (signW3C)
+#### b) TrustVC W3C Signing (signW3C)
 
 ```ts
 import { signW3C, VerificationType } from '@trustvc/trustvc';
@@ -270,17 +234,17 @@ const resultFragments = await verifyDocument(signedDocument);
 
 ### 4. **Encryption**
 
-> The `encrypt` function encrypts plaintext messages using the **ChaCha20** encryption >algorithm, ensuring the security and integrity of the input data. It supports custom keys and >nonces, returning the encrypted message in hexadecimal format.
+> The `encrypt` function encrypts plaintext messages using the **ChaCha20** encryption algorithm, ensuring the security and integrity of the input data. It supports custom keys and nonces, returning the encrypted message in hexadecimal format.
 
 ---
 
-## Function Signature
+#### Function Signature
 
 function encrypt(message: string, key: string, nonce?: string): string;
 
 ---
 
-## Description
+#### Description
 
 The `encrypt` function is a utility for encrypting text messages using **ChaCha20**, a stream cipher known for its speed and security. This function ensures that the key meets the 32-byte requirement and that a valid 12-byte nonce is either supplied or generated.
 
@@ -288,7 +252,7 @@ The output is a hexadecimal string representing the encrypted data.
 
 ---
 
-## Parameters
+#### Parameters
 
 - `message` (string): The plaintext message to encrypt.
 - `key` (string): The encryption key, which will be transformed into a 32-byte key.
@@ -296,49 +260,48 @@ The output is a hexadecimal string representing the encrypted data.
 
 ---
 
-## Returns
+#### Returns
 
 - `string`: The encrypted message encoded in hexadecimal format.
 
 ---
 
-## Errors
+#### Errors
 
-- `Key length must not be 0`: Thrown when the provided key is an empty string.
-- Other runtime errors: Issues during key transformation, nonce generation, or encryption.
+- Runtime errors: Issues during key transformation, nonce generation, or encryption.
 
 ---
 
-## Usage
+#### Usage
 
-### Example 1: Basic Encryption
+#### Example 1: Basic Encryption
 
 ```ts
-import { encrypt } from './encrypt';
+import { encrypt } from '@trustvc/trustvc';
 
-const message = "Hello, ChaCha20!";
-const key = "my-secret-key";
+const message = 'Hello, ChaCha20!';
+const key = 'my-secret-key';
 const encryptedMessage = encrypt(message, key);
 
-console.log(Encrypted Message: ${encryptedMessage});
+console.log(`Encrypted Message: ${encryptedMessage}`);
 ```
 
-### Example 2: Encryption with a Custom Nonce
+#### Example 2: Encryption with a Custom Nonce
 
 ```ts
-import { encrypt } from './encrypt';
+import { encrypt } from '@trustvc/trustvc';
 
-const message = "Secure this message.";
-const key = "another-secret-key";
-const nonce = "123456789012"; // Custom 12-byte nonce
+const message = 'Secure this message.';
+const key = 'another-secret-key';
+const nonce = '123456789012'; // Custom 12-byte nonce
 
 const encryptedMessage = encrypt(message, key, nonce);
-console.log(Encrypted Message with Nonce: ${encryptedMessage});
+console.log(`Encrypted Message with Nonce: ${encryptedMessage}`);
 ```
 
 ---
 
-## Internal Dependencies
+#### Internal Dependencies
 
 The function uses the following utilities:
 
@@ -350,15 +313,13 @@ It also relies on the `ts-chacha20` library for encryption operations.
 
 ---
 
-## Output Format
+#### Output Format
 
 - The encrypted message is returned as a **hexadecimal string**.
-- To switch to **base64** encoding, modify the return statement:
-  return Buffer.from(encrypted).toString('base64');
 
 ---
 
-## Notes
+#### Notes
 
 1. Always ensure the key and nonce are securely stored and not reused.
 2. ChaCha20 requires a unique nonce for each encryption to maintain security.
@@ -366,11 +327,11 @@ It also relies on the `ts-chacha20` library for encryption operations.
 
 ### 5. **Decryption**
 
-> The `decrypt` function decrypts messages encrypted with the **ChaCha20** algorithm. It >converts the input from a hexadecimal format back into plaintext using the provided key and >nonce.
+> The `decrypt` function decrypts messages encrypted with the **ChaCha20** algorithm. It converts the input from a hexadecimal format back into plaintext using the provided key and nonce.
 
 ---
 
-## Function Signature
+#### Function Signature
 
 ```ts
 function decrypt(encryptedMessage: string, key: string, nonce?: string): string;
@@ -378,7 +339,7 @@ function decrypt(encryptedMessage: string, key: string, nonce?: string): string;
 
 ---
 
-## Description
+#### Description
 
 The `decrypt` function is a utility for decrypting hexadecimal-encoded messages that were encrypted using the **ChaCha20** stream cipher. It ensures the key meets the 32-byte requirement and validates or generates a 12-byte nonce if not supplied.
 
@@ -386,7 +347,7 @@ The function returns the original plaintext message in UTF-8 format.
 
 ---
 
-## Parameters
+#### Parameters
 
 - `encryptedMessage` (string): The encrypted message, in hexadecimal format.
 - `key` (string): The decryption key, which will be transformed into a 32-byte key. Defaults to `DEFAULT_KEY` if an empty key is provided.
@@ -394,13 +355,13 @@ The function returns the original plaintext message in UTF-8 format.
 
 ---
 
-## Returns
+#### Returns
 
 - `string`: The decrypted plaintext message in UTF-8 format.
 
 ---
 
-## Errors
+#### Errors
 
 The function throws an error if:
 
@@ -409,36 +370,36 @@ The function throws an error if:
 
 ---
 
-## Usage
+#### Usage
 
-### Example 1: Basic Decryption
+#### Example 1: Basic Decryption
 
 ```ts
-import { decrypt } from './decrypt';
+import { decrypt } from '@trustvc/trustvc';
 
-const encryptedMessage = "e8b7c7e9...";
-const key = "my-secret-key";
+const encryptedMessage = 'e8b7c7e9...';
+const key = 'my-secret-key';
 const decryptedMessage = decrypt(encryptedMessage, key);
 
-console.log(Decrypted Message: ${decryptedMessage});
+console.log(`Decrypted Message: ${decryptedMessage}`);
 ```
 
-### Example 2: Decryption with a Custom Nonce
+#### Example 2: Decryption with a Custom Nonce
 
 ```ts
-import { decrypt } from './decrypt';
+import { decrypt } from '@trustvc/trustvc';
 
-const encryptedMessage = "f3a7e9b2...";
-const key = "another-secret-key";
-const nonce = "123456789012"; // Custom 12-byte nonce
+const encryptedMessage = 'f3a7e9b2...';
+const key = 'another-secret-key';
+const nonce = '123456789012'; // Custom 12-byte nonce
 
 const decryptedMessage = decrypt(encryptedMessage, key, nonce);
-console.log(Decrypted Message with Nonce: ${decryptedMessage});
+console.log(`Decrypted Message with Nonce: ${decryptedMessage}`);
 ```
 
 ---
 
-## Internal Dependencies
+#### Internal Dependencies
 
 The function uses the following utilities:
 
@@ -450,29 +411,35 @@ It also relies on the `ts-chacha20` library for decryption operations.
 
 ---
 
-## Output Format
+#### Output Format
 
 - The function accepts the encrypted message in **hexadecimal format** and returns the decrypted message in **UTF-8 format**.
 
 ---
 
-## Notes
+#### Notes
 
 1. Always use the same key and nonce pair that were used during encryption for successful decryption.
 2. If a custom nonce is not provided, the function will generate a new one, which may not match the original encryption nonce and will result in decryption failure.
 3. The default key, `DEFAULT_KEY`, should only be used for fallback scenarios and not in production environments.
+4. Suggestion: If available, consider using the value of the key Id inside the document as the encryption key. This can simplify key management and enhance the security of your encryption process.
 
-### 6. TradeTrust Token Registry V4
+### 6. **TradeTrust Token Registry**
 
-### Usage
+> The Electronic Bill of Lading (eBL) is a digital document that can be used to prove the ownership of goods. It is a standardized document that is accepted by all major shipping lines and customs authorities. The [Token Registry](https://github.com/TradeTrust/token-registry) repository contains both the smart contract (v4 and v5) code for token registry (in `/contracts`) as well as the node package for using this library (in `/src`).
+> The TrustVC library not only simplifies signing and verification but also imports and integrates existing TradeTrust libraries and smart contracts for token registry (V4 and V5), making it a versatile tool for decentralized identity and trust solutions.
 
-To use the package, you will need to provide your own Web3 [provider](https://docs.ethers.io/v5/api/providers/api-providers/) or [signer](https://docs.ethers.io/v5/api/signer/#Wallet) (if you are writing to the blockchain). This package exposes the [Typechain (Ethers)](https://github.com/dethcrypto/TypeChain/tree/master/packages/target-ethers-v5) bindings for the contracts.
+#### Usage
 
-### TradeTrustToken
+> To use the package, you will need to provide your own Web3 [provider](https://docs.ethers.io/v5/api/providers/api-providers/) or [signer](https://docs.ethers.io/v5/api/signer/#Wallet) (if you are writing to the blockchain). This package exposes the [Typechain(Ethers)](https://github.com/dethcrypto/TypeChain/tree/master/packages/target-ethers-v5) bindings for the contracts.
+
+#### TradeTrustToken
 
 > The `TradeTrustToken` is a Soulbound Token (SBT) tied to the Title Escrow. The SBT >implementation is loosely based on OpenZeppelin's implementation of the >[ERC721](http://erc721.org/) standard.
 > An SBT is used in this case because the token, while can be transferred to the registry, is >largely restricted to its designated Title Escrow contracts.
 > See issue [#108](https://github.com/Open-Attestation/token-registry/issues/108) for more >details.
+
+#### a) Token Registry v4
 
 #### Connect to existing token registry
 
@@ -505,21 +472,24 @@ await v4connectedRegistry.burn(tokenId);
 
 For more information on Token Registry and Title Escrow contracts **version v4**, please visit the readme of [TradeTrust Token Registry V4](https://github.com/TradeTrust/token-registry/blob/v4/README.md).
 
-### 7. TradeTrust Token Registry V5
+#### b) Token Registry V5
 
 > Token Registry v5 is the newest version. It allows you to manage token-based credentials and ownership transfers through smart contracts.
 > The Tradetrust Token Registry now supports **encrypted remarks** for enhanced security when executing contract functions. This guide explains how to use the updated title-escrow command with encrypted remarks and highlights the changes introduced in this version.
 > A new **rejection function** feature has been introduced, allowing a new holder or owner of a document to reject the transfer of the document. This provides an additional layer of control and flexibility for holders and owners to refuse ownership or custodianship if required.
 
 > [!IMPORTANT]
-> This new version uses: -**Ethers v6** -**OpenZeppelin v5**
-> -Contracts are upgraded to **v 0.8.20**
-> -Runs on **Compiler v 0.8.22**
+> This new version uses:
+>
+> - **Ethers v6**
+> - **OpenZeppelin v5**
+> - Contracts are upgraded to **v 0.8.20**
+> - Runs on **Compiler v 0.8.22**
 
 > The `remark` field is optional and can be left empty by providing an empty string `"0x"`.
 > Please note that any value in the `remark` field is limited to **120** characters, and encryption is **recommended**.
 
-### Connect to Token Registry
+#### Connect to Token Registry
 
 In Token Registry v5, the way you connect to a registry hasn’t changed much, but it's **important** to ensure you're using the **updated contract and factory from Token Registry v5**.
 
@@ -534,7 +504,7 @@ const connectedRegistry = v5Contracts.TradeTrustToken__factory.connect(
 );
 ```
 
-### Issuing a Document
+#### Issuing a Document
 
 In Token Registry v5, there is a slight change when you mint tokens. You will now need to pass `remarks` as an optional argument. If no remarks are provided, ensure you pass `0x` to avoid errors.
 
@@ -548,7 +518,7 @@ await connectedRegistry.mint(beneficiaryAddress, holderAddress, tokenId, remarks
 await connectedRegistry.mint(beneficiaryAddress, holderAddress, tokenId, '0x');
 ```
 
-### Restoring a Document
+#### Restoring a Document
 
 The restore method remains mostly the same, but you'll now also have the option to include remarks.
 
@@ -562,7 +532,7 @@ await connectedRegistry.restore(tokenId, remarks);
 await connectedRegistry.restore(tokenId, '0x');
 ```
 
-### Accepting/Burning a Document
+#### Accepting/Burning a Document
 
 You can burn or accept a document in Token Registry v5 by passing remarks as an optional argument.
 
@@ -576,7 +546,7 @@ await connectedRegistry.burn(tokenId, remarks);
 await connectedRegistry.burn(tokenId, '0x');
 ```
 
-### Connecting to Title Escrow
+#### Connecting to Title Escrow
 
 When connecting to Title Escrow, the process is similar. You will use the updated contract from Token Registry v5 or TrustVC depending on your installation choice.
 
@@ -595,7 +565,7 @@ const connectedEscrow = v5Contracts.TitleEscrow__factory.connect(
 );
 ```
 
-### Surrender to Return to Issuer
+#### Surrender to Return to Issuer
 
 In Token Registry v4, the method to return the title to the issuer was surrender(). With Token Registry v5, this has been updated to returnToIssuer().
 
@@ -609,7 +579,7 @@ await connectedEscrow.returnToIssuer(remarks);
 await connectedEscrow.returnToIssuer('0x');
 ```
 
-### Rejecting Transfers of Beneficiary/Holder
+#### Rejecting Transfers of Beneficiary/Holder
 
 Token Registry v5 introduces additional methods for rejecting transfers, if necessary, for wrongful transactions:
 
