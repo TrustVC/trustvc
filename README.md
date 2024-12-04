@@ -435,9 +435,9 @@ It also relies on the `ts-chacha20` library for decryption operations.
 
 #### TradeTrustToken
 
-> The `TradeTrustToken` is a Soulbound Token (SBT) tied to the Title Escrow. The SBT >implementation is loosely based on OpenZeppelin's implementation of the >[ERC721](http://erc721.org/) standard.
-> An SBT is used in this case because the token, while can be transferred to the registry, is >largely restricted to its designated Title Escrow contracts.
-> See issue [#108](https://github.com/Open-Attestation/token-registry/issues/108) for more >details.
+> The `TradeTrustToken` is a Soulbound Token (SBT) tied to the Title Escrow. The SBT implementation is loosely based on OpenZeppelin's implementation of the [ERC721](http://erc721.org/) standard.
+> An SBT is used in this case because the token, while can be transferred to the registry, is largely restricted to its designated Title Escrow contracts.
+> See issue [#108](https://github.com/Open-Attestation/token-registry/issues/108) for more details.
 
 #### a) Token Registry v4
 
