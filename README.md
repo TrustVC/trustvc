@@ -108,6 +108,8 @@ const wrappedDocuments = await wrapOADocuments(documents);
 console.log(wrappedDocuments);
 ```
 
+---
+
 ### 2. **Signing**
 
 > The TrustVC Signing feature simplifies the signing process for OA documents and W3C-compliant verifiable credentials using BBS+ signatures. This feature allows you to easily sign W3C Verifiable Credentials (VCs) and ensure they comply with the latest standards.
@@ -189,6 +191,8 @@ const signingResult = await signW3C(rawDocument, {
 });
 ```
 
+---
+
 ### 3. **Verifying**
 
 > TrustVC simplifies the verification process with a single function that supports both W3C Verifiable Credentials (VCs) and OpenAttestation Verifiable Documents (VDs). Whether you're working with W3C standards or OpenAttestation standards, TrustVC handles the verification seamlessly.
@@ -232,17 +236,15 @@ const signedDocument = {
 const resultFragments = await verifyDocument(signedDocument);
 ```
 
+---
+
 ### 4. **Encryption**
 
 > The `encrypt` function encrypts plaintext messages using the **ChaCha20** encryption algorithm, ensuring the security and integrity of the input data. It supports custom keys and nonces, returning the encrypted message in hexadecimal format.
 
----
-
 #### Function Signature
 
 function encrypt(message: string, key: string, nonce?: string): string;
-
----
 
 #### Description
 
@@ -250,27 +252,19 @@ The `encrypt` function is a utility for encrypting text messages using **ChaCha2
 
 The output is a hexadecimal string representing the encrypted data.
 
----
-
 #### Parameters
 
 - `message` (string): The plaintext message to encrypt.
 - `key` (string): The encryption key, which will be transformed into a 32-byte key.
 - `nonce` (string, optional): A 12-byte nonce for encryption. If omitted, a new nonce will be generated automatically.
 
----
-
 #### Returns
 
 - `string`: The encrypted message encoded in hexadecimal format.
 
----
-
 #### Errors
 
 - Runtime errors: Issues during key transformation, nonce generation, or encryption.
-
----
 
 #### Usage
 
@@ -299,8 +293,6 @@ const encryptedMessage = encrypt(message, key, nonce);
 console.log(`Encrypted Message with Nonce: ${encryptedMessage}`);
 ```
 
----
-
 #### Internal Dependencies
 
 The function uses the following utilities:
@@ -311,13 +303,9 @@ The function uses the following utilities:
 
 It also relies on the `ts-chacha20` library for encryption operations.
 
----
-
 #### Output Format
 
 - The encrypted message is returned as a **hexadecimal string**.
-
----
 
 #### Notes
 
@@ -325,11 +313,11 @@ It also relies on the `ts-chacha20` library for encryption operations.
 2. ChaCha20 requires a unique nonce for each encryption to maintain security.
 3. Hexadecimal encoding is used by default for simplicity and readability.
 
+---
+
 ### 5. **Decryption**
 
 > The `decrypt` function decrypts messages encrypted with the **ChaCha20** algorithm. It converts the input from a hexadecimal format back into plaintext using the provided key and nonce.
-
----
 
 #### Function Signature
 
@@ -337,15 +325,11 @@ It also relies on the `ts-chacha20` library for encryption operations.
 function decrypt(encryptedMessage: string, key: string, nonce?: string): string;
 ```
 
----
-
 #### Description
 
 The `decrypt` function is a utility for decrypting hexadecimal-encoded messages that were encrypted using the **ChaCha20** stream cipher. It ensures the key meets the 32-byte requirement and validates or generates a 12-byte nonce if not supplied.
 
 The function returns the original plaintext message in UTF-8 format.
-
----
 
 #### Parameters
 
@@ -353,13 +337,9 @@ The function returns the original plaintext message in UTF-8 format.
 - `key` (string): The decryption key, which will be transformed into a 32-byte key. Defaults to `DEFAULT_KEY` if an empty key is provided.
 - `nonce` (string, optional): A 12-byte nonce used during encryption. If omitted, one will be generated.
 
----
-
 #### Returns
 
 - `string`: The decrypted plaintext message in UTF-8 format.
-
----
 
 #### Errors
 
@@ -367,8 +347,6 @@ The function throws an error if:
 
 - The key is invalid or transformation fails.
 - The decryption process encounters unexpected issues.
-
----
 
 #### Usage
 
@@ -397,8 +375,6 @@ const decryptedMessage = decrypt(encryptedMessage, key, nonce);
 console.log(`Decrypted Message with Nonce: ${decryptedMessage}`);
 ```
 
----
-
 #### Internal Dependencies
 
 The function uses the following utilities:
@@ -409,13 +385,9 @@ The function uses the following utilities:
 
 It also relies on the `ts-chacha20` library for decryption operations.
 
----
-
 #### Output Format
 
 - The function accepts the encrypted message in **hexadecimal format** and returns the decrypted message in **UTF-8 format**.
-
----
 
 #### Notes
 
@@ -423,6 +395,8 @@ It also relies on the `ts-chacha20` library for decryption operations.
 2. If a custom nonce is not provided, the function will generate a new one, which may not match the original encryption nonce and will result in decryption failure.
 3. The default key, `DEFAULT_KEY`, should only be used for fallback scenarios and not in production environments.
 4. Suggestion: If available, consider using the value of the key Id inside the document as the encryption key. This can simplify key management and enhance the security of your encryption process.
+
+---
 
 ### 6. **TradeTrust Token Registry**
 
