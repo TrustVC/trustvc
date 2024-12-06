@@ -109,12 +109,12 @@
     }
   },
   "dependencies": {
-    "@tradetrust-tt/dnsprove": "^2.14.2",
-    "@tradetrust-tt/token-registry-v4": "npm:@tradetrust-tt/token-registry@^4.14.0",
-    "@tradetrust-tt/token-registry-v5": "npm:@tradetrust-tt/token-registry@^5.0.2",
+    "@tradetrust-tt/dnsprove": "^2.15.0",
+    "@tradetrust-tt/token-registry-v4": "npm:@tradetrust-tt/token-registry@^4.15.0",
+    "@tradetrust-tt/token-registry-v5": "npm:@tradetrust-tt/token-registry@^5.1.0",
     "@tradetrust-tt/tradetrust": "^6.9.7",
-    "@tradetrust-tt/tradetrust-utils": "^2.0.2",
-    "@tradetrust-tt/tt-verify": "^9.1.0",
+    "@tradetrust-tt/tradetrust-utils": "^2.1.1",
+    "@tradetrust-tt/tt-verify": "^9.2.0",
     "@trustvc/w3c-context": "^1.0.0",
     "@trustvc/w3c-credential-status": "^1.0.0",
     "@trustvc/w3c-issuer": "^1.0.0",
