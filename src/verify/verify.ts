@@ -10,6 +10,9 @@ import {
   openAttestationVerifiers as originalOpenAttestationVerifiers,
   verificationBuilder,
   verify,
+  getIdentifier,
+  createResolver,
+  utils,
 } from '@tradetrust-tt/tt-verify';
 import type {
   DocumentsToVerify,
@@ -63,7 +66,17 @@ const w3cVerifiers: Verifier<VerificationFragment>[] = [
   w3cIssuerIdentity,
 ];
 
-export { isValid, verifiers, openAttestationVerifiers, verificationBuilder, verify, w3cVerifiers };
+export {
+  isValid,
+  verifiers,
+  openAttestationVerifiers,
+  verificationBuilder,
+  verify,
+  w3cVerifiers,
+  getIdentifier,
+  createResolver,
+  utils,
+};
 
 export type {
   DocumentsToVerify,
@@ -78,4 +91,5 @@ export type {
   VerificationFragmentStatus,
   VerificationFragmentType,
   VerifierOptions,
+  Verifier,
 };
