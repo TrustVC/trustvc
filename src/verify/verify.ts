@@ -28,6 +28,7 @@ import type {
   VerificationFragmentType,
   Verifier,
   VerifierOptions,
+  VerificationFragmentWithData,
 } from '@tradetrust-tt/tt-verify/dist/types/src/types/core';
 import { w3cSignatureIntegrity } from './fragments/document-integrity/w3cSignatureIntegrity';
 import { credentialStatusTransferableRecordVerifier } from './fragments/document-status/transferableRecords/transferableRecordVerifier';
@@ -76,6 +77,7 @@ export {
   getIdentifier,
   createResolver,
   utils,
+  openAttestationDidIdentityProof,
 };
 
 export type {
@@ -89,6 +91,7 @@ export type {
   VerificationBuilderOptions,
   VerificationFragment,
   VerificationFragmentStatus,
+  VerificationFragmentWithData,
   VerificationFragmentType,
   VerifierOptions,
   Verifier,
