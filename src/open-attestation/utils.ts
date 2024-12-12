@@ -21,6 +21,7 @@ const {
   getDocumentData,
   getIssuerAddress,
   diagnose,
+  getTemplateURL,
 } = utils;
 
 export {
@@ -36,6 +37,7 @@ export {
 export {
   diagnose,
   getAssetId,
+  getTemplateURL,
   getDocumentData,
   getIssuerAddress,
   isObfuscated,
