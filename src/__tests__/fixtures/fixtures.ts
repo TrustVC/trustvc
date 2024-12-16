@@ -1213,7 +1213,6 @@ export const W3C_VERIFIABLE_DOCUMENT = freezeObject({
 } as SignedVerifiableCredential);
 
 export const W3C_TRANSFERABLE_RECORD = freezeObject({
-  id: 'urn:uuid:0192b20e-0ba5-76d8-b682-7538c86a4d69',
   '@context': [
     'https://www.w3.org/2018/credentials/v1',
     'https://w3c-ccg.github.io/citizenship-vocab/contexts/citizenship-v1.jsonld',
@@ -1221,14 +1220,13 @@ export const W3C_TRANSFERABLE_RECORD = freezeObject({
     'https://trustvc.io/context/transferable-records-context.json',
   ],
   credentialStatus: {
-    id: 'urn:uuid:0192b20e-0ba5-76d8-b682-7538c86a4d69',
-    tokenId: '0d292d1eb99bb4fec41790ccb5fc02518ed4f2db1782e41e15ca5f69a95b5729',
     type: 'TransferableRecords',
     tokenNetwork: {
       chain: 'MATIC',
       chainId: 800002,
     },
     tokenRegistry: '0x6c2a002A5833a100f38458c50F11E71Aa1A342c6',
+    tokenId: '39020f777ea6748b89970cb50a90edd8e89537e1fb5245131aa444043c46fc99',
   },
   credentialSubject: {
     name: 'TrustVC',
@@ -1239,12 +1237,13 @@ export const W3C_TRANSFERABLE_RECORD = freezeObject({
   issuer: 'did:web:trustvc.github.io:did:1',
   type: ['VerifiableCredential'],
   issuanceDate: '2024-04-01T12:19:52Z',
+  id: 'urn:bnid:_:0193ced8-7282-7663-ab42-20e6c09d0f0a',
   proof: {
     type: 'BbsBlsSignature2020',
-    created: '2024-11-11T00:42:26Z',
+    created: '2024-12-16T09:41:52Z',
     proofPurpose: 'assertionMethod',
     proofValue:
-      'q+J2sL8LH3SNHwNYmMXclFj0hCX6bcv0m5cvvsKtjfsC5Ht5S1vOdabfkz/cb1FTYUHlKfzccE4m7waZyoLEkBLFiK2g54Q2i+CdtYBgDdkUDsoULSBMcH1MwGHwdjfXpldFNFrHFx/IAvLVniyeMQ==',
+      'seYte8TT/NwueUn/Hv9xSi+vQ6cSIcFUaI+D9WfV6And6zn7iXeK80VUhmIqvdryHsbruL1g0+VqjyUT1XoDDHDX2iSUvep/tRw8MDt9uShoT12Ljbkx0CkqOlUk57TwQUZVBXdBhChjvOc13+2v6g==',
     verificationMethod: 'did:web:trustvc.github.io:did:1#keys-1',
   },
 } as SignedVerifiableCredential);

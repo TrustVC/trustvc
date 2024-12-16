@@ -5,10 +5,10 @@ import {
   ValidTokenRegistryStatus,
   VerifierOptions,
 } from '@tradetrust-tt/tt-verify';
+import { TransferableRecordsCredentialStatus } from '@trustvc/w3c-credential-status';
 import * as w3cVC from '@trustvc/w3c-vc';
 import { SignedVerifiableCredential } from '@trustvc/w3c-vc';
 import {
-  TransferableRecordCredentialStatus,
   TransferableRecordsErrorFragment,
   TransferableRecordsResultFragment,
   TransferableRecordsVerificationFragment,
@@ -24,61 +24,61 @@ const verify: VerifierType['verify'] = async (
   document: DocumentsToVerify | SignedVerifiableCredential,
   options: VerifierOptions,
 ) => {
-  let signedDocument;
-  let tokenId: string;
-
-  if (w3cVC.isSignedDocument(document)) {
-    signedDocument = document as SignedVerifiableCredential;
-    tokenId = '0x' + signedDocument?.credentialStatus?.tokenId;
-  }
-
-  const credentialStatus =
-    signedDocument?.credentialStatus as unknown as TransferableRecordCredentialStatus;
-
-  if (!credentialStatus?.tokenRegistry) {
-    throw new CodedError(
-      "Document's credentialStatus does not have tokenRegistry",
-      OpenAttestationEthereumTokenRegistryStatusCode.UNRECOGNIZED_DOCUMENT,
-      OpenAttestationEthereumTokenRegistryStatusCode[
-        OpenAttestationEthereumTokenRegistryStatusCode.UNRECOGNIZED_DOCUMENT
-      ],
-    );
-  }
-
-  if (!credentialStatus?.tokenNetwork || !credentialStatus?.tokenNetwork?.chainId) {
-    throw new CodedError(
-      "Document's credentialStatus does not have tokenNetwork.chainId",
-      OpenAttestationEthereumTokenRegistryStatusCode.UNRECOGNIZED_DOCUMENT,
-      OpenAttestationEthereumTokenRegistryStatusCode[
-        OpenAttestationEthereumTokenRegistryStatusCode.UNRECOGNIZED_DOCUMENT
-      ],
-    );
-  }
-
+  const signedDocument = document as SignedVerifiableCredential;
+  const credentialStatuses = (
+    Array.isArray(signedDocument?.credentialStatus)
+      ? signedDocument?.credentialStatus
+      : [signedDocument?.credentialStatus]
+  ) as TransferableRecordsCredentialStatus[];
   const { provider } = options;
 
-  // await provider.getNetwork().then(({ chainId, name }) => {
-  // });
+  const verificationResult = await Promise.all(
+    credentialStatuses.map(async (credentialStatus: TransferableRecordsCredentialStatus) => {
+      const tokenId = '0x' + credentialStatus.tokenId;
 
-  const mintStatus = await isTokenMintedOnRegistry({
-    tokenRegistryAddress: credentialStatus?.tokenRegistry,
-    tokenId,
-    provider,
-  });
+      if (!credentialStatus?.tokenRegistry) {
+        throw new CodedError(
+          "Document's credentialStatus does not have tokenRegistry",
+          OpenAttestationEthereumTokenRegistryStatusCode.UNRECOGNIZED_DOCUMENT,
+          OpenAttestationEthereumTokenRegistryStatusCode[
+            OpenAttestationEthereumTokenRegistryStatusCode.UNRECOGNIZED_DOCUMENT
+          ],
+        );
+      }
+
+      if (!credentialStatus?.tokenNetwork || !credentialStatus?.tokenNetwork?.chainId) {
+        throw new CodedError(
+          "Document's credentialStatus does not have tokenNetwork.chainId",
+          OpenAttestationEthereumTokenRegistryStatusCode.UNRECOGNIZED_DOCUMENT,
+          OpenAttestationEthereumTokenRegistryStatusCode[
+            OpenAttestationEthereumTokenRegistryStatusCode.UNRECOGNIZED_DOCUMENT
+          ],
+        );
+      }
+
+      const mintStatus = await isTokenMintedOnRegistry({
+        tokenRegistryAddress: credentialStatus?.tokenRegistry,
+        tokenId,
+        provider,
+      });
+
+      return mintStatus;
+    }),
+  );
 
   const result: TransferableRecordsResultFragment = {
     name,
     type,
     status: 'INVALID' as const,
     data: {
-      tokenRegistry: credentialStatus.tokenRegistry,
+      tokenRegistry: credentialStatuses?.[0]?.tokenRegistry,
     },
   };
 
-  if (ValidTokenRegistryStatus.guard(mintStatus)) {
+  if (verificationResult.every(ValidTokenRegistryStatus.guard)) {
     result.status = 'VALID' as const;
   } else {
-    result.reason = mintStatus.reason;
+    result.reason = verificationResult?.[0]?.reason;
   }
   return result;
 };
@@ -102,8 +102,15 @@ const skip: VerifierType['skip'] = async () => {
 const test: VerifierType['test'] = (
   document: DocumentsToVerify | SignedVerifiableCredential,
 ): boolean => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  if ((document as any)?.credentialStatus?.type === TRANSFERABLE_RECORDS_TYPE) {
+  const doc = document as SignedVerifiableCredential;
+  const credentialStatuses = Array.isArray(doc?.credentialStatus)
+    ? doc?.credentialStatus
+    : [doc?.credentialStatus];
+
+  if (
+    w3cVC.isSignedDocument(document) &&
+    credentialStatuses.every((cs: w3cVC.CredentialStatus) => cs?.type === TRANSFERABLE_RECORDS_TYPE)
+  ) {
     return true;
   }
   return false;

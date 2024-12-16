@@ -1,5 +1,9 @@
 import { VerificationFragment, Verifier } from '@tradetrust-tt/tt-verify';
-import { verifyCredentialStatus } from '@trustvc/w3c-vc';
+import {
+  BitstringStatusListCredentialStatus,
+  CredentialStatusType,
+} from '@trustvc/w3c-credential-status';
+import { CredentialStatus, isSignedDocument, verifyCredentialStatus } from '@trustvc/w3c-vc';
 import { SignedVerifiableCredential } from '../../..';
 
 export const w3cCredentialStatus: Verifier<VerificationFragment> = {
@@ -18,34 +22,53 @@ export const w3cCredentialStatus: Verifier<VerificationFragment> = {
 
   test: (document: unknown) => {
     const doc = document as SignedVerifiableCredential;
-    return doc.credentialStatus?.type === 'StatusList2021Entry';
+    const credentialStatuses = Array.isArray(doc?.credentialStatus)
+      ? doc?.credentialStatus
+      : [doc?.credentialStatus];
+
+    const test = (credentialStatus: CredentialStatus) =>
+      ['BitstringStatusListEntry', 'StatusList2021Entry'].includes(credentialStatus?.type);
+
+    if (isSignedDocument(document) && credentialStatuses.every(test)) {
+      return true;
+    } else {
+      return false;
+    }
   },
 
   verify: async (document: unknown) => {
     const doc = document as SignedVerifiableCredential;
-    const verificationResult = await verifyCredentialStatus(doc.credentialStatus);
-    if (verificationResult.error) {
+    const credentialStatuses = (
+      Array.isArray(doc.credentialStatus) ? doc.credentialStatus : [doc.credentialStatus]
+    ) as BitstringStatusListCredentialStatus[];
+
+    const verificationResult = await Promise.all(
+      credentialStatuses.map((cs) => verifyCredentialStatus(cs, cs?.type as CredentialStatusType)),
+    );
+
+    if (verificationResult.some((r) => r.error)) {
       return {
         type: 'DOCUMENT_STATUS',
         name: 'W3CCredentialStatus',
         reason: {
-          message: verificationResult.error,
+          message: verificationResult.map((r) => r.error).join(', '),
         },
+        data: verificationResult,
         status: 'ERROR',
       };
-    } else if (verificationResult.status === true) {
+    } else if (verificationResult.every((r) => r.status === false)) {
       return {
         type: 'DOCUMENT_STATUS',
         name: 'W3CCredentialStatus',
-        data: false,
-        status: 'INVALID',
+        data: verificationResult,
+        status: 'VALID',
       };
     } else {
       return {
         type: 'DOCUMENT_STATUS',
         name: 'W3CCredentialStatus',
-        data: true,
-        status: 'VALID',
+        data: verificationResult,
+        status: 'INVALID',
       };
     }
   },

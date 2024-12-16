@@ -24,7 +24,12 @@ describe.concurrent('W3C verify', () => {
             "type": "DOCUMENT_INTEGRITY",
           },
           {
-            "data": true,
+            "data": [
+              {
+                "purpose": "revocation",
+                "status": false,
+              },
+            ],
             "name": "W3CCredentialStatus",
             "status": "VALID",
             "type": "DOCUMENT_STATUS",
@@ -199,7 +204,12 @@ describe.concurrent('W3C verify', () => {
       expect(await verifyDocument(tampered, '')).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            data: false,
+            data: expect.arrayContaining([
+              expect.objectContaining({
+                purpose: 'revocation',
+                status: true,
+              }),
+            ]),
             name: 'W3CCredentialStatus',
             status: 'INVALID',
             type: 'DOCUMENT_STATUS',
@@ -298,8 +308,8 @@ describe.concurrent('W3C verify', () => {
             expect.objectContaining({
               name: 'TransferableRecords',
               reason: {
-                code: 0,
-                codeString: 'UNEXPECTED_ERROR',
+                code: 9,
+                codeString: 'UNRECOGNIZED_DOCUMENT',
                 message: "Document's credentialStatus does not have tokenRegistry",
               },
               status: 'ERROR',
@@ -319,6 +329,7 @@ describe.concurrent('W3C verify', () => {
           ...W3C_TRANSFERABLE_RECORD.credentialStatus,
           tokenNetwork: {
             chainId: '',
+            chain: 'MATIC',
           },
         },
       };
@@ -327,8 +338,8 @@ describe.concurrent('W3C verify', () => {
           expect.objectContaining({
             name: 'TransferableRecords',
             reason: {
-              code: 0,
-              codeString: 'UNEXPECTED_ERROR',
+              code: 9,
+              codeString: 'UNRECOGNIZED_DOCUMENT',
               message: "Document's credentialStatus does not have tokenNetwork.chainId",
             },
             status: 'ERROR',
