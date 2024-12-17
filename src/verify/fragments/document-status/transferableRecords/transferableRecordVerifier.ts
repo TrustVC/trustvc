@@ -1,6 +1,7 @@
 import {
   CodedError,
   DocumentsToVerify,
+  InvalidTokenRegistryStatus,
   OpenAttestationEthereumTokenRegistryStatusCode,
   ValidTokenRegistryStatus,
   VerifierOptions,
@@ -78,7 +79,7 @@ const verify: VerifierType['verify'] = async (
   if (verificationResult.every(ValidTokenRegistryStatus.guard)) {
     result.status = 'VALID' as const;
   } else {
-    result.reason = verificationResult?.[0]?.reason;
+    result.reason = (verificationResult as InvalidTokenRegistryStatus[])?.[0]?.reason;
   }
   return result;
 };
