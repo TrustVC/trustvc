@@ -110,18 +110,10 @@ export const fetchEndorsementChain = async (
     throw new Error('Missing required dependencies');
   }
 
-  const isV4 = await isTitleEscrowVersion(
-    TitleEscrowInterface.V4,
-    tokenRegistry,
-    tokenId,
-    provider,
-  );
-  const isV5 = await isTitleEscrowVersion(
-    TitleEscrowInterface.V5,
-    tokenRegistry,
-    tokenId,
-    provider,
-  );
+  const [isV4, isV5] = await Promise.all([
+    isTitleEscrowVersion(TitleEscrowInterface.V4, tokenRegistry, tokenId, provider),
+    isTitleEscrowVersion(TitleEscrowInterface.V5, tokenRegistry, tokenId, provider),
+  ]);
 
   if (!isV4 && !isV5) {
     throw new Error('Only Token Registry V4/V5 is supported');
@@ -132,8 +124,11 @@ export const fetchEndorsementChain = async (
 
   if (isV4) {
     const tokenRegistryContract = TradeTrustToken__factory.connect(tokenRegistry, provider);
-    const tokenLogs = await fetchTokenTransfers(tokenRegistryContract, tokenId);
-    const titleEscrowLogs = await fetchEscrowTransfersV4(provider, titleEscrowAddress);
+    const [tokenLogs, titleEscrowLogs] = await Promise.all([
+      fetchTokenTransfers(tokenRegistryContract, tokenId),
+      fetchEscrowTransfersV4(provider, titleEscrowAddress),
+    ]);
+
     transferEvents = mergeTransfersV4([...titleEscrowLogs, ...tokenLogs]);
   } else if (isV5) {
     const titleEscrowLogs = await fetchEscrowTransfersV5(provider, titleEscrowAddress);
