@@ -4,4 +4,4 @@ export type {
   SignedVerifiableCredential,
   VerificationResult,
 } from '@trustvc/w3c-vc';
-export { PrivateKeyPair } from '@trustvc/w3c-issuer';
+export type { PrivateKeyPair } from '@trustvc/w3c-issuer';
