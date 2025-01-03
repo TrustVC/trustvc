@@ -15,9 +15,8 @@ import {
 import { w3cCredentialStatus } from './document-status/w3cCredentialStatus';
 import { w3cIssuerIdentity } from './issuer-identity/w3cIssuerIdentity';
 
-export type { TRANSFERABLE_RECORDS_TYPE };
-
 export {
+  TRANSFERABLE_RECORDS_TYPE,
   credentialStatusTransferableRecordVerifier,
   openAttestationDidIdentityProof,
   openAttestationDidSignedDocumentStatus,
