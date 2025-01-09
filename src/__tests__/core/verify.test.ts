@@ -45,6 +45,16 @@ describe.concurrent('W3C verify', () => {
             "type": "DOCUMENT_STATUS",
           },
           {
+            "name": "W3CEmptyCredentialStatus",
+            "reason": {
+              "code": 0,
+              "codeString": "SKIPPED",
+              "message": "Document contains a credentialStatus.",
+            },
+            "status": "SKIPPED",
+            "type": "DOCUMENT_STATUS",
+          },
+          {
             "data": true,
             "name": "W3CIssuerIdentity",
             "status": "VALID",
@@ -279,6 +289,16 @@ describe.concurrent('W3C verify', () => {
                 },
                 "name": "TransferableRecords",
                 "status": "VALID",
+                "type": "DOCUMENT_STATUS",
+              },
+              {
+                "name": "W3CEmptyCredentialStatus",
+                "reason": {
+                  "code": 0,
+                  "codeString": "SKIPPED",
+                  "message": "Document contains a credentialStatus.",
+                },
+                "status": "SKIPPED",
                 "type": "DOCUMENT_STATUS",
               },
               {

@@ -34,6 +34,7 @@ import { w3cSignatureIntegrity } from './fragments/document-integrity/w3cSignatu
 import { credentialStatusTransferableRecordVerifier } from './fragments/document-status/transferableRecords/transferableRecordVerifier';
 import { w3cCredentialStatus } from './fragments/document-status/w3cCredentialStatus';
 import { w3cIssuerIdentity } from './fragments/issuer-identity/w3cIssuerIdentity';
+import { w3cEmptyCredentialStatus } from './fragments';
 
 const verifiers = {
   documentIntegrity: {
@@ -45,6 +46,7 @@ const verifiers = {
     openAttestationEthereumDocumentStoreStatus,
     openAttestationEthereumTokenRegistryStatus,
     w3cCredentialStatus,
+    w3cEmptyCredentialStatus,
     credentialStatusTransferableRecordVerifier,
   },
   issuerIdentity: {
@@ -64,6 +66,7 @@ const w3cVerifiers: Verifier<VerificationFragment>[] = [
   w3cSignatureIntegrity,
   w3cCredentialStatus,
   credentialStatusTransferableRecordVerifier,
+  w3cEmptyCredentialStatus,
   w3cIssuerIdentity,
 ];
 
