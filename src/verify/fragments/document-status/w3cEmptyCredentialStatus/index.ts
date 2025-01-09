@@ -1,6 +1,6 @@
 import { VerificationFragment, Verifier } from '@tradetrust-tt/tt-verify';
 import { SignedVerifiableCredential } from '@trustvc/w3c-vc';
-import { verifyW3CSignature } from 'src/w3c';
+import { verifyW3CSignature } from '../../../../w3c';
 
 const type = 'DOCUMENT_STATUS';
 const name = 'W3CEmptyCredentialStatus';
