@@ -1330,7 +1330,7 @@ export const W3C_TRANSFERABLE_RECORD = freezeObject({
       chainId: 80002,
     },
     tokenRegistry: '0x6c2a002A5833a100f38458c50F11E71Aa1A342c6',
-    tokenId: '39020f777ea6748b89970cb50a90edd8e89537e1fb5245131aa444043c46fc99',
+    tokenId: '23f719b016c88ba1ef2e10c0718d7d0f0026b1dc6e219629f81e2f0f811c4e3e',
   },
   credentialSubject: {
     name: 'TrustVC',
@@ -1341,13 +1341,13 @@ export const W3C_TRANSFERABLE_RECORD = freezeObject({
   issuer: 'did:web:trustvc.github.io:did:1',
   type: ['VerifiableCredential'],
   issuanceDate: '2024-04-01T12:19:52Z',
-  id: 'urn:bnid:_:0193ced8-7282-7663-ab42-20e6c09d0f0a',
+  id: 'urn:bnid:_:0194cfc4-6b6c-7553-9b67-1ed41632eb2a',
   proof: {
     type: 'BbsBlsSignature2020',
-    created: '2024-12-16T09:41:52Z',
+    created: '2025-02-04T07:02:26Z',
     proofPurpose: 'assertionMethod',
     proofValue:
-      'seYte8TT/NwueUn/Hv9xSi+vQ6cSIcFUaI+D9WfV6And6zn7iXeK80VUhmIqvdryHsbruL1g0+VqjyUT1XoDDHDX2iSUvep/tRw8MDt9uShoT12Ljbkx0CkqOlUk57TwQUZVBXdBhChjvOc13+2v6g==',
+      'ouPsZgRPF5nIEYenlfQbRPVAunre6mhcOy6YswI24/FFSTJ5mHujBEBi1qmNjJEBM4Gwr2jteoyAIIz5w7vohD0tk9aBaHRSAyj6fhgrq8Ahbi4qhudCMuPu8FIY1xInSl+RZckKKYIEXP/R789sZQ==',
     verificationMethod: 'did:web:trustvc.github.io:did:1#keys-1',
   },
 } as SignedVerifiableCredential);
