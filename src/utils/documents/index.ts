@@ -42,8 +42,6 @@ export const isTransferableRecord = (
 export const getTokenRegistryAddress = (
   document: WrappedOrSignedOpenAttestationDocument | SignedVerifiableCredential,
 ): string | undefined => {
-  // const issuerAddress = getIssuerAddress(document);
-  // TODO: HAN: Migrate getIssuerAddress to trustvc
   let issuerAddress: string | string[] = '';
   if (isSignedDocument(document)) {
     const credentialStatus = getTransferableRecordsCredentialStatus(document);
@@ -67,16 +65,16 @@ export const getTokenId = (
     tokenId = getAssetId(document);
   }
 
-  return `0x${tokenId}`;
+  return tokenId && `0x${tokenId}`;
 };
 
 function processOAChainId(
   document: v2.OpenAttestationDocument | v3.OpenAttestationDocument,
 ): CHAIN_ID | undefined {
   if (document.network?.chainId) {
-    const chainId = parseInt(document.network.chainId, 10) as unknown as CHAIN_ID;
-    if (Object.values(CHAIN_ID).includes(chainId)) {
-      return chainId;
+    const chainId = parseInt(document.network.chainId, 10);
+    if (Object.values(CHAIN_ID).map(Number).includes(chainId)) {
+      return chainId as unknown as CHAIN_ID;
     }
     throw new Error(`Chain ID ${chainId} is not supported`);
   }

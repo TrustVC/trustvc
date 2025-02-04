@@ -12,6 +12,7 @@
     "test": "npx vitest --run --test-timeout=15000",
     "type-check": "tsc --noEmit",
     "lint": "npx eslint . --color --format=table --max-warnings=0",
+    "lint:fix": "npx eslint . --fix",
     "build": "npm run clean && tsup",
     "clean": "rm -rf dist/",
     "precommit": "lint-staged",
