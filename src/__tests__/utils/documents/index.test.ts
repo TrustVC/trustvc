@@ -77,7 +77,7 @@ describe.concurrent('documents', () => {
   describe.concurrent('getTokenId', () => {
     it('getTokenId - VALID W3C VC Transferable Record Document', () => {
       const tokenId = getTokenId(W3C_TRANSFERABLE_RECORD);
-      expect(tokenId).toBe('0x39020f777ea6748b89970cb50a90edd8e89537e1fb5245131aa444043c46fc99');
+      expect(tokenId).toBe('0x23f719b016c88ba1ef2e10c0718d7d0f0026b1dc6e219629f81e2f0f811c4e3e');
     });
 
     it('getTokenId - VALID OA V2 Transferable Record Document', () => {
