@@ -5,6 +5,7 @@
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
   "types": "dist/types/index.d.ts",
+  "type": "commonjs",
   "files": [
     "dist"
   ],
@@ -64,8 +65,8 @@
       "require": "./dist/cjs/token-registry-v5/index.js"
     },
     "./token-registry-v5/contracts": {
-      "import": "./dist/esm/token-registry-v5/contracts.js",
       "types": "./dist/types/token-registry-v5/contracts.d.ts",
+      "import": "./dist/esm/token-registry-v5/contracts.js",
       "require": "./dist/cjs/token-registry-v5/contracts.js"
     },
     "./utils": {

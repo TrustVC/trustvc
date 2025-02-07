@@ -96,8 +96,7 @@ const fetchHolderTransfers = async (
   Retrieve all V5 events
 */
 const fetchAllTransfers = async (
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  titleEscrowContract: any,
+  titleEscrowContract: TitleEscrowV5,
 ): Promise<(TitleEscrowTransferEvent | TokenTransferEvent)[]> => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const allFilters: any[] = [
