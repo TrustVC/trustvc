@@ -1,7 +1,9 @@
 import { VerificationFragment, Verifier } from '@tradetrust-tt/tt-verify';
-import { Resolver } from 'did-resolver';
-import { getResolver as getWebDidResolver } from 'web-did-resolver';
 import { SignedVerifiableCredential } from '../../..';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { Resolver } = require('did-resolver');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { getResolver: getWebDidResolver } = require('web-did-resolver');
 
 const checkDidWebResolve = async (did: string): Promise<boolean> => {
   try {

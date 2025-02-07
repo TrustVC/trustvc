@@ -1,5 +1,7 @@
-import { Provider } from '@ethersproject/providers';
 import { ethers } from 'ethers';
+import { TradeTrustToken__factory } from '../../token-registry-v4/contracts';
+import { supportInterfaceIds as supportInterfaceIdsV4 } from '../../token-registry-v4/supportInterfaceIds';
+import { supportInterfaceIds as supportInterfaceIdsV5 } from '../../token-registry-v5/supportInterfaceIds';
 import { decrypt } from '../decrypt';
 import {
   fetchEscrowTransfersV4,
@@ -9,9 +11,6 @@ import { fetchTokenTransfers } from '../endorsement-chain/fetchTokenTransfer';
 import { mergeTransfersV4, mergeTransfersV5 } from '../endorsement-chain/helpers';
 import { getEndorsementChain } from '../endorsement-chain/retrieveEndorsementChain';
 import { EndorsementChain, TransferBaseEvent } from '../endorsement-chain/types';
-import { TradeTrustToken__factory } from '../../token-registry-v4/contracts';
-import { supportInterfaceIds as supportInterfaceIdsV4 } from '../../token-registry-v4/supportInterfaceIds';
-import { supportInterfaceIds as supportInterfaceIdsV5 } from '../../token-registry-v5/supportInterfaceIds';
 
 export const TitleEscrowInterface = {
   V4: supportInterfaceIdsV4.TitleEscrow,
@@ -103,7 +102,7 @@ export const isTitleEscrowVersion = async (
 export const fetchEndorsementChain = async (
   tokenRegistry: string,
   tokenId: string,
-  provider: Provider,
+  provider: ethers.providers.Provider,
   keyId?: string,
 ): Promise<EndorsementChain> => {
   if (!tokenRegistry || !tokenId || !provider) {
