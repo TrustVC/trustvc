@@ -1,10 +1,10 @@
 import { VerificationFragment, Verifier } from '@tradetrust-tt/tt-verify';
-import { Resolver } from 'did-resolver';
-import { getResolver as getWebDidResolver } from 'web-did-resolver';
 import { SignedVerifiableCredential } from '../../..';
 
 const checkDidWebResolve = async (did: string): Promise<boolean> => {
   try {
+    const { Resolver } = await import('did-resolver');
+    const { getResolver: getWebDidResolver } = await import('web-did-resolver');
     const resolver = new Resolver({
       ...getWebDidResolver(),
     });

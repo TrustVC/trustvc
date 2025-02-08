@@ -30,7 +30,8 @@ export const fetchEscrowTransfersV4 = async (
 };
 
 export const fetchEscrowTransfersV5 = async (
-  provider: providers.Provider,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  provider: any,
   address: string,
 ): Promise<TransferBaseEvent[]> => {
   const titleEscrowContract = TitleEscrowFactoryV5.connect(address, provider);
@@ -53,7 +54,7 @@ const getParsedLogs = (
 };
 
 /*
-  Retrieve all events that emits BENEFICIARY_TRANSFER 
+  Retrieve all events that emits BENEFICIARY_TRANSFER
 */
 const fetchOwnerTransfers = async (
   titleEscrowContract: TitleEscrowV4,
@@ -73,7 +74,7 @@ const fetchOwnerTransfers = async (
 };
 
 /*
-  Retrieve all events that emits HOLDER_TRANSFER 
+  Retrieve all events that emits HOLDER_TRANSFER
 */
 const fetchHolderTransfers = async (
   titleEscrowContract: TitleEscrowV4,
@@ -92,7 +93,7 @@ const fetchHolderTransfers = async (
 };
 
 /*
-  Retrieve all V5 events 
+  Retrieve all V5 events
 */
 const fetchAllTransfers = async (
   titleEscrowContract: TitleEscrowV5,

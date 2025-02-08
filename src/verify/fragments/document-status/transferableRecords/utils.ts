@@ -1,4 +1,4 @@
-import { TradeTrustToken__factory } from '@tradetrust-tt/token-registry-v5/dist/contracts';
+import { TradeTrustToken__factory } from '@tradetrust-tt/token-registry-v4/contracts';
 import {
   CodedError,
   InvalidTokenRegistryStatus,
@@ -73,6 +73,7 @@ export const isTokenMintedOnRegistry = async ({
   provider: providers.Provider;
 }): Promise<ValidTokenRegistryStatus | InvalidTokenRegistryStatus> => {
   try {
+    // Import TradeTrustToken v4 as we are only using ownerOf method, which is identical to v5
     const tokenRegistryContract = TradeTrustToken__factory.connect(tokenRegistryAddress, provider);
     const minted = await tokenRegistryContract
       .ownerOf(tokenId)
@@ -91,7 +92,8 @@ export const isTokenMintedOnRegistry = async ({
             message: `Document ${tokenId} has not been issued under contract ${tokenRegistryAddress}`,
           },
         };
-  } catch (error: unknown) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (error: any) {
     return {
       minted: false,
       address: tokenRegistryAddress,
