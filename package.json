@@ -123,6 +123,7 @@
     "@trustvc/w3c-vc": "^1.2.3",
     "did-resolver": "^4.1.0",
     "ethers": "^5.7.2",
+    "ethersV6": "npm:ethers@^6.13.5",
     "js-sha3": "^0.9.3",
     "ts-chacha20": "^1.2.0",
     "web-did-resolver": "^2.0.27"
@@ -161,13 +162,18 @@
     "vitest": "^1.6.0"
   },
   "overrides": {
+    "@tradetrust-tt/token-registry": {
+      "ethers": "^5.7.2"
+    },
+    "@tradetrust-tt/token-registry-v5": {
+      "ethers": "^5.7.2"
+    }
+  },
+  "peerDependencies": {
     "ethers": "^5.7.2"
   },
   "optionalDependencies": {
     "@rollup/rollup-linux-x64-gnu": "~4.28.0"
-  },
-  "peerDependencies": {
-    "ethers": "^5.7.2"
   },
   "lint-staged": {
     "*.{js,ts}": [

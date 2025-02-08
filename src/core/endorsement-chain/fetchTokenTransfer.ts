@@ -1,18 +1,29 @@
+import type { Event } from 'ethers';
+import { ethers } from 'ethers';
 import { LogDescription } from 'ethers/lib/utils';
+import { ethers as ethersV6 } from 'ethersV6';
+import { TradeTrustToken, TradeTrustToken__factory } from '../../token-registry-v4/contracts';
+import { getEthersContractFromProvider } from '../../utils/ethers';
 import { sortLogChain } from '../endorsement-chain/helpers';
 import { TokenTransferEvent, TokenTransferEventType, TypedEvent } from '../endorsement-chain/types';
-import { TradeTrustToken } from '../../token-registry-v4/contracts';
-
-import type { Event } from 'ethers';
 
 export const fetchTokenTransfers = async (
-  tokenRegistry: TradeTrustToken,
+  provider: ethers.providers.Provider | ethersV6.Provider,
+  tokenRegistry: string,
   tokenId: string,
 ): Promise<TokenTransferEvent[]> => {
+  const Contract = getEthersContractFromProvider(provider);
+  const tokenRegistryContract = new Contract(
+    tokenRegistry,
+    TradeTrustToken__factory.abi,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    provider as any,
+  ) as TradeTrustToken;
+
   // Fetch transfer logs from token registry
-  const logs = await fetchLogs(tokenRegistry, tokenId);
-  const parsedLogs = parseLogs(logs, tokenRegistry);
-  const tokenRegistryAddress = tokenRegistry.address;
+  const logs = await fetchLogs(tokenRegistryContract, tokenId);
+  const parsedLogs = parseLogs(logs, tokenRegistryContract);
+  const tokenRegistryAddress = tokenRegistryContract.address;
 
   const reformattedLogs = parsedLogs.map((event) =>
     formatTokenTransferEvent(event, tokenRegistryAddress),
