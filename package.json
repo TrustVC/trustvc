@@ -163,12 +163,7 @@
     "vitest": "^1.6.0"
   },
   "overrides": {
-    "@tradetrust-tt/token-registry": {
-      "ethers": "^5.7.2"
-    },
-    "@tradetrust-tt/token-registry-v5": {
-      "ethers": "^5.7.2"
-    }
+    "ethers": "^5.7.2"
   },
   "peerDependencies": {
     "ethers": "^5.7.2"
