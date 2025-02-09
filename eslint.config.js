@@ -4,12 +4,14 @@ const eslint = require('@eslint/js');
 const tsEslint = require('typescript-eslint');
 const prettierConfig = require('eslint-config-prettier');
 const eslintPluginPrettierRecommended = require('eslint-plugin-prettier/recommended');
+const jsdoc = require('eslint-plugin-jsdoc');
 
 module.exports = [
   eslint.configs.recommended,
   ...tsEslint.configs.recommended,
   eslintPluginPrettierRecommended,
   prettierConfig,
+  jsdoc.configs['flat/recommended-error'],
   {
     // Global ignores:
     ignores: ['dist', 'build', 'examples', 'node_modules', '**/.*'],
@@ -20,6 +22,15 @@ module.exports = [
     },
     languageOptions: {
       parser: typescriptEslintParser,
+    },
+  },
+  {
+    plugins: {
+      jsdoc,
+    },
+    rules: {
+      'jsdoc/require-jsdoc': 'off',
+      'jsdoc/no-defaults': 'off',
     },
   },
   {

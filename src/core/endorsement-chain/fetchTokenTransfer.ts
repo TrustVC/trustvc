@@ -18,12 +18,13 @@ export const fetchTokenTransfers = async (
     TradeTrustToken__factory.abi,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     provider as any,
-  ) as TradeTrustToken;
+  );
 
   // Fetch transfer logs from token registry
   const logs = await fetchLogs(tokenRegistryContract, tokenId);
   const parsedLogs = parseLogs(logs, tokenRegistryContract);
-  const tokenRegistryAddress = tokenRegistryContract.address;
+  const tokenRegistryAddress =
+    tokenRegistryContract.address ?? (await tokenRegistryContract.getAddress());
 
   const reformattedLogs = parsedLogs.map((event) =>
     formatTokenTransferEvent(event, tokenRegistryAddress),
@@ -33,19 +34,29 @@ export const fetchTokenTransfers = async (
   return reformattedLogs;
 };
 
-const fetchLogs = async (tokenRegistry: TradeTrustToken, tokenId: string): Promise<Event[]> => {
-  const transferLogFilter = tokenRegistry.filters.Transfer(null, null, tokenId);
+/**
+ * Fetches transfer logs from token registry
+ * @param {TradeTrustToken} tokenRegistry - Token Registry contract
+ * @param {string} tokenId - Token ID
+ * @returns {Promise<Event[] | ethersV6.EventLog[]>} - Transfer Event logs
+ */
+async function fetchLogs(
+  tokenRegistry: ethersV6.Contract | ethers.Contract,
+  tokenId: string,
+): Promise<Event[] | ethersV6.EventLog[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const transferLogFilter: any = tokenRegistry.filters.Transfer(null, null, tokenId);
   const logs = await tokenRegistry.queryFilter(transferLogFilter, 0);
 
   if (logs.length === 0) {
     throw new Error('Unminted Title Escrow');
   }
-  return logs;
-};
+  return logs as Event[] | ethersV6.EventLog[];
+}
 
 const parseLogs = (
-  logs: Event[],
-  tokenRegistry: TradeTrustToken,
+  logs: ethers.Event[] | ethersV6.EventLog[],
+  tokenRegistry: ethers.Contract | ethersV6.Contract, //TradeTrustToken,
 ): (TypedEvent & LogDescription)[] => {
   return logs.map((log) => {
     if (!log.args) throw new Error(`Transfer log malformed: ${log}`);
@@ -53,8 +64,9 @@ const parseLogs = (
     if (!log.transactionHash) throw new Error('Transaction hash not present');
     return {
       ...log,
-      ...tokenRegistry.interface.parseLog(log),
-    };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ...tokenRegistry.interface.parseLog(log as any),
+    } as TypedEvent & LogDescription;
   });
 };
 

@@ -1,8 +1,10 @@
+import { ethers } from 'ethers';
+import { ethers as ethersV6 } from 'ethersV6';
 import { describe, expect, it } from 'vitest';
 import { fetchEndorsementChain } from '../../core';
-import { ethers } from 'ethers';
 
 const provider = new ethers.providers.JsonRpcProvider('https://rpc-amoy.polygon.technology');
+const providerV6 = new ethersV6.JsonRpcProvider('https://rpc-amoy.polygon.technology');
 
 const testCases = [
   {
@@ -276,16 +278,25 @@ const testCases = [
     tokenRegistryAddress: '0x96cc41e7007dee20eb409586e2e8206d5053219b',
     tokenId: '0xd97a8af5c38157b95c558b7801862f4b53171149926d76d0c5b2b279016eed0a',
     expectedError: 'Only Token Registry V4/V5 is supported',
-    timeout: 15000,
+    timeout: 30000,
   },
 ];
 
-describe('fetch endorsement chain', () => {
+describe.concurrent('fetch endorsement chain', () => {
   testCases.forEach(
     ({ description, tokenRegistryAddress, tokenId, expected, expectedError, timeout }) => {
-      it(
-        `should work correctly for ${description}`,
-        async () => {
+      it.concurrent.each([
+        {
+          provider,
+          name: 'ethers v5 provider',
+        },
+        {
+          provider: providerV6,
+          name: 'ethers v6 provider',
+        },
+      ])(
+        `should work correctly for ${description}, $name`,
+        async ({ provider }) => {
           if (expectedError) {
             await expect(
               fetchEndorsementChain(tokenRegistryAddress, tokenId, provider),

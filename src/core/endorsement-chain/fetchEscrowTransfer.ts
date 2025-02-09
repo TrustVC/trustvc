@@ -29,8 +29,8 @@ export const fetchEscrowTransfersV4 = async (
     provider as any,
   ) as TitleEscrowV4;
 
-  const holderChangeLogsDeferred = await fetchHolderTransfers(titleEscrowContract, provider);
-  const ownerChangeLogsDeferred = await fetchOwnerTransfers(titleEscrowContract, provider);
+  const holderChangeLogsDeferred = fetchHolderTransfers(titleEscrowContract);
+  const ownerChangeLogsDeferred = fetchOwnerTransfers(titleEscrowContract);
   const [holderChangeLogs, ownerChangeLogs] = await Promise.all([
     holderChangeLogsDeferred,
     ownerChangeLogsDeferred,
@@ -43,7 +43,6 @@ export const fetchEscrowTransfersV5 = async (
   address: string,
 ): Promise<TransferBaseEvent[]> => {
   const Contract = getEthersContractFromProvider(provider);
-  // Convert TitleEscrowFactoryV5 to Contract to make it compatible with ethers v5
   const titleEscrowContract = new Contract(
     address,
     TitleEscrowFactoryV5.abi,
@@ -73,10 +72,9 @@ const getParsedLogs = (
 */
 const fetchOwnerTransfers = async (
   titleEscrowContract: TitleEscrowV4,
-  provider: ethers.providers.Provider | ethersV6.Provider,
 ): Promise<TitleEscrowTransferEvent[]> => {
   const ownerChangeFilter = titleEscrowContract.filters.BeneficiaryTransfer(null, null);
-  const ownerChangeLogs = await provider.getLogs({ ...ownerChangeFilter, fromBlock: 0 });
+  const ownerChangeLogs = await titleEscrowContract.queryFilter(ownerChangeFilter, 0, 'latest');
 
   const ownerChangeLogsParsed = getParsedLogs(ownerChangeLogs, titleEscrowContract);
   return ownerChangeLogsParsed.map((event) => ({
@@ -93,10 +91,9 @@ const fetchOwnerTransfers = async (
 */
 const fetchHolderTransfers = async (
   titleEscrowContract: TitleEscrowV4,
-  provider: ethers.providers.Provider | ethersV6.Provider,
 ): Promise<TitleEscrowTransferEvent[]> => {
   const holderChangeFilter = titleEscrowContract.filters.HolderTransfer(null, null);
-  const holderChangeLogs = await provider.getLogs({ ...holderChangeFilter, fromBlock: 0 });
+  const holderChangeLogs = await titleEscrowContract.queryFilter(holderChangeFilter, 0, 'latest');
   const holderChangeLogsParsed = getParsedLogs(holderChangeLogs, titleEscrowContract);
   return holderChangeLogsParsed.map((event) => ({
     type: 'TRANSFER_HOLDER',
@@ -141,9 +138,8 @@ const fetchAllTransfers = async (
   );
 
   const tokenRegistryAddress: string = await titleEscrowContract.registry();
-
-  return holderChangeLogsParsed
-    .map((event) => {
+  const mappedEvents = await Promise.all(
+    holderChangeLogsParsed.map(async (event) => {
       if (event?.name === 'HolderTransfer') {
         return {
           type: 'TRANSFER_HOLDER',
@@ -171,7 +167,8 @@ const fetchAllTransfers = async (
             type === 'INITIAL'
               ? '0x0000000000000000000000000000000000000000'
               : tokenRegistryAddress,
-          to: titleEscrowContract.address,
+          // Handle ethers v5 and v6 differently
+          to: titleEscrowContract?.address ?? (await titleEscrowContract.getAddress()),
           blockNumber: event.blockNumber,
           transactionHash: event.transactionHash,
           transactionIndex: event.transactionIndex,
@@ -181,7 +178,8 @@ const fetchAllTransfers = async (
         return {
           type: 'RETURNED_TO_ISSUER',
           blockNumber: event.blockNumber,
-          from: titleEscrowContract.address,
+          // Handle ethers v5 and v6 differently
+          from: titleEscrowContract?.address ?? (await titleEscrowContract.getAddress()),
           to: tokenRegistryAddress,
           transactionHash: event.transactionHash,
           transactionIndex: event.transactionIndex,
@@ -226,8 +224,13 @@ const fetchAllTransfers = async (
       }
 
       return undefined;
-    })
-    .filter((event) => event !== undefined) as (TitleEscrowTransferEvent | TokenTransferEvent)[];
+    }),
+  );
+
+  return mappedEvents.filter((event) => event !== undefined) as (
+    | TitleEscrowTransferEvent
+    | TokenTransferEvent
+  )[];
 };
 
 function identifyTokenReceivedType(event: ParsedLog): TokenTransferEventType {

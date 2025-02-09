@@ -24,7 +24,6 @@ export async function signOA<T extends v3.WrappedDocument | v3.SignedWrappedDocu
  * This function takes a wrapped OpenAttestation document and signs it using the Secp256k1
  * algorithm. The keyPair parameter can be a KeyPair object or a Signer instance. Errors
  * during the signing process will propagate from the underlying OpenAttestation `signDocument` function.
- *
  * @param {v2.WrappedDocument | v3.WrappedDocument | v2.SignedWrappedDocument | v3.SignedWrappedDocument} document - The wrapped document to be signed.
  * @param {KeyPair | Signer} keyPair - The key pair containing the public DID and private key, or a Signer instance for signing the document.
  * @returns {Promise<v2.SignedWrappedDocument | v3.SignedWrappedDocument>} - A promise that resolves to the signed document.

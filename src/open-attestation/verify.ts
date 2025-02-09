@@ -7,7 +7,6 @@ import { verifySignature, utils, v2, v3 } from '@tradetrust-tt/tradetrust';
  * and then verifies its signature for validity. It returns a boolean indicating
  * whether the signature is valid. If the document type is not recognized,
  * it will return false.
- *
  * @param {v2.WrappedDocument | v3.WrappedDocument} document - The OpenAttestation document to be verified.
  * @returns {Promise<boolean>} - A promise that resolves to `true` if the document's signature is valid,
  *                               and `false` if the document type is not recognized or if the signature is invalid.

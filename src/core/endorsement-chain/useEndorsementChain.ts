@@ -25,16 +25,51 @@ const fetchTitleEscrowFactoryAddress = async (
   return tokenRegistry.titleEscrowFactory();
 };
 
+// Interact with contract using calldata
+const calldata = async (
+  provider: ethers.providers.Provider | ethersV6.Provider,
+  functionSignature: string,
+  contractAddress: string,
+  functionTypes: string[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  params: any[],
+): Promise<string> => {
+  const functionSelector = ethers.utils.id(functionSignature).slice(0, 10);
+  const encodedParams = ethers.utils.defaultAbiCoder.encode(functionTypes, [...params]);
+  const calldata = functionSelector + encodedParams.slice(2);
+  const result = await provider.call({
+    to: contractAddress,
+    data: calldata,
+  });
+  // Decode the returned hex string into an address format
+  return ethers.utils.getAddress(ethers.utils.hexDataSlice(result, 12));
+};
+
 // Helper to resolve Title Escrow Address
 const resolveTitleEscrowAddress = async (
-  titleEscrowFactoryContract: ethers.Contract | ethersV6.Contract,
+  provider: ethers.providers.Provider | ethersV6.Provider,
+  titleEscrowFactoryAddress: string,
   tokenRegistryAddress: string,
   tokenId: string,
 ): Promise<string> => {
   try {
-    return await titleEscrowFactoryContract.getEscrowAddress(tokenRegistryAddress, tokenId);
+    return await calldata(
+      provider,
+      'getEscrowAddress(address,uint256)',
+      titleEscrowFactoryAddress,
+      ['address', 'uint256'],
+      [tokenRegistryAddress, tokenId],
+    );
   } catch {
-    return titleEscrowFactoryContract.getAddress(tokenRegistryAddress, tokenId);
+    // Have to query getAddress using calldata as getAddress is a internal function in ethers v6.
+    // getAddress in ethers v6, return TitleEscrowFactoryAddress instead of TitleEscrowAddress
+    return await calldata(
+      provider,
+      'getAddress(address,uint256)',
+      titleEscrowFactoryAddress,
+      ['address', 'uint256'],
+      [tokenRegistryAddress, tokenId],
+    );
   }
 };
 
@@ -62,17 +97,13 @@ export const getTitleEscrowAddress = async (
   if (!isInactiveEscrow) return titleEscrowOwner;
 
   const titleEscrowFactoryAddress = await fetchTitleEscrowFactoryAddress(tokenRegistry);
-  const titleEscrowFactoryContract = new Contract(
-    titleEscrowFactoryAddress,
-    [
-      'function getAddress(address, uint256) view returns (address)',
-      'function getEscrowAddress(address, uint256) view returns (address)',
-    ],
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    provider as any,
-  );
 
-  return resolveTitleEscrowAddress(titleEscrowFactoryContract, tokenRegistryAddress, tokenId);
+  return resolveTitleEscrowAddress(
+    provider,
+    titleEscrowFactoryAddress,
+    tokenRegistryAddress,
+    tokenId,
+  );
 };
 
 // Check Title Escrow Interface Support
@@ -94,14 +125,32 @@ const checkSupportsInterface = async (
   }
 };
 
-export const isTitleEscrowVersion = async (
-  versionInterface: string,
-  tokenRegistryAddress: string,
-  tokenId: string,
-  provider: ethers.providers.Provider | ethersV6.Provider,
-): Promise<boolean> => {
+interface TitleEscrowVersionParams {
+  tokenRegistryAddress?: string;
+  tokenId?: string;
+  titleEscrowAddress?: string;
+  versionInterface: string;
+  provider: ethers.providers.Provider | ethersV6.Provider;
+}
+
+/**
+ * To provide (tokenRegistryAddress and tokenId) or (titleEscrowAddress)
+ * @param {TitleEscrowVersionParams} params - TitleEscrowVersionParams
+ * @returns {Promise<boolean>} - return true if titleEscrow matches supportInterface
+ */
+export const isTitleEscrowVersion = async ({
+  tokenRegistryAddress,
+  tokenId,
+  titleEscrowAddress,
+  versionInterface,
+  provider,
+}: TitleEscrowVersionParams): Promise<boolean> => {
   try {
-    const titleEscrowAddress = await getTitleEscrowAddress(tokenRegistryAddress, tokenId, provider);
+    if (!titleEscrowAddress && (!tokenRegistryAddress || !tokenId)) {
+      throw new Error('Missing required dependencies');
+    } else if (!titleEscrowAddress) {
+      titleEscrowAddress = await getTitleEscrowAddress(tokenRegistryAddress, tokenId, provider);
+    }
     return await checkSupportsInterface(titleEscrowAddress, versionInterface, provider);
   } catch {
     return false;
@@ -117,17 +166,25 @@ export const fetchEndorsementChain = async (
   if (!tokenRegistryAddress || !tokenId || !provider) {
     throw new Error('Missing required dependencies');
   }
+  const titleEscrowAddress = await getTitleEscrowAddress(tokenRegistryAddress, tokenId, provider);
 
   const [isV4, isV5] = await Promise.all([
-    isTitleEscrowVersion(TitleEscrowInterface.V4, tokenRegistryAddress, tokenId, provider),
-    isTitleEscrowVersion(TitleEscrowInterface.V5, tokenRegistryAddress, tokenId, provider),
+    isTitleEscrowVersion({
+      titleEscrowAddress,
+      versionInterface: TitleEscrowInterface.V4,
+      provider,
+    }),
+    isTitleEscrowVersion({
+      titleEscrowAddress,
+      versionInterface: TitleEscrowInterface.V5,
+      provider,
+    }),
   ]);
 
   if (!isV4 && !isV5) {
     throw new Error('Only Token Registry V4/V5 is supported');
   }
 
-  const titleEscrowAddress = await getTitleEscrowAddress(tokenRegistryAddress, tokenId, provider);
   let transferEvents: TransferBaseEvent[] = [];
 
   if (isV4) {

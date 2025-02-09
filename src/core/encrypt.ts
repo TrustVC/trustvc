@@ -8,7 +8,6 @@ import { Chacha20 } from 'ts-chacha20';
  * This function takes a plaintext message, converts it to a buffer, and encrypts it using
  * the ChaCha20 stream cipher. The encryption key is processed to ensure it's 32 bytes in length,
  * and the nonce (initialization vector) is either provided or generated as 12 bytes.
- *
  * @param {string} message - The plaintext message to be encrypted.
  * @param {string} key - The encryption key, which will be processed into a 32-byte key.
  * @param {string} [nonce] - (Optional) A 12-byte nonce to be used for the encryption. If not provided, one will be generated.
