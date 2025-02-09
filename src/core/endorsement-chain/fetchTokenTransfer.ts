@@ -9,12 +9,12 @@ import { TokenTransferEvent, TokenTransferEventType, TypedEvent } from '../endor
 
 export const fetchTokenTransfers = async (
   provider: ethers.providers.Provider | ethersV6.Provider,
-  tokenRegistry: string,
+  tokenRegistryAddress: string,
   tokenId: string,
 ): Promise<TokenTransferEvent[]> => {
   const Contract = getEthersContractFromProvider(provider);
   const tokenRegistryContract = new Contract(
-    tokenRegistry,
+    tokenRegistryAddress,
     TradeTrustToken__factory.abi,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     provider as any,
@@ -23,8 +23,6 @@ export const fetchTokenTransfers = async (
   // Fetch transfer logs from token registry
   const logs = await fetchLogs(tokenRegistryContract, tokenId);
   const parsedLogs = parseLogs(logs, tokenRegistryContract);
-  const tokenRegistryAddress =
-    tokenRegistryContract.address ?? (await tokenRegistryContract.getAddress());
 
   const reformattedLogs = parsedLogs.map((event) =>
     formatTokenTransferEvent(event, tokenRegistryAddress),

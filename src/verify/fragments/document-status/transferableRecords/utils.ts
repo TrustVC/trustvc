@@ -92,8 +92,7 @@ export const isTokenMintedOnRegistry = async ({
             message: `Document ${tokenId} has not been issued under contract ${tokenRegistryAddress}`,
           },
         };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       minted: false,
       address: tokenRegistryAddress,
