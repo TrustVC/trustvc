@@ -40,16 +40,21 @@ export const fetchEscrowTransfersV4 = async (
 
 export const fetchEscrowTransfersV5 = async (
   provider: ethers.providers.Provider | ethersV6.Provider,
-  address: string,
+  titleEscrowAddress: string,
+  tokenRegistryAddress?: string,
 ): Promise<TransferBaseEvent[]> => {
   const Contract = getEthersContractFromProvider(provider);
   const titleEscrowContract = new Contract(
-    address,
+    titleEscrowAddress,
     TitleEscrowFactoryV5.abi,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     provider as any,
   );
-  const holderChangeLogsDeferred = await fetchAllTransfers(titleEscrowContract);
+  const holderChangeLogsDeferred = await fetchAllTransfers(
+    titleEscrowContract,
+    titleEscrowAddress,
+    tokenRegistryAddress,
+  );
   return holderChangeLogsDeferred;
 };
 
@@ -107,10 +112,14 @@ const fetchHolderTransfers = async (
 /**
  * Retrieve all V5 events
  * @param {TitleEscrowV5} titleEscrowContract - Contract; Updated type to Contract to make it competible with ethers v5
+ * @param {string} titleEscrowAddress - Title escrow address
+ * @param {string} tokenRegistryAddress - Token registry address
  * @returns {Promise<(TitleEscrowTransferEvent | TokenTransferEvent)[]>} - Array of events
  */
 const fetchAllTransfers = async (
   titleEscrowContract: ethers.Contract | ethersV6.Contract,
+  titleEscrowAddress?: string,
+  tokenRegistryAddress?: string,
 ): Promise<(TitleEscrowTransferEvent | TokenTransferEvent)[]> => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const allFilters: any[] = [
@@ -137,9 +146,16 @@ const fetchAllTransfers = async (
     titleEscrowContract as unknown as TitleEscrowV5,
   );
 
-  const tokenRegistryAddress: string = await titleEscrowContract.registry();
-  const mappedEvents = await Promise.all(
-    holderChangeLogsParsed.map(async (event) => {
+  if (!tokenRegistryAddress) {
+    tokenRegistryAddress = await titleEscrowContract.registry();
+  }
+  if (!titleEscrowAddress) {
+    // Handle ethers v5 and v6 differently
+    titleEscrowAddress = titleEscrowContract?.address ?? (await titleEscrowContract.getAddress());
+  }
+
+  return holderChangeLogsParsed
+    .map((event) => {
       if (event?.name === 'HolderTransfer') {
         return {
           type: 'TRANSFER_HOLDER',
@@ -167,8 +183,7 @@ const fetchAllTransfers = async (
             type === 'INITIAL'
               ? '0x0000000000000000000000000000000000000000'
               : tokenRegistryAddress,
-          // Handle ethers v5 and v6 differently
-          to: titleEscrowContract?.address ?? (await titleEscrowContract.getAddress()),
+          to: titleEscrowAddress,
           blockNumber: event.blockNumber,
           transactionHash: event.transactionHash,
           transactionIndex: event.transactionIndex,
@@ -179,7 +194,7 @@ const fetchAllTransfers = async (
           type: 'RETURNED_TO_ISSUER',
           blockNumber: event.blockNumber,
           // Handle ethers v5 and v6 differently
-          from: titleEscrowContract?.address ?? (await titleEscrowContract.getAddress()),
+          from: titleEscrowAddress,
           to: tokenRegistryAddress,
           transactionHash: event.transactionHash,
           transactionIndex: event.transactionIndex,
@@ -224,13 +239,8 @@ const fetchAllTransfers = async (
       }
 
       return undefined;
-    }),
-  );
-
-  return mappedEvents.filter((event) => event !== undefined) as (
-    | TitleEscrowTransferEvent
-    | TokenTransferEvent
-  )[];
+    })
+    .filter((event) => event !== undefined) as (TitleEscrowTransferEvent | TokenTransferEvent)[];
 };
 
 function identifyTokenReceivedType(event: ParsedLog): TokenTransferEventType {

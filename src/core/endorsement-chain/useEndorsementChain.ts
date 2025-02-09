@@ -195,7 +195,11 @@ export const fetchEndorsementChain = async (
 
     transferEvents = mergeTransfersV4([...titleEscrowLogs, ...tokenLogs]);
   } else if (isV5) {
-    const titleEscrowLogs = await fetchEscrowTransfersV5(provider, titleEscrowAddress);
+    const titleEscrowLogs = await fetchEscrowTransfersV5(
+      provider,
+      titleEscrowAddress,
+      tokenRegistryAddress,
+    );
     transferEvents = mergeTransfersV5(titleEscrowLogs);
   }
 
