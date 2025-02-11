@@ -3,12 +3,13 @@ import { ethers as ethersV6 } from 'ethersV6';
 import { describe, expect, it } from 'vitest';
 import { fetchEndorsementChain } from '../../core';
 
-const provider = new ethers.providers.JsonRpcProvider('https://rpc-amoy.polygon.technology');
-const providerV6 = new ethersV6.JsonRpcProvider('https://rpc-amoy.polygon.technology');
+const provider = ethers.providers.JsonRpcProvider;
+const providerV6 = ethersV6.JsonRpcProvider;
 
 const testCases = [
   {
-    description: 'Token Registry V4 with Transfer, Surrender, Burnt events',
+    rpcUrl: 'https://rpc-amoy.polygon.technology',
+    description: 'Token Registry V4 with Transfer, Surrender, Burnt events - Amoy',
     tokenRegistryAddress: '0x71D28767662cB233F887aD2Bb65d048d760bA694',
     tokenId: '0x780e38c6345dac12cedb7aacc69492ff31cc5236cd60da46261aa1c27691141e',
     expected: [
@@ -133,10 +134,11 @@ const testCases = [
         timestamp: 1713958422000,
       },
     ],
-    timeout: 30000,
+    timeout: 60_000,
   },
   {
-    description: 'Token Registry V5 with Transfer, Surrender, Burnt events',
+    rpcUrl: 'https://rpc-amoy.polygon.technology',
+    description: 'Token Registry V5 with Transfer, Surrender, Burnt events - Amoy',
     tokenRegistryAddress: '0x3781bd0bbd15Bf5e45c7296115821933d47362be',
     tokenId: '0xe3fa2bbdbfd093d2bb4e1555dde01338af25d5cf1d6d87bd0f22d7302f133f9a',
     expected: [
@@ -271,44 +273,416 @@ const testCases = [
         type: 'RETURN_TO_ISSUER_ACCEPTED',
       },
     ],
-    timeout: 30000,
+    timeout: 60_000,
   },
   {
-    description: 'Invalid Token Registry Version',
+    rpcUrl: `https://sepolia.infura.io/v3/${process.env.INFURA_API_KEY}`,
+    description: 'Token Registry V4 with Transfer, Surrender, Burnt events - Sepolia',
+    tokenRegistryAddress: '0x689a6a40647a383274f947e14f210ae64eb2b9c2',
+    tokenId: '0x69e10a3bfb000b3a84bddd7a6865df0195c4cde17454ddd824640cebcd0b71bb',
+    expected: [
+      {
+        blockNumber: 3580551,
+        holder: '0xEd96058aD996d7ecE428437A18d00C0DFBA72Cc0',
+        owner: '0xEd96058aD996d7ecE428437A18d00C0DFBA72Cc0',
+        remark: '',
+        timestamp: 1685336052000,
+        transactionHash: '0xbf2076896c937a019c939250d9f498e51e250cce31584f2b22885150b753e729',
+        transactionIndex: 38,
+        type: 'INITIAL',
+      },
+    ],
+    timeout: 60_000,
+  },
+  {
+    rpcUrl: `https://sepolia.infura.io/v3/${process.env.INFURA_API_KEY}`,
+    description: 'Token Registry V5 with Transfer, Surrender, Burnt events - Sepolia',
+    tokenRegistryAddress: '0x3A5f212f1D1bf90a8a0B7530698e25620DEb166B',
+    tokenId: '0x951b39bcaddc0e8882883db48ca258ca35ccb01fee328355f0dfda1ff9be9990',
+    expected: [
+      {
+        blockNumber: 7120258,
+        holder: '0x433097a1C1b8a3e9188d8C54eCC057B1D69f1638',
+        owner: '0x433097a1C1b8a3e9188d8C54eCC057B1D69f1638',
+        remark: '',
+        timestamp: 1732162800000,
+        transactionHash: '0x7936938888f24187955b41cc68658e166a73404646bf3ee48e6140fb301474ce',
+        transactionIndex: 32,
+        type: 'INITIAL',
+      },
+      {
+        blockNumber: 7120349,
+        holder: '0xCA93690Bb57EEaB273c796a9309246BC0FB93649',
+        owner: '0x433097a1C1b8a3e9188d8C54eCC057B1D69f1638',
+        remark: '�-',
+        timestamp: 1732163892000,
+        transactionHash: '0x79a141eb59261c32013ad293dca29e099b62f6dd7e60a84c5097e512459eec65',
+        transactionIndex: 27,
+        type: 'TRANSFER_HOLDER',
+      },
+      {
+        blockNumber: 7121047,
+        holder: '0x433097a1C1b8a3e9188d8C54eCC057B1D69f1638',
+        owner: '0x433097a1C1b8a3e9188d8C54eCC057B1D69f1638',
+        remark: '�-',
+        timestamp: 1732172772000,
+        transactionHash: '0x440f857a20115471e0692260196b0da7c274c1e6a77b51302a008072ebb7aa3d',
+        transactionIndex: 50,
+        type: 'REJECT_TRANSFER_HOLDER',
+      },
+      {
+        blockNumber: 7121263,
+        holder: '0xCA93690Bb57EEaB273c796a9309246BC0FB93649',
+        owner: '0xDC674219c4057d7795d9dA3d6AB3d301BF16355D',
+        remark: '�-',
+        timestamp: 1732175508000,
+        transactionHash: '0x33b7cd4d45907784ce226dfa738f556be3792152a2ebd4d2c2aea9f7f4577d09',
+        transactionIndex: 34,
+        type: 'TRANSFER_BENEFICIARY',
+      },
+      {
+        blockNumber: 7121281,
+        holder: '0xCA93690Bb57EEaB273c796a9309246BC0FB93649',
+        owner: '0x433097a1C1b8a3e9188d8C54eCC057B1D69f1638',
+        remark: '�-',
+        timestamp: 1732175748000,
+        transactionHash: '0xb044fcdb9a3550e88d906c64b5bc85fbe583b082f0bba0a39bb8aed8538b90a6',
+        transactionIndex: 51,
+        type: 'REJECT_TRANSFER_BENEFICIARY',
+      },
+    ],
+    timeout: 60_000,
+  },
+  {
+    rpcUrl: `https://rpc.stabilityprotocol.com/zgt/${process.env.STABILITY_API_KEY}`,
+    description: 'Token Registry V4 with Transfer, Surrender, Burnt events - Stability',
+    tokenRegistryAddress: '0x71D28767662cB233F887aD2Bb65d048d760bA694',
+    tokenId: '0xA8C2F1E3742348957A4BE4B2C32E099E1206E4C74D518D3D3A9D8C246BB2DD04',
+    expected: [
+      {
+        blockNumber: 4001421,
+        holder: '0xCA93690Bb57EEaB273c796a9309246BC0FB93649',
+        owner: '0xCA93690Bb57EEaB273c796a9309246BC0FB93649',
+        remark: '',
+        timestamp: 1717571156000,
+        transactionHash: '0x845573ff26f285600942e9960214d30ebea9609f4673bf36a31e1a7dd134a587',
+        transactionIndex: 0,
+        type: 'INITIAL',
+      },
+    ],
+    timeout: 60_000,
+  },
+  {
+    rpcUrl: `https://rpc.testnet.stabilityprotocol.com/zgt/${process.env.STABILITY_API_KEY}`,
+    description: 'Token Registry V4 with Transfer, Surrender, Burnt events - Stability Testnet',
+    tokenRegistryAddress: '0x3d23649EB097fa729A8e1e15Fdb37680Caf766F7',
+    tokenId: '0xbc081530e0471660baeb3964e27bbd0e6499161fdbcdf75a45067d91900f0226',
+    expected: [
+      {
+        blockNumber: 3319,
+        holder: '0x3B75D0620FFf06911B713f2c0AEAC1eF730eBc72',
+        owner: '0x3B75D0620FFf06911B713f2c0AEAC1eF730eBc72',
+        remark: '',
+        timestamp: 1709556352000,
+        transactionHash: '0x2f230cc478b26cc9db1b0133f99e993f4bf581876cdf0a7d50eef1f57d19fb02',
+        transactionIndex: 0,
+        type: 'INITIAL',
+      },
+    ],
+    timeout: 60_000,
+  },
+  {
+    rpcUrl: `https://rpc.testnet.stabilityprotocol.com/zgt/${process.env.STABILITY_API_KEY}`,
+    description: 'Token Registry V5 with Transfer, Surrender, Burnt events - Stability Testnet',
+    tokenRegistryAddress: '0x3E3C1cAa42123d450Aa197bc56C74f465f541fC0',
+    tokenId: '0x000000000000000000000000000000001618608838c7ebb43000e39c245bf9cb',
+    expected: [
+      {
+        blockNumber: 13157733,
+        holder: '0x433097a1C1b8a3e9188d8C54eCC057B1D69f1638',
+        owner: '0x433097a1C1b8a3e9188d8C54eCC057B1D69f1638',
+        remark: '',
+        timestamp: 1735869654000,
+        transactionHash: '0x937bd0b0917e96de3fb739b6c96b06c0f2e9e3159be2d819b06ad7a01b842387',
+        transactionIndex: 0,
+        type: 'INITIAL',
+      },
+    ],
+    timeout: 60_000,
+  },
+  {
+    rpcUrl: `https://astronlayer2.bitfactory.cn/rpc/`,
+    description: 'Token Registry V4 with Transfer, Surrender, Burnt events - Astron',
+    tokenRegistryAddress: '0xf717d93c751f1835078b513275b14121798c7740',
+    tokenId: '0x2820EE82FAA19A68DA11372E69581122C18B9134FE4BC91608155EFAA8370FB3',
+    expected: [
+      {
+        blockNumber: 1052524,
+        holder: '0xCA93690Bb57EEaB273c796a9309246BC0FB93649',
+        owner: '0xCA93690Bb57EEaB273c796a9309246BC0FB93649',
+        remark: '',
+        timestamp: 1731914085000,
+        transactionHash: '0x7f2b3b92ec86e2d5bbc32c985a4e4d017d387b0b4a253c03cd65733706443f9d',
+        transactionIndex: 0,
+        type: 'INITIAL',
+      },
+    ],
+    timeout: 60_000,
+  },
+  {
+    rpcUrl: `https://rpc.ankr.com/xdc/${process.env.ANKR_API_KEY}`,
+    description: 'Token Registry V4 with Transfer, Surrender, Burnt events - XDC',
+    tokenRegistryAddress: '0x31376b6fb90c6c16320ee8a782e4bbbcc1a96b11',
+    tokenId: '0x6bf54d00b6378305b414ab8dfa88cb967923f15e0630fb189f6029a5aa1f6f1e',
+    expected: [
+      {
+        blockNumber: 82186416,
+        holder: '0x2f45d8c2b55C935d3b9fBD41fCd9ABF790d5FA25',
+        owner: '0x2f45d8c2b55C935d3b9fBD41fCd9ABF790d5FA25',
+        remark: '',
+        timestamp: 1732862198000,
+        transactionHash: '0x354e4432bf6a01f0cef7015bd3ba56097ed4dfac93e446b18eaee4c6398942e5',
+        transactionIndex: 5,
+        type: 'INITIAL',
+      },
+    ],
+    timeout: 60_000,
+  },
+  {
+    rpcUrl: `https://rpc.ankr.com/xdc_testnet/${process.env.ANKR_API_KEY}`,
+    description: 'Token Registry V4 with Transfer, Surrender, Burnt events - XDC Testnet',
+    tokenRegistryAddress: '0x8E869d47C2392C08B335411d4a44254A513fFe01',
+    tokenId: '0x324bf073bca8aabef828bdaf7b9daa6745103777bbb2d9acf1c927e765b21b1',
+    expected: [
+      {
+        blockNumber: 69998017,
+        holder: '0x11F8660319808fa75E0BF218a3D55B045BAB3578',
+        owner: '0x11F8660319808fa75E0BF218a3D55B045BAB3578',
+        remark: '',
+        timestamp: 1733993640000,
+        transactionHash: '0x42f2616a3e2819172417941973ea9111e025c5ebca9d6f468f09b545e887a55b',
+        transactionIndex: 2,
+        type: 'INITIAL',
+      },
+      {
+        blockNumber: 69998026,
+        holder: '0x11F8660319808fa75E0BF218a3D55B045BAB3578',
+        owner: '0x11F8660319808fa75E0BF218a3D55B045BAB3578',
+        remark: '',
+        timestamp: 1733993785000,
+        transactionHash: '0xf8bada5ef58d0ba476f9b9be2215fe00ac3970a31b9d4f08a6fc8ec6ab4e6be0',
+        transactionIndex: 6,
+        type: 'SURRENDERED',
+      },
+      {
+        blockNumber: 69998071,
+        holder: '0x11F8660319808fa75E0BF218a3D55B045BAB3578',
+        owner: '0x11F8660319808fa75E0BF218a3D55B045BAB3578',
+        remark: '',
+        timestamp: 1733994263000,
+        transactionHash: '0x9e3caaa54cb16d75bd1d631ad02a3f4efb692ba96f702d7d4c87865406d848ef',
+        transactionIndex: 4,
+        type: 'SURRENDER_REJECTED',
+      },
+      {
+        blockNumber: 69998157,
+        holder: '0xeBF5EECF62CF9E40E8224F864D162041e3d756B7',
+        owner: '0xeBF5EECF62CF9E40E8224F864D162041e3d756B7',
+        remark: '',
+        timestamp: 1733995202000,
+        transactionHash: '0x0f566832fd3017b34888080ced5c3d4eb5a94247caede17ad26692db72f1ed53',
+        transactionIndex: 1,
+        type: 'TRANSFER_OWNERS',
+      },
+      {
+        blockNumber: 69998382,
+        holder: '0x11F8660319808fa75E0BF218a3D55B045BAB3578',
+        owner: '0x11F8660319808fa75E0BF218a3D55B045BAB3578',
+        remark: '',
+        timestamp: 1733997060000,
+        transactionHash: '0xb2f10d819c9650fa478dc81f4f631560a627340f034309c61751f7e6f20f775e',
+        transactionIndex: 2,
+        type: 'TRANSFER_OWNERS',
+      },
+      {
+        blockNumber: 69998409,
+        holder: '0x11F8660319808fa75E0BF218a3D55B045BAB3578',
+        owner: '0x11F8660319808fa75E0BF218a3D55B045BAB3578',
+        remark: '',
+        timestamp: 1733997307000,
+        transactionHash: '0x3d8b94645352f2b3eb4453ed2034170efe6d6c4f0d14aac05283c238b6b2ac8c',
+        transactionIndex: 8,
+        type: 'SURRENDERED',
+      },
+      {
+        blockNumber: 69998578,
+        holder: '0x11F8660319808fa75E0BF218a3D55B045BAB3578',
+        owner: '0x11F8660319808fa75E0BF218a3D55B045BAB3578',
+        remark: '',
+        timestamp: 1733998559000,
+        transactionHash: '0xf95ca715a7fe141b5333dd988c192dc26acbbcb7788e2bcfbbb933afbc470b96',
+        transactionIndex: 0,
+        type: 'SURRENDER_REJECTED',
+      },
+    ],
+    timeout: 60_000,
+  },
+  {
+    rpcUrl: `https://rpc.ankr.com/xdc_testnet/${process.env.ANKR_API_KEY}`,
+    description: 'Token Registry V5 with Transfer, Surrender, Burnt events - XDC Testnet',
+    tokenRegistryAddress: '0x3D2DD5d6468eE1F149dd424185f02626B29B7492',
+    tokenId: '0x00000000000000000000000001b69b4bd9b38eec',
+    expected: [
+      {
+        blockNumber: 70296217,
+        holder: '0x433097a1C1b8a3e9188d8C54eCC057B1D69f1638',
+        owner: '0x433097a1C1b8a3e9188d8C54eCC057B1D69f1638',
+        remark: '',
+        timestamp: 1736497873000,
+        transactionHash: '0xd969279724429eb157e5f2fd8cda95acfe22010319ac532d92ba5e466c2cbf96',
+        transactionIndex: 2,
+        type: 'INITIAL',
+      },
+      {
+        blockNumber: 70811418,
+        holder: '0xCA93690Bb57EEaB273c796a9309246BC0FB93649',
+        owner: '0x433097a1C1b8a3e9188d8C54eCC057B1D69f1638',
+        remark: '�:f',
+        timestamp: 1737907412000,
+        transactionHash: '0x5be12721404701df22e3fa80334e1933a2df4b86718d4e832de2704cf143676c',
+        transactionIndex: 1,
+        type: 'TRANSFER_HOLDER',
+      },
+    ],
+    timeout: 60_000,
+  },
+  {
+    rpcUrl: `https://polygon-mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
+    description: 'Token Registry V4 with Transfer, Surrender, Burnt events - Polygon',
+    tokenRegistryAddress: '0xFeC7d50A4062497710AC93AF802988FA47b2b8F5',
+    tokenId: '0x2e9846da5cbebf0c7eaddaafa97ece7923942159189b5bb2d02c879aa75a508a',
+    expected: [
+      {
+        blockNumber: 60090340,
+        holder: '0xAd153016cc1372EB79918EeC975246D01aFd02f5',
+        owner: '0xAd153016cc1372EB79918EeC975246D01aFd02f5',
+        remark: '',
+        timestamp: 1722567751000,
+        transactionHash: '0x209d54e0d8b784820bbfe44267914fee29a23bb32ca1cd1eecfaaee97ad854c4',
+        transactionIndex: 116,
+        type: 'INITIAL',
+      },
+      {
+        blockNumber: 60090715,
+        holder: '0xA3ad8adc178584327043DB5f4F531ee15B41D975',
+        owner: '0x0305C336BE1d92633A932bd28c8Ce34483288D42',
+        remark: '',
+        timestamp: 1722568625000,
+        transactionHash: '0x6e6efa4af4636303089c18f944c7f651d6b5f8d9337edab67c2e64a75321ab1e',
+        transactionIndex: 139,
+        type: 'TRANSFER_OWNERS',
+      },
+      {
+        blockNumber: 60097730,
+        holder: '0x0305C336BE1d92633A932bd28c8Ce34483288D42',
+        owner: '0x0305C336BE1d92633A932bd28c8Ce34483288D42',
+        remark: '',
+        timestamp: 1722584467000,
+        transactionHash: '0x545f8a22bb7690e8e6640d9934cf5cec9eb10e359b5b764c9a1e4f4ed03fbe4a',
+        transactionIndex: 35,
+        type: 'TRANSFER_HOLDER',
+      },
+      {
+        blockNumber: 60097748,
+        holder: '0x0305C336BE1d92633A932bd28c8Ce34483288D42',
+        owner: '0x0305C336BE1d92633A932bd28c8Ce34483288D42',
+        remark: '',
+        timestamp: 1722584505000,
+        transactionHash: '0xfdca6ff50b90076bffd517ec80faeb47cbb1e07ea7c250f465b48cbf24db9ad7',
+        transactionIndex: 46,
+        type: 'SURRENDERED',
+      },
+      {
+        blockNumber: 60868996,
+        holder: '0x0305C336BE1d92633A932bd28c8Ce34483288D42',
+        owner: '0x0305C336BE1d92633A932bd28c8Ce34483288D42',
+        remark: '',
+        timestamp: 1724261923000,
+        transactionHash: '0xe31a16c94f5578023b7754f9e964ed378c41d1bf167071c5dfc4eb81844eedcf',
+        transactionIndex: 93,
+        type: 'SURRENDER_REJECTED',
+      },
+    ],
+    timeout: 60_000,
+  },
+  {
+    rpcUrl: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
+    description: 'Token Registry V4 with Transfer, Surrender, Burnt events - Ethereum',
+    tokenRegistryAddress: '0x1550DD7B63a52356194aBBe5dfeCDe3f322FF335',
+    tokenId: '0x75f52c9fca67f19e913186ba5feed72ba799285f32ed3f30ec7768a73b71df90',
+    expected: [
+      {
+        blockNumber: 17911901,
+        holder: '0xDC674219c4057d7795d9dA3d6AB3d301BF16355D',
+        owner: '0xDC674219c4057d7795d9dA3d6AB3d301BF16355D',
+        remark: '',
+        timestamp: 1692001811000,
+        transactionHash: '0xe227d8895c39f3275d3b60867dd7e1244dbde44178ddedc82fbd166b55b3bc16',
+        transactionIndex: 556,
+        type: 'INITIAL',
+      },
+    ],
+    timeout: 60_000,
+  },
+  {
+    rpcUrl: 'https://rpc-amoy.polygon.technology',
+    description: 'Invalid Token Registry Version - Amoy',
     tokenRegistryAddress: '0x96cc41e7007dee20eb409586e2e8206d5053219b',
     tokenId: '0xd97a8af5c38157b95c558b7801862f4b53171149926d76d0c5b2b279016eed0a',
     expectedError: 'Only Token Registry V4/V5 is supported',
-    timeout: 30000,
+    timeout: 60_000,
   },
 ];
 
 describe.concurrent('fetch endorsement chain', () => {
-  testCases.forEach(
-    ({ description, tokenRegistryAddress, tokenId, expected, expectedError, timeout }) => {
-      it.concurrent.each([
-        {
-          provider,
-          name: 'ethers v5 provider',
-        },
-        {
-          provider: providerV6,
-          name: 'ethers v6 provider',
-        },
-      ])(
-        `should work correctly for ${description}, $name`,
-        async ({ provider }) => {
-          if (expectedError) {
-            await expect(
-              fetchEndorsementChain(tokenRegistryAddress, tokenId, provider),
-            ).rejects.toThrow(expectedError);
-          } else {
-            const result = await fetchEndorsementChain(tokenRegistryAddress, tokenId, provider);
-            expect(result).toBeTruthy();
-            expect(result).toStrictEqual(expected);
-          }
-        },
+  testCases
+    .filter((a) => !a.rpcUrl.includes('undefined'))
+    .forEach(
+      ({
+        rpcUrl,
+        description,
+        tokenRegistryAddress,
+        tokenId,
+        expected,
+        expectedError,
         timeout,
-      );
-    },
-  );
+      }) => {
+        it.concurrent.each([
+          {
+            Provider: provider,
+            name: 'ethers v5 provider',
+          },
+          {
+            Provider: providerV6,
+            name: 'ethers v6 provider',
+          },
+        ])(
+          `should work correctly for ${description}, $name`,
+          async ({ Provider }) => {
+            console.log(rpcUrl);
+            const provider = new Provider(rpcUrl);
+            if (expectedError) {
+              await expect(
+                fetchEndorsementChain(tokenRegistryAddress, tokenId, provider),
+              ).rejects.toThrow(expectedError);
+            } else {
+              const result = await fetchEndorsementChain(tokenRegistryAddress, tokenId, provider);
+              expect(result).toBeTruthy();
+              expect(result).toStrictEqual(expected);
+            }
+          },
+          timeout,
+        );
+      },
+    );
 });

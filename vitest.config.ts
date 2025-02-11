@@ -1,5 +1,7 @@
 import dts from 'vite-plugin-dts';
 import { defineConfig } from 'vitest/config';
+import { config } from 'dotenv';
+config({ path: '.env' });
 
 export default defineConfig({
   define: {
@@ -14,6 +16,9 @@ export default defineConfig({
   cacheDir: 'node_modules/.vitest',
   test: {
     include: ['**/*.test.{ts,js}'],
+    // setupFiles: ['dotenv/config'], //this line
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    env: process.env as any,
     server: {
       deps: {
         inline: ['@govtechsg/oa-verify', '@tradetrust-tt/tt-verify'], // Inline oa-verify package directly
