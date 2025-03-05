@@ -16,9 +16,10 @@ import {
   TokenTransferEventType,
   TransferBaseEvent,
 } from '../endorsement-chain/types';
+import { Provider } from '@ethersproject/abstract-provider';
 
 export const fetchEscrowTransfersV4 = async (
-  provider: ethers.providers.Provider | ethersV6.Provider,
+  provider: Provider | ethersV6.Provider,
   address: string,
 ): Promise<TitleEscrowTransferEvent[]> => {
   const Contract = getEthersContractFromProvider(provider);
@@ -39,7 +40,7 @@ export const fetchEscrowTransfersV4 = async (
 };
 
 export const fetchEscrowTransfersV5 = async (
-  provider: ethers.providers.Provider | ethersV6.Provider,
+  provider: Provider | ethersV6.Provider,
   titleEscrowAddress: string,
   tokenRegistryAddress?: string,
 ): Promise<TransferBaseEvent[]> => {

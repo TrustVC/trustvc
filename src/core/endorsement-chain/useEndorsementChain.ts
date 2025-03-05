@@ -12,6 +12,7 @@ import { fetchTokenTransfers } from '../endorsement-chain/fetchTokenTransfer';
 import { mergeTransfersV4, mergeTransfersV5 } from '../endorsement-chain/helpers';
 import { getEndorsementChain } from '../endorsement-chain/retrieveEndorsementChain';
 import { EndorsementChain, TransferBaseEvent } from '../endorsement-chain/types';
+import { Provider } from '@ethersproject/abstract-provider';
 
 export const TitleEscrowInterface = {
   V4: supportInterfaceIdsV4.TitleEscrow,
@@ -27,7 +28,7 @@ const fetchTitleEscrowFactoryAddress = async (
 
 // Interact with contract using calldata
 const calldata = async (
-  provider: ethers.providers.Provider | ethersV6.Provider,
+  provider: Provider | ethersV6.Provider,
   functionSignature: string,
   contractAddress: string,
   functionTypes: string[],
@@ -47,7 +48,7 @@ const calldata = async (
 
 // Helper to resolve Title Escrow Address
 const resolveTitleEscrowAddress = async (
-  provider: ethers.providers.Provider | ethersV6.Provider,
+  provider: Provider | ethersV6.Provider,
   titleEscrowFactoryAddress: string,
   tokenRegistryAddress: string,
   tokenId: string,
@@ -76,7 +77,7 @@ const resolveTitleEscrowAddress = async (
 export const getTitleEscrowAddress = async (
   tokenRegistryAddress: string,
   tokenId: string,
-  provider: ethers.providers.Provider | ethersV6.Provider,
+  provider: Provider | ethersV6.Provider,
 ): Promise<string> => {
   const Contract = getEthersContractFromProvider(provider);
 
@@ -110,7 +111,7 @@ export const getTitleEscrowAddress = async (
 const checkSupportsInterface = async (
   titleEscrowAddress: string,
   interfaceId: string,
-  provider: ethers.providers.Provider | ethersV6.Provider,
+  provider: Provider | ethersV6.Provider,
 ): Promise<boolean> => {
   try {
     const Contract = getEthersContractFromProvider(provider);
@@ -130,7 +131,7 @@ interface TitleEscrowVersionParams {
   tokenId?: string;
   titleEscrowAddress?: string;
   versionInterface: string;
-  provider: ethers.providers.Provider | ethersV6.Provider;
+  provider: Provider | ethersV6.Provider;
 }
 
 /**
@@ -160,7 +161,7 @@ export const isTitleEscrowVersion = async ({
 export const fetchEndorsementChain = async (
   tokenRegistryAddress: string,
   tokenId: string,
-  provider: ethers.providers.Provider | ethersV6.Provider,
+  provider: Provider | ethersV6.Provider,
   keyId?: string,
 ): Promise<EndorsementChain> => {
   if (!tokenRegistryAddress || !tokenId || !provider) {

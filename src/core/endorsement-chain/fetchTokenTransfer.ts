@@ -6,9 +6,10 @@ import { TradeTrustToken, TradeTrustToken__factory } from '../../token-registry-
 import { getEthersContractFromProvider } from '../../utils/ethers';
 import { sortLogChain } from '../endorsement-chain/helpers';
 import { TokenTransferEvent, TokenTransferEventType, TypedEvent } from '../endorsement-chain/types';
+import { Provider } from '@ethersproject/abstract-provider';
 
 export const fetchTokenTransfers = async (
-  provider: ethers.providers.Provider | ethersV6.Provider,
+  provider: Provider | ethersV6.Provider,
   tokenRegistryAddress: string,
   tokenId: string,
 ): Promise<TokenTransferEvent[]> => {

@@ -669,7 +669,6 @@ describe.concurrent('fetch endorsement chain', () => {
         ])(
           `should work correctly for ${description}, $name`,
           async ({ Provider }) => {
-            console.log(rpcUrl);
             const provider = new Provider(rpcUrl);
             if (expectedError) {
               await expect(
