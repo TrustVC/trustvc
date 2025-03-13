@@ -18,7 +18,6 @@ import {
  *
  * The function takes an Ethereum-compatible JSON-RPC provider URL, which allows the user to specify the network
  * (e.g., Ethereum, Polygon) for DID resolution and verification tasks.
- *
  * @param {DocumentsToVerify | SignedVerifiableCredential} document - The document to be verified, either an OpenAttestation document or a W3C Verifiable Credential.
  * @param {string} rpcProviderUrl - The Ethereum-compatible JSON-RPC provider URL (e.g., Infura, Alchemy, Polygon, etc.) to resolve DIDs and verify credentials.
  * @returns {Promise<VerificationFragment[]>} - A promise that resolves to an array of verification fragments,

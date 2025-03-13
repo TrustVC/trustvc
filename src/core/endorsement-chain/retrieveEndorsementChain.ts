@@ -1,13 +1,14 @@
-import { Provider } from '@ethersproject/abstract-provider';
+import { ethers as ethersV6 } from 'ethersV6';
+import { fetchEventTime, sortLogChain } from '../endorsement-chain/helpers';
 import { EndorsementChain, TransferBaseEvent, TransferEvent } from '../endorsement-chain/types';
-import { sortLogChain, fetchEventTime } from '../endorsement-chain/helpers';
+import { Provider } from '@ethersproject/abstract-provider';
 
 /*
   Adds details of previous records (Previous Beneficiary/Holder)
   to current events history
 */
 export const getEndorsementChain = async (
-  provider: Provider,
+  provider: Provider | ethersV6.Provider,
   logChain: TransferBaseEvent[],
 ): Promise<EndorsementChain> => {
   const historyChain: EndorsementChain = [];

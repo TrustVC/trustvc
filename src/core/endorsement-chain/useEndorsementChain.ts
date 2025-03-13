@@ -1,5 +1,8 @@
-import { Provider } from '@ethersproject/providers';
 import { ethers } from 'ethers';
+import { ethers as ethersV6 } from 'ethersV6';
+import { supportInterfaceIds as supportInterfaceIdsV4 } from '../../token-registry-v4/supportInterfaceIds';
+import { supportInterfaceIds as supportInterfaceIdsV5 } from '../../token-registry-v5/supportInterfaceIds';
+import { getEthersContractFromProvider } from '../../utils/ethers';
 import { decrypt } from '../decrypt';
 import {
   fetchEscrowTransfersV4,
@@ -9,9 +12,7 @@ import { fetchTokenTransfers } from '../endorsement-chain/fetchTokenTransfer';
 import { mergeTransfersV4, mergeTransfersV5 } from '../endorsement-chain/helpers';
 import { getEndorsementChain } from '../endorsement-chain/retrieveEndorsementChain';
 import { EndorsementChain, TransferBaseEvent } from '../endorsement-chain/types';
-import { TradeTrustToken__factory } from '../../token-registry-v4/contracts';
-import { supportInterfaceIds as supportInterfaceIdsV4 } from '../../token-registry-v4/supportInterfaceIds';
-import { supportInterfaceIds as supportInterfaceIdsV5 } from '../../token-registry-v5/supportInterfaceIds';
+import { Provider } from '@ethersproject/abstract-provider';
 
 export const TitleEscrowInterface = {
   V4: supportInterfaceIdsV4.TitleEscrow,
@@ -19,34 +20,74 @@ export const TitleEscrowInterface = {
 };
 
 // Helper to fetch Title Escrow Factory Address
-const fetchTitleEscrowFactoryAddress = async (tokenRegistry: ethers.Contract): Promise<string> => {
+const fetchTitleEscrowFactoryAddress = async (
+  tokenRegistry: ethers.Contract | ethersV6.Contract,
+): Promise<string> => {
   return tokenRegistry.titleEscrowFactory();
+};
+
+// Interact with contract using calldata
+const calldata = async (
+  provider: Provider | ethersV6.Provider,
+  functionSignature: string,
+  contractAddress: string,
+  functionTypes: string[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  params: any[],
+): Promise<string> => {
+  const functionSelector = ethers.utils.id(functionSignature).slice(0, 10);
+  const encodedParams = ethers.utils.defaultAbiCoder.encode(functionTypes, [...params]);
+  const calldata = functionSelector + encodedParams.slice(2);
+  const result = await provider.call({
+    to: contractAddress,
+    data: calldata,
+  });
+  // Decode the returned hex string into an address format
+  return ethers.utils.getAddress(ethers.utils.hexDataSlice(result, 12));
 };
 
 // Helper to resolve Title Escrow Address
 const resolveTitleEscrowAddress = async (
-  titleEscrowFactoryContract: ethers.Contract,
+  provider: Provider | ethersV6.Provider,
+  titleEscrowFactoryAddress: string,
   tokenRegistryAddress: string,
   tokenId: string,
 ): Promise<string> => {
   try {
-    return await titleEscrowFactoryContract.getEscrowAddress(tokenRegistryAddress, tokenId);
+    return await calldata(
+      provider,
+      'getEscrowAddress(address,uint256)',
+      titleEscrowFactoryAddress,
+      ['address', 'uint256'],
+      [tokenRegistryAddress, tokenId],
+    );
   } catch {
-    return titleEscrowFactoryContract.getAddress(tokenRegistryAddress, tokenId);
+    // Have to query getAddress using calldata as getAddress is a internal function in ethers v6.
+    // getAddress in ethers v6, return TitleEscrowFactoryAddress instead of TitleEscrowAddress
+    return await calldata(
+      provider,
+      'getAddress(address,uint256)',
+      titleEscrowFactoryAddress,
+      ['address', 'uint256'],
+      [tokenRegistryAddress, tokenId],
+    );
   }
 };
 
 export const getTitleEscrowAddress = async (
   tokenRegistryAddress: string,
   tokenId: string,
-  provider: ethers.providers.Provider,
+  provider: Provider | ethersV6.Provider,
 ): Promise<string> => {
+  const Contract = getEthersContractFromProvider(provider);
+
   const tokenRegistryAbi = [
     'function titleEscrowFactory() external view returns (address)',
     'function ownerOf(uint256 tokenId) view returns (address)',
   ];
 
-  const tokenRegistry = new ethers.Contract(tokenRegistryAddress, tokenRegistryAbi, provider);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tokenRegistry = new Contract(tokenRegistryAddress, tokenRegistryAbi, provider as any);
   const titleEscrowOwner = await tokenRegistry.ownerOf(tokenId);
 
   const BURN_ADDRESS = '0x000000000000000000000000000000000000dEaD';
@@ -57,43 +98,60 @@ export const getTitleEscrowAddress = async (
   if (!isInactiveEscrow) return titleEscrowOwner;
 
   const titleEscrowFactoryAddress = await fetchTitleEscrowFactoryAddress(tokenRegistry);
-  const titleEscrowFactoryContract = new ethers.Contract(
-    titleEscrowFactoryAddress,
-    [
-      'function getAddress(address, uint256) view returns (address)',
-      'function getEscrowAddress(address, uint256) view returns (address)',
-    ],
-    provider,
-  );
 
-  return resolveTitleEscrowAddress(titleEscrowFactoryContract, tokenRegistryAddress, tokenId);
+  return resolveTitleEscrowAddress(
+    provider,
+    titleEscrowFactoryAddress,
+    tokenRegistryAddress,
+    tokenId,
+  );
 };
 
 // Check Title Escrow Interface Support
 const checkSupportsInterface = async (
   titleEscrowAddress: string,
   interfaceId: string,
-  provider: ethers.providers.Provider,
+  provider: Provider | ethersV6.Provider,
 ): Promise<boolean> => {
   try {
+    const Contract = getEthersContractFromProvider(provider);
     const titleEscrowAbi = [
       'function supportsInterface(bytes4 interfaceId) external view returns (bool)',
     ];
-    const titleEscrowContract = new ethers.Contract(titleEscrowAddress, titleEscrowAbi, provider);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const titleEscrowContract = new Contract(titleEscrowAddress, titleEscrowAbi, provider as any);
     return await titleEscrowContract.supportsInterface(interfaceId);
   } catch {
     return false;
   }
 };
 
-export const isTitleEscrowVersion = async (
-  versionInterface: string,
-  tokenRegistryAddress: string,
-  tokenId: string,
-  provider: ethers.providers.Provider,
-): Promise<boolean> => {
+interface TitleEscrowVersionParams {
+  tokenRegistryAddress?: string;
+  tokenId?: string;
+  titleEscrowAddress?: string;
+  versionInterface: string;
+  provider: Provider | ethersV6.Provider;
+}
+
+/**
+ * To provide (tokenRegistryAddress and tokenId) or (titleEscrowAddress)
+ * @param {TitleEscrowVersionParams} params - TitleEscrowVersionParams
+ * @returns {Promise<boolean>} - return true if titleEscrow matches supportInterface
+ */
+export const isTitleEscrowVersion = async ({
+  tokenRegistryAddress,
+  tokenId,
+  titleEscrowAddress,
+  versionInterface,
+  provider,
+}: TitleEscrowVersionParams): Promise<boolean> => {
   try {
-    const titleEscrowAddress = await getTitleEscrowAddress(tokenRegistryAddress, tokenId, provider);
+    if (!titleEscrowAddress && (!tokenRegistryAddress || !tokenId)) {
+      throw new Error('Missing required dependencies');
+    } else if (!titleEscrowAddress) {
+      titleEscrowAddress = await getTitleEscrowAddress(tokenRegistryAddress, tokenId, provider);
+    }
     return await checkSupportsInterface(titleEscrowAddress, versionInterface, provider);
   } catch {
     return false;
@@ -101,37 +159,48 @@ export const isTitleEscrowVersion = async (
 };
 
 export const fetchEndorsementChain = async (
-  tokenRegistry: string,
+  tokenRegistryAddress: string,
   tokenId: string,
-  provider: Provider,
+  provider: Provider | ethersV6.Provider,
   keyId?: string,
 ): Promise<EndorsementChain> => {
-  if (!tokenRegistry || !tokenId || !provider) {
+  if (!tokenRegistryAddress || !tokenId || !provider) {
     throw new Error('Missing required dependencies');
   }
+  const titleEscrowAddress = await getTitleEscrowAddress(tokenRegistryAddress, tokenId, provider);
 
   const [isV4, isV5] = await Promise.all([
-    isTitleEscrowVersion(TitleEscrowInterface.V4, tokenRegistry, tokenId, provider),
-    isTitleEscrowVersion(TitleEscrowInterface.V5, tokenRegistry, tokenId, provider),
+    isTitleEscrowVersion({
+      titleEscrowAddress,
+      versionInterface: TitleEscrowInterface.V4,
+      provider,
+    }),
+    isTitleEscrowVersion({
+      titleEscrowAddress,
+      versionInterface: TitleEscrowInterface.V5,
+      provider,
+    }),
   ]);
 
   if (!isV4 && !isV5) {
     throw new Error('Only Token Registry V4/V5 is supported');
   }
 
-  const titleEscrowAddress = await getTitleEscrowAddress(tokenRegistry, tokenId, provider);
   let transferEvents: TransferBaseEvent[] = [];
 
   if (isV4) {
-    const tokenRegistryContract = TradeTrustToken__factory.connect(tokenRegistry, provider);
     const [tokenLogs, titleEscrowLogs] = await Promise.all([
-      fetchTokenTransfers(tokenRegistryContract, tokenId),
+      fetchTokenTransfers(provider, tokenRegistryAddress, tokenId),
       fetchEscrowTransfersV4(provider, titleEscrowAddress),
     ]);
 
     transferEvents = mergeTransfersV4([...titleEscrowLogs, ...tokenLogs]);
   } else if (isV5) {
-    const titleEscrowLogs = await fetchEscrowTransfersV5(provider, titleEscrowAddress);
+    const titleEscrowLogs = await fetchEscrowTransfersV5(
+      provider,
+      titleEscrowAddress,
+      tokenRegistryAddress,
+    );
     transferEvents = mergeTransfersV5(titleEscrowLogs);
   }
 

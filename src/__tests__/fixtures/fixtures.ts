@@ -319,6 +319,53 @@ export const BATCHED_RAW_DOCUMENTS_DID_V2 = freezeObject([
   },
 ] as v2.OpenAttestationDocument[]);
 
+export const RAW_DOCUMENT_DID_TOKEN_REGISTRY_V2 = freezeObject({
+  id: 'urn:uuid:0194cf82-6d06-7d96-bb82-70ef2da9fb5f',
+  $template: {
+    name: 'BILL_OF_LADING',
+    type: 'EMBEDDED_RENDERER',
+    url: 'https://generic-templates.tradetrust.io',
+  },
+  network: {
+    chain: 'MATIC',
+    chainId: '80002',
+  },
+  issuers: [
+    {
+      name: 'DEMO TOKEN REGISTRY',
+      tokenRegistry: '0x71D28767662cB233F887aD2Bb65d048d760bA694',
+      identityProof: {
+        type: 'DNS-TXT',
+        location: 'example.openattestation.com',
+      },
+      revocation: {
+        type: 'NONE',
+      },
+    },
+  ],
+  shipper: {
+    address: {
+      street: '456 Orchard Road',
+      country: 'SG',
+    },
+  },
+  consignee: {
+    name: 'TradeTrust',
+  },
+  notifyParty: {
+    name: 'TrustVC',
+  },
+  packages: [
+    {
+      description: '1 Pallet',
+      weight: '1',
+      measurement: 'KG',
+    },
+  ],
+  blNumber: '20240315',
+  scac: '20240315',
+} as v2.OpenAttestationDocument);
+
 export const RAW_DOCUMENT_DID_TOKEN_REGISTRY_V3 = freezeObject({
   version: 'https://schema.openattestation.com/3.0/schema.json',
   network: {
@@ -812,6 +859,63 @@ export const BATCHED_WRAPPED_DOCUMENTS_DID_V2 = freezeObject([
   },
 ] as unknown as v2.WrappedDocument[]);
 
+export const WRAPPED_DOCUMENT_DID_TOKEN_REGISTRY_V2 = freezeObject({
+  version: 'https://schema.openattestation.com/2.0/schema.json',
+  data: {
+    id: 'bd4ab982-4196-4d5e-9ed4-c3fc90bfc06a:string:urn:uuid:0194cf82-6d06-7d96-bb82-70ef2da9fb5f',
+    $template: {
+      name: '17251738-2bc9-40ea-abd8-526ef83ff554:string:BILL_OF_LADING',
+      type: '17b02a26-92dd-4841-9a4f-51327f63770b:string:EMBEDDED_RENDERER',
+      url: '850621fa-7a59-4db3-98fb-34048300233b:string:https://generic-templates.tradetrust.io',
+    },
+    network: {
+      chain: 'ea931fed-37c4-460e-9fd0-a8b14ff916f1:string:MATIC',
+      chainId: '4a8eaa58-0da9-4d9a-83ef-89a78e5d776d:string:80002',
+    },
+    issuers: [
+      {
+        name: '9355209a-852d-4f12-9940-5202b25d165e:string:DEMO TOKEN REGISTRY',
+        tokenRegistry:
+          '16cc79da-7fa9-4fce-b354-cae8226ee783:string:0x71D28767662cB233F887aD2Bb65d048d760bA694',
+        identityProof: {
+          type: '93f41e11-b826-4244-8984-e5c774720c69:string:DNS-TXT',
+          location: '21c6ed7f-146b-49e3-9cee-da088bd78ee3:string:example.openattestation.com',
+        },
+        revocation: {
+          type: '6104d6b3-4df5-4acd-85a3-df2e912c3e11:string:NONE',
+        },
+      },
+    ],
+    shipper: {
+      address: {
+        street: '3c264a40-afce-4a76-9901-80d54e6caaea:string:456 Orchard Road',
+        country: '72509e84-c349-4edb-8e6d-b62cd2aac078:string:SG',
+      },
+    },
+    consignee: {
+      name: '0e896de8-ce73-48a4-94e7-5798d00b79b3:string:TradeTrust',
+    },
+    notifyParty: {
+      name: '9da274d5-1f4b-427e-b5da-571a4d458ddf:string:TrustVC',
+    },
+    packages: [
+      {
+        description: '9014b4f2-bae9-4db0-b198-0629d2db03db:string:1 Pallet',
+        weight: '31b7f713-eeb8-4072-a414-8c1c253e87fd:string:1',
+        measurement: '5ab98b9c-ac22-4a0d-9b49-69b57f7d8534:string:KG',
+      },
+    ],
+    blNumber: '8985ac3b-7698-4e12-8b88-498ab5151525:string:20240315',
+    scac: '67ad072b-c428-40be-9439-5e8a50ed3c7f:string:20240315',
+  },
+  signature: {
+    type: 'SHA3MerkleProof',
+    targetHash: 'c999d6bf0b5e18bc6051bf60779e2a6891dc41294a35f0b0e0ea9addd774294c',
+    proof: [],
+    merkleRoot: 'c999d6bf0b5e18bc6051bf60779e2a6891dc41294a35f0b0e0ea9addd774294c',
+  },
+} as unknown as v2.WrappedDocument);
+
 export const WRAPPED_DOCUMENT_DID_TOKEN_REGISTRY_V3 = freezeObject({
   version: 'https://schema.openattestation.com/3.0/schema.json',
   network: {
@@ -1223,10 +1327,10 @@ export const W3C_TRANSFERABLE_RECORD = freezeObject({
     type: 'TransferableRecords',
     tokenNetwork: {
       chain: 'MATIC',
-      chainId: 800002,
+      chainId: 80002,
     },
     tokenRegistry: '0x6c2a002A5833a100f38458c50F11E71Aa1A342c6',
-    tokenId: '39020f777ea6748b89970cb50a90edd8e89537e1fb5245131aa444043c46fc99',
+    tokenId: '23f719b016c88ba1ef2e10c0718d7d0f0026b1dc6e219629f81e2f0f811c4e3e',
   },
   credentialSubject: {
     name: 'TrustVC',
@@ -1237,13 +1341,13 @@ export const W3C_TRANSFERABLE_RECORD = freezeObject({
   issuer: 'did:web:trustvc.github.io:did:1',
   type: ['VerifiableCredential'],
   issuanceDate: '2024-04-01T12:19:52Z',
-  id: 'urn:bnid:_:0193ced8-7282-7663-ab42-20e6c09d0f0a',
+  id: 'urn:bnid:_:0194cfc4-6b6c-7553-9b67-1ed41632eb2a',
   proof: {
     type: 'BbsBlsSignature2020',
-    created: '2024-12-16T09:41:52Z',
+    created: '2025-02-04T07:02:26Z',
     proofPurpose: 'assertionMethod',
     proofValue:
-      'seYte8TT/NwueUn/Hv9xSi+vQ6cSIcFUaI+D9WfV6And6zn7iXeK80VUhmIqvdryHsbruL1g0+VqjyUT1XoDDHDX2iSUvep/tRw8MDt9uShoT12Ljbkx0CkqOlUk57TwQUZVBXdBhChjvOc13+2v6g==',
+      'ouPsZgRPF5nIEYenlfQbRPVAunre6mhcOy6YswI24/FFSTJ5mHujBEBi1qmNjJEBM4Gwr2jteoyAIIz5w7vohD0tk9aBaHRSAyj6fhgrq8Ahbi4qhudCMuPu8FIY1xInSl+RZckKKYIEXP/R789sZQ==',
     verificationMethod: 'did:web:trustvc.github.io:did:1#keys-1',
   },
 } as SignedVerifiableCredential);

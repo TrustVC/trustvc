@@ -8,7 +8,6 @@ import { Chacha20 } from 'ts-chacha20';
  * This function takes an encrypted message (in base64 format), converts it back to a buffer,
  * and decrypts it using the ChaCha20 stream cipher. The decryption key is processed to ensure it's
  * 32 bytes in length, and the nonce (initialization vector) is either provided or generated as 12 bytes.
- *
  * @param {string} encryptedMessage - The encrypted message to be decrypted, in base64 format.
  * @param {string} key - The decryption key, which will be processed into a 32-byte key.
  * @param {string} [nonce] - (Optional) A 12-byte nonce used during the encryption process. If not provided, one will be generated.

@@ -1,3 +1,45 @@
+## [1.2.8](https://github.com/TrustVC/trustvc/compare/v1.2.7...v1.2.8) (2025-03-05)
+
+
+### Bug Fixes
+
+* supports web3provider for endorsement chain ([#43](https://github.com/TrustVC/trustvc/issues/43)) ([2559f44](https://github.com/TrustVC/trustvc/commit/2559f44f1e432fd6c1784c87dfae00d5bc18e1e0))
+
+## [1.2.7](https://github.com/TrustVC/trustvc/compare/v1.2.6...v1.2.7) (2025-02-12)
+
+
+### Bug Fixes
+
+* package ([#42](https://github.com/TrustVC/trustvc/issues/42)) ([7b4d49e](https://github.com/TrustVC/trustvc/commit/7b4d49e71ed5fa8f5733e0d34611cb817ff2c101))
+
+## [1.2.6](https://github.com/TrustVC/trustvc/compare/v1.2.5...v1.2.6) (2025-02-11)
+
+
+### Bug Fixes
+
+* upgrade pkgs ([#41](https://github.com/TrustVC/trustvc/issues/41)) ([faa0ddc](https://github.com/TrustVC/trustvc/commit/faa0ddccbb6729e6ac43d75826434db597c7e63b))
+
+## [1.2.5](https://github.com/TrustVC/trustvc/compare/v1.2.4...v1.2.5) (2025-02-11)
+
+
+### Bug Fixes
+
+* ethers error ([#40](https://github.com/TrustVC/trustvc/issues/40)) ([f41bebc](https://github.com/TrustVC/trustvc/commit/f41bebc1604e693ec72a727fa587332ee7c0e522))
+
+## [1.2.4](https://github.com/TrustVC/trustvc/compare/v1.2.3...v1.2.4) (2025-02-05)
+
+
+### Bug Fixes
+
+* upgrade packages ([#37](https://github.com/TrustVC/trustvc/issues/37)) ([35f26c7](https://github.com/TrustVC/trustvc/commit/35f26c71f029a73cb9498c7fb2201d96c19f432e))
+
+## [1.2.3](https://github.com/TrustVC/trustvc/compare/v1.2.2...v1.2.3) (2025-02-04)
+
+
+### Bug Fixes
+
+* upgrade pkgs and migration function from website ([#36](https://github.com/TrustVC/trustvc/issues/36)) ([6936e71](https://github.com/TrustVC/trustvc/commit/6936e719d9878957f52764af3e4528273afb7bd3))
+
 ## [1.2.2](https://github.com/TrustVC/trustvc/compare/v1.2.1...v1.2.2) (2025-01-28)
 
 

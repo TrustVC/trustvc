@@ -1,6 +1,6 @@
 {
   "name": "@trustvc/trustvc",
-  "version": "1.2.2",
+  "version": "1.2.8",
   "description": "TrustVC library",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
@@ -12,6 +12,7 @@
     "test": "npx vitest --run --test-timeout=15000",
     "type-check": "tsc --noEmit",
     "lint": "npx eslint . --color --format=table --max-warnings=0",
+    "lint:fix": "npx eslint . --fix",
     "build": "npm run clean && tsup",
     "clean": "rm -rf dist/",
     "precommit": "lint-staged",
@@ -63,8 +64,8 @@
       "require": "./dist/cjs/token-registry-v5/index.js"
     },
     "./token-registry-v5/contracts": {
-      "import": "./dist/esm/token-registry-v5/contracts.js",
       "types": "./dist/types/token-registry-v5/contracts.d.ts",
+      "import": "./dist/esm/token-registry-v5/contracts.js",
       "require": "./dist/cjs/token-registry-v5/contracts.js"
     },
     "./utils": {
@@ -111,7 +112,7 @@
   "dependencies": {
     "@tradetrust-tt/dnsprove": "^2.16.0",
     "@tradetrust-tt/token-registry-v4": "npm:@tradetrust-tt/token-registry@^4.15.1",
-    "@tradetrust-tt/token-registry-v5": "npm:@tradetrust-tt/token-registry@^5.1.1",
+    "@tradetrust-tt/token-registry-v5": "npm:@tradetrust-tt/token-registry@^5.1.3",
     "@tradetrust-tt/tradetrust": "^6.10.0",
     "@tradetrust-tt/tradetrust-utils": "^2.2.0",
     "@tradetrust-tt/tt-verify": "^9.3.0",
@@ -121,6 +122,7 @@
     "@trustvc/w3c-vc": "^1.2.3",
     "did-resolver": "^4.1.0",
     "ethers": "^5.7.2",
+    "ethersV6": "npm:ethers@^6.13.5",
     "js-sha3": "^0.9.3",
     "ts-chacha20": "^1.2.0",
     "web-did-resolver": "^2.0.27"
@@ -142,6 +144,7 @@
     "eslint": "^9.16.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-formatter-table": "^7.32.1",
+    "eslint-plugin-jsdoc": "^50.6.3",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-prettier": "^5.2.1",
     "eslint-plugin-promise": "^7.2.1",
@@ -161,11 +164,11 @@
   "overrides": {
     "ethers": "^5.7.2"
   },
-  "optionalDependencies": {
-    "@rollup/rollup-linux-x64-gnu": "~4.28.0"
-  },
   "peerDependencies": {
     "ethers": "^5.7.2"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "~4.28.0"
   },
   "lint-staged": {
     "*.{js,ts}": [
