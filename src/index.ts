@@ -1,10 +1,24 @@
-import { supportInterfaceIds as v4SupportInterfaceIds } from './token-registry-v4/supportInterfaceIds';
-import { supportInterfaceIds as v5SupportInterfaceIds } from './token-registry-v5/supportInterfaceIds';
-import { v4RoleHash, v4ContractAddress } from './token-registry-v4';
-import { v5RoleHash, v5ContractAddress } from './token-registry-v5';
-
-import * as v4Contracts from '@tradetrust-tt/token-registry-v4/contracts';
-import * as v5Contracts from '@tradetrust-tt/token-registry-v5/contracts';
+import {
+  v4RoleHash,
+  v4ContractAddress,
+  v4SupportInterfaceIds,
+  v4Contracts,
+  v4Utils,
+  v4ComputeTitleEscrowAddress,
+  v4EncodeInitParams,
+  v4GetEventFromReceipt,
+  v4ComputeInterfaceId,
+} from './token-registry-v4';
+import {
+  v5RoleHash,
+  v5ContractAddress,
+  v5SupportInterfaceIds,
+  v5Contracts,
+  v5Utils,
+  v5EncodeInitParams,
+  v5GetEventFromReceipt,
+  v5ComputeInterfaceId,
+} from './token-registry-v5';
 export { TypedContractMethod } from './token-registry-v5/typedContractMethod';
 
 export * from './core';
@@ -20,6 +34,15 @@ export {
   v4Contracts,
   v5SupportInterfaceIds,
   v5ContractAddress,
+  v4Utils,
+  v4ComputeTitleEscrowAddress,
+  v4EncodeInitParams,
+  v4GetEventFromReceipt,
+  v4ComputeInterfaceId,
   v5RoleHash,
   v5Contracts,
+  v5Utils,
+  v5EncodeInitParams,
+  v5GetEventFromReceipt,
+  v5ComputeInterfaceId,
 };
