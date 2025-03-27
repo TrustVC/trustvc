@@ -1,7 +1,7 @@
 import { PrivateKeyPair } from '@trustvc/w3c-issuer';
 import { signW3C } from '../w3c';
 import { assertCredentialStatus, assertTransferableRecords } from '@trustvc/w3c-credential-status';
-import { verifyCredentialStatus } from '@trustvc/w3c-vc';
+import { CredentialStatus, VerifiableCredential, verifyCredentialStatus } from '@trustvc/w3c-vc';
 import { ethers } from 'ethers';
 import { constants as constantsV4 } from '@tradetrust-tt/token-registry-v4';
 import { constants as constantsV5 } from '@tradetrust-tt/token-registry-v5';
@@ -41,22 +41,19 @@ export interface W3CTransferableRecordsConfig {
  * Main class responsible for building, configuring, and signing documents with credential statuses.
  */
 export class DocumentBuilder {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private document: any; // Holds the document to be built and signed.
+  private document: Partial<VerifiableCredential>; // Holds the document to be built and signed.
   private documentType: string = 'w3c'; // Default to W3C
   private selectedStatusType: 'transferableRecords' | 'verifiableDocument' | null = null; // Tracks selected status type.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private statusConfig: any = {}; // Configuration for the credential status.
+  private statusConfig: Partial<CredentialStatus> = {}; // Configuration for the credential status.
   private rpcProviderUrl: string; // Holds the RPC provider URL for verifying token registry.
   private requiredFields: string[] = ['credentialSubject']; // Required fields that must be present in the document.
 
   /**
    * Constructor to initialize the document builder.
-   * @param {any} input - The input document.
+   * @param {Partial<VerifiableCredential>} input - The input document.
    * @param {string} [documentType] - The type of the document (default is "w3c").
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  constructor(input: any, documentType?: string) {
+  constructor(input: Partial<VerifiableCredential>, documentType?: string) {
     this.validateRequiredFields(input); // Validate that required fields are present.
     this.document = this.initializeDocument(input); // Initialize the document with context and type.
     this.documentType = documentType;
@@ -128,8 +125,7 @@ export class DocumentBuilder {
   }
 
   // Private helper method to validate that the required fields are present in the input document.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private validateRequiredFields(input: any) {
+  private validateRequiredFields(input: Partial<VerifiableCredential>) {
     this.requiredFields.forEach((field) => {
       if (!input[field]) {
         throw new Error(`Validation Error: Missing required field "${field}" in the credential.`); // Throw an error if a field is missing.
@@ -138,8 +134,7 @@ export class DocumentBuilder {
   }
 
   // Private helper method to initialize the document with required context and type, adding the necessary context URL.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private initializeDocument(input: any) {
+  private initializeDocument(input: Partial<VerifiableCredential>) {
     return {
       ...input,
       '@context': this.buildContext(input['@context']),
@@ -148,8 +143,7 @@ export class DocumentBuilder {
   }
 
   // Private helper method to build the context for the document, ensuring uniqueness and adding the default W3C context.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private buildContext(context: any): string[] {
+  private buildContext(context: string | string[]): string[] {
     return [
       'https://www.w3.org/2018/credentials/v1',
       ...(Array.isArray(context) ? context : context ? [context] : []),
