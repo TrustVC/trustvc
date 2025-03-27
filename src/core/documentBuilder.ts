@@ -113,7 +113,7 @@ export class DocumentBuilder {
         throw new Error(`Credential Verification Failed: ${verificationResult.error}`);
       if (verificationResult.status)
         throw new Error('Credential Verification Failed: Invalid credential status detected.');
-    } else {
+    } else if (this.selectedStatusType === 'transferableRecords') {
       assertTransferableRecords(this.document.credentialStatus, 'sign');
       await this.verifyTokenRegistry(); // Verify that the token registry supports the required interface.
     }
