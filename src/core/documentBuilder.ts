@@ -53,7 +53,7 @@ export class DocumentBuilder {
    * @param {Partial<VerifiableCredential>} input - The input document.
    * @param {string} [documentType] - The type of the document (default is "w3c").
    */
-  constructor(input: Partial<VerifiableCredential>, documentType?: string) {
+  constructor(input: Partial<VerifiableCredential>, documentType: string = 'w3c') {
     this.validateRequiredFields(input); // Validate that required fields are present.
     this.document = this.initializeDocument(input); // Initialize the document with context and type.
     this.documentType = documentType;
