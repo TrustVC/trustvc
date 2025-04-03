@@ -635,7 +635,7 @@ builder.credentialStatus({
 });
 ```
 
-###### Set Expiration Date
+##### Set Expiration Date
 You can set an expiration date for the document.
 
 ```ts
