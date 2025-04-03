@@ -1,7 +1,12 @@
 import { PrivateKeyPair } from '@trustvc/w3c-issuer';
-import { signW3C } from '../w3c';
+import { signW3C, verifyW3CSignature } from '../w3c';
 import { assertCredentialStatus, assertTransferableRecords } from '@trustvc/w3c-credential-status';
-import { CredentialStatus, VerifiableCredential, verifyCredentialStatus } from '@trustvc/w3c-vc';
+import {
+  CredentialStatus,
+  SignedVerifiableCredential,
+  VerifiableCredential,
+  verifyCredentialStatus,
+} from '@trustvc/w3c-vc';
 import { ethers } from 'ethers';
 import { constants as constantsV4 } from '@tradetrust-tt/token-registry-v4';
 import { constants as constantsV5 } from '@tradetrust-tt/token-registry-v5';
@@ -38,6 +43,18 @@ export interface W3CTransferableRecordsConfig {
 }
 
 /**
+ * Configuration for the rendering method used in a Verifiable Credential document.
+ * @property {string} id - A unique identifier for the rendering method, typically a URL or URI.
+ * @property {string} type - The type of the renderer, which specifies the method of rendering (e.g., 'EMBEDDED_RENDERER').
+ * @property {string} templateName - The name of the template to be used for rendering, e.g., 'BILL_OF_LADING'.
+ */
+export interface RenderMethod {
+  id: string;
+  type: string;
+  templateName: string;
+}
+
+/**
  * Main class responsible for building, configuring, and signing documents with credential statuses.
  */
 export class DocumentBuilder {
@@ -47,6 +64,7 @@ export class DocumentBuilder {
   private statusConfig: Partial<CredentialStatus> = {}; // Configuration for the credential status.
   private rpcProviderUrl: string; // Holds the RPC provider URL for verifying token registry.
   private requiredFields: string[] = ['credentialSubject']; // Required fields that must be present in the document.
+  private isSigned: boolean = false; // Tracks if a document is signed
 
   /**
    * Constructor to initialize the document builder.
@@ -54,53 +72,79 @@ export class DocumentBuilder {
    * @param {string} [documentType] - The type of the document (default is "w3c").
    */
   constructor(input: Partial<VerifiableCredential>, documentType: string = 'w3c') {
-    this.validateRequiredFields(input); // Validate that required fields are present.
     this.document = this.initializeDocument(input); // Initialize the document with context and type.
     this.documentType = documentType;
   }
 
-  // Public method to configure the document for transferable records. Sets up the token network and token registry.
-  transferableRecords(config: W3CTransferableRecordsConfig) {
-    if (this.selectedStatusType) {
-      throw new Error(
-        'Configuration Error: You can only call either .transferableRecords() or .verifiableDocument(), not both.',
-      ); // Prevent both configurations from being set at the same time.
-    }
-    this.selectedStatusType = 'transferableRecords';
-    this.addContext('https://trustvc.io/context/transferable-records-context.json'); // Add transferable records context to document.
-    this.statusConfig = {
-      type: 'TransferableRecords',
-      tokenNetwork: { chain: config.chain, chainId: config.chainId },
-      tokenRegistry: config.tokenRegistry,
-    };
-    this.rpcProviderUrl = config.rpcProviderUrl;
+  // Sets the credential subject of the document.
+  credentialSubject(subject: Partial<VerifiableCredential>) {
+    if (this.isSigned) throw new Error('Configuration Error: Document is already signed.');
+    this.document.credentialSubject = subject;
     return this;
   }
 
-  // Public method to configure the document for verifiable credentials. Sets up the status list and revocation information.
-  verifiableDocument(config: W3CVerifiableDocumentConfig) {
-    if (this.selectedStatusType) {
+  // Configures the credential status of the document based on the provided type (Transferable Records or Verifiable Document).
+  credentialStatus(config: W3CTransferableRecordsConfig | W3CVerifiableDocumentConfig) {
+    if (this.isSigned) throw new Error('Configuration Error: Document is already signed.');
+    const isTransferable = this.isTransferableRecordsConfig(config);
+    const isVerifiable = this.isVerifiableDocumentConfig(config);
+
+    if (isTransferable && isVerifiable) {
       throw new Error(
-        'Configuration Error: You can only call either .transferableRecords() or .verifiableDocument(), not both.',
-      ); // Prevent both configurations from being set at the same time.
+        'Configuration Error: Do not mix transferable records and verifiable document properties.',
+      );
     }
-    this.selectedStatusType = 'verifiableDocument';
-    this.addContext('https://w3id.org/vc/status-list/2021/v1'); // Add context for verifiable document status list.
-    this.statusConfig = {
-      id: `${config.url}#${config.index}`,
-      type: 'StatusList2021Entry',
-      statusPurpose: config.purpose || 'revocation', // Set status purpose to "revocation" by default.
-      statusListIndex: config.index,
-      statusListCredential: config.url,
-    };
+
+    if (isTransferable) {
+      this.selectedStatusType = 'transferableRecords';
+      this.statusConfig = {
+        type: 'TransferableRecords',
+        tokenNetwork: { chain: config.chain, chainId: config.chainId },
+        tokenRegistry: config.tokenRegistry,
+      };
+      this.rpcProviderUrl = config.rpcProviderUrl;
+      this.addContext('https://trustvc.io/context/transferable-records-context.json'); // Add transferable records context to document.
+    } else if (isVerifiable) {
+      this.selectedStatusType = 'verifiableDocument';
+      this.statusConfig = {
+        id: `${config.url}#${config.index}`,
+        type: 'StatusList2021Entry',
+        statusPurpose: config.purpose || 'revocation', // Set status purpose to "revocation" by default.
+        statusListIndex: config.index,
+        statusListCredential: config.url,
+      };
+      this.addContext('https://w3id.org/vc/status-list/2021/v1'); // Add context for verifiable document status list.
+    } else {
+      throw new Error('Configuration Error: Missing required fields for credential status.');
+    }
+
     return this;
   }
 
-  // Public method to sign the document using the provided private key and an optional cryptographic suite.
+  // Sets the expiration date of the document.
+  expirationDate(date: string | Date) {
+    if (this.isSigned) throw new Error('Configuration Error: Document is already signed.');
+    this.document.expirationDate = typeof date === 'string' ? date : date.toISOString();
+    return this;
+  }
+
+  // Defines the rendering method for the document.
+  renderMethod(method: RenderMethod) {
+    if (this.isSigned) throw new Error('Configuration Error: Document is already signed.');
+    this.document.renderMethod = [method];
+    this.addContext('https://trustvc.io/context/render-method-context.json'); // Add render method context to document.
+    return this;
+  }
+
+  // Sign the document using the provided private key and an optional cryptographic suite.
   async sign(privateKey: PrivateKeyPair, cryptoSuite?: string) {
+    if (this.isSigned) throw new Error('Configuration Error: Document is already signed.');
+
     if (this.selectedStatusType) {
       this.document.credentialStatus = this.statusConfig;
     }
+
+    this.validateRequiredFields(this.document); // Validate that required fields are present.
 
     // Verify the document's credential status based on the selected status type.
     if (this.selectedStatusType === 'verifiableDocument') {
@@ -121,7 +165,45 @@ export class DocumentBuilder {
 
     const signedVC = await signW3C(this.document, privateKey, cryptoSuite);
     if (signedVC.error) throw new Error(`Signing Error: ${signedVC.error}`);
+    this.isSigned = true;
     return signedVC.signed;
+  }
+
+  // Verify the document.
+  async verify() {
+    if (!this.isSigned) throw new Error('Verification Error: Document is not signed yet.');
+
+    const verificationResult = await verifyW3CSignature(
+      this.document as SignedVerifiableCredential,
+    );
+    if (verificationResult.error)
+      throw new Error(`Verification Error: ${verificationResult.error}`);
+    return verificationResult.verified;
+  }
+
+  // Returns the current state of the document as a JSON string.
+  toString(): string {
+    return JSON.stringify(this.document, null, 2);
+  }
+
+  // Type guard for transferable records configuration
+  private isTransferableRecordsConfig(
+    config: Partial<CredentialStatus>,
+  ): config is W3CTransferableRecordsConfig {
+    return (
+      config &&
+      typeof config.tokenRegistry === 'string' &&
+      typeof config.chain === 'string' &&
+      typeof config.chainId === 'number' &&
+      typeof config.rpcProviderUrl === 'string'
+    );
+  }
+
+  // Type guard for verifiable document configuration
+  private isVerifiableDocumentConfig(
+    config: Partial<CredentialStatus>,
+  ): config is W3CVerifiableDocumentConfig {
+    return config && typeof config.url === 'string' && typeof config.index === 'number';
   }
 
   // Private helper method to validate that the required fields are present in the input document.
@@ -135,6 +217,7 @@ export class DocumentBuilder {
 
   // Private helper method to initialize the document with required context and type, adding the necessary context URL.
   private initializeDocument(input: Partial<VerifiableCredential>) {
+    if (input.proof) throw new Error('Configuration Error: Document is already signed.');
     return {
       ...input,
       '@context': this.buildContext(input['@context']),

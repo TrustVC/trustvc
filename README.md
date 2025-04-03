@@ -24,6 +24,7 @@ TrustVC is a comprehensive wrapper library designed to simplify the signing and 
       - [TradeTrustToken](#tradetrusttoken)
       - [a) Token Registry v4](#a-token-registry-v4)
       - [b) Token Registry V5](#b-token-registry-v5)
+    - [7. **Document Builder**](#7-document-builder)
 
 ## Installation
 
@@ -587,3 +588,99 @@ function rejectTransferOwners(bytes calldata _remark) external;
 ```
 
 For more information on Token Registry and Title Escrow contracts **version v5**, please visit the readme of [TradeTrust Token Registry V5](https://github.com/TradeTrust/token-registry/blob/master/README.md)
+
+### 7. **Document Builder**
+> The `DocumentBuilder` class helps build and manage W3C Verifiable Credentials (VCs) with credential status features. It supports creating documents with two types of credential statuses: `transferableRecords` and `verifiableDocument`. It can sign the document using a private key, verify its signature, and serialize the document to a JSON format. Additionally, it allows for configuration of document rendering methods and expiration dates.
+
+#### Usage
+
+##### Create a new DocumentBuilder instance
+To create a new document, instantiate the `DocumentBuilder` with the base document (Verifiable Credential) that you want to build.
+
+```ts
+const documentBuilder = new DocumentBuilder({
+  '@context': 'https://w3c-ccg.github.io/citizenship-vocab/contexts/citizenship-v1.jsonld'
+});
+```
+
+##### Set Credential Subject
+Set the subject of the Verifiable Credential, which typically contains information about the entity the credential is issued to.
+
+```ts
+builder.credentialSubject({
+  id: 'did:example:123',
+  name: 'John Doe',
+});
+```
+
+##### Configure Credential Status
+You can configure the credential status as either `transferableRecords` or `verifiableDocument`.
+
+**Transferable Records**
+```ts
+builder.credentialStatus({
+  chain: 'Ethereum',
+  chainId: 1,
+  tokenRegistry: '0x1234567890abcdef...',
+  rpcProviderUrl: 'https://mainnet.infura.io/v3/YOUR_INFURA_PROJECT_ID',
+});
+```
+
+**Verifiable Document**
+```ts
+builder.credentialStatus({
+  url: 'https://example.com/status-list',
+  index: 0,
+  purpose: 'revocation',
+});
+```
+
+###### Set Expiration Date
+You can set an expiration date for the document.
+
+```ts
+builder.expirationDate('2025-01-01T00:00:00Z');
+```
+
+##### Define Rendering Method
+Set the rendering method to be used for the document.
+
+```ts
+builder.renderMethod({
+  id: 'https://example.com/rendering-method',
+  type: 'EMBEDDED_RENDERER',
+  templateName: 'BILL_OF_LADING',
+});
+```
+
+##### Sign the Document
+To sign the document, provide a `PrivateKeyPair` from `@trustvc/w3c-issuer`.
+
+```ts
+const privateKey: PrivateKeyPair = {
+  id: 'did:example:456#key1',
+  controller: 'did:example:456',
+  type: VerificationType.Bls12381G2Key2020,
+  publicKeyBase58: 'your-public-key-base58',
+  privateKeyBase58: 'your-private-key-base58',
+};
+
+const signedDocument = await builder.sign(privateKey);
+console.log(signedDocument);
+```
+
+##### Verify the Document
+To verify the signature of the signed document:
+
+```ts
+const isVerified = await builder.verify();
+console.log(isVerified); // true or false
+```
+
+##### Convert Document to JSON String
+To get the current state of the document as a JSON string:
+
+```ts
+const documentJson = builder.toString();
+console.log(documentJson);
+```
