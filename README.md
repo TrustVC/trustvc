@@ -597,6 +597,8 @@ For more information on Token Registry and Title Escrow contracts **version v5**
 ##### Create a new DocumentBuilder instance
 To create a new document, instantiate the `DocumentBuilder` with the base document (Verifiable Credential) that you want to build.
 
+To learn more about defining custom contexts, check out the [Credential Subject - Custom Contexts guide](https://docs.tradetrust.io/docs/how-tos/credential-subject).
+
 ```ts
 // Adds a custom vocabulary used to define terms in the `credentialSubject`.
 // Users can define their own context if they have domain-specific fields or custom data structures.
@@ -639,9 +641,9 @@ builder.credentialStatus({
 ```ts
 builder.credentialStatus({
   url: 'https://example.com/status-list',
-  // `index: 5` refers to the bit position in the status list that will be set for revocation.
-  // Note: A document with index 5 must be marked as not revoked in the status list.
-  index: 5,
+  // `index: <placeholder>` refers to the bit position in the status list that will be set for revocation.
+  // Note: A document with the specific index must be marked as not revoked in the status list.
+  index: <placeholder>,
   purpose: 'revocation',
 });
 ```
@@ -704,10 +706,10 @@ Example Output After Signing
     }
   ],
   "credentialStatus": {
-    "id": "https://example.com/status-list#5",
+    "id": "https://example.com/status-list#<placeholder>",
     "type": "StatusList2021Entry",
     "statusPurpose": "revocation",
-    "statusListIndex": 5,
+    "statusListIndex": <placeholder>,
     "statusListCredential": "https://example.com/status-list"
   },
   "issuer": "did:example:456",
