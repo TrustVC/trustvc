@@ -598,7 +598,9 @@ For more information on Token Registry and Title Escrow contracts **version v5**
 To create a new document, instantiate the `DocumentBuilder` with the base document (Verifiable Credential) that you want to build.
 
 ```ts
-const documentBuilder = new DocumentBuilder({
+// Adds a custom vocabulary used to define terms in the `credentialSubject`.
+// Users can define their own context if they have domain-specific fields or custom data structures.
+const builder = new DocumentBuilder({
   '@context': 'https://w3c-ccg.github.io/citizenship-vocab/contexts/citizenship-v1.jsonld'
 });
 ```
@@ -619,6 +621,8 @@ You can configure the credential status as either `transferableRecords` or `veri
 **Transferable Records**
 ```ts
 builder.credentialStatus({
+  // Refers to the supported network.
+  // See: https://docs.tradetrust.io/docs/introduction/key-components-of-tradetrust/blockchain/supported-network
   chain: 'Ethereum',
   chainId: 1,
   tokenRegistry: '0x1234567890abcdef...',
@@ -626,11 +630,18 @@ builder.credentialStatus({
 });
 ```
 
+> ⚠️ **Disclaimer:**  
+> This builder **does not mint** documents on-chain. If you're using `transferableRecords`, you'll need to mint the document.  
+> [See the minting guide here](https://docs.tradetrust.io/docs/how-tos/credential-status#2-minting-the-credential)
+
+
 **Verifiable Document**
 ```ts
 builder.credentialStatus({
   url: 'https://example.com/status-list',
-  index: 0,
+  // `index: 5` refers to the bit position in the status list that will be set for revocation.
+  // Note: A document with index 5 must be marked as not revoked in the status list.
+  index: 5,
   purpose: 'revocation',
 });
 ```
@@ -639,7 +650,7 @@ builder.credentialStatus({
 You can set an expiration date for the document.
 
 ```ts
-builder.expirationDate('2025-01-01T00:00:00Z');
+builder.expirationDate('2026-01-01T00:00:00Z');
 ```
 
 ##### Define Rendering Method
@@ -654,7 +665,7 @@ builder.renderMethod({
 ```
 
 ##### Sign the Document
-To sign the document, provide a `PrivateKeyPair` from `@trustvc/w3c-issuer`.
+To sign the document, provide a `PrivateKeyPair` from `@trustvc/trustvc`.
 
 ```ts
 const privateKey: PrivateKeyPair = {
@@ -667,6 +678,49 @@ const privateKey: PrivateKeyPair = {
 
 const signedDocument = await builder.sign(privateKey);
 console.log(signedDocument);
+```
+
+Example Output After Signing
+```json
+{
+  "@context": [
+    "https://www.w3.org/2018/credentials/v1",
+    "https://w3c-ccg.github.io/citizenship-vocab/contexts/citizenship-v1.jsonld",
+    "https://w3id.org/vc/status-list/2021/v1",
+    "https://trustvc.io/context/render-method-context.json",
+    "https://w3id.org/security/bbs/v1"
+  ],
+  "type": ["VerifiableCredential"],
+  "credentialSubject": {
+    "id": "did:example:123",
+    "name": "John Doe"
+  },
+  "expirationDate": "2026-01-01T00:00:00Z",
+  "renderMethod": [
+    {
+      "id": "https://example.com/rendering-method",
+      "type": "EMBEDDED_RENDERER",
+      "templateName": "BILL_OF_LADING"
+    }
+  ],
+  "credentialStatus": {
+    "id": "https://example.com/status-list#5",
+    "type": "StatusList2021Entry",
+    "statusPurpose": "revocation",
+    "statusListIndex": 5,
+    "statusListCredential": "https://example.com/status-list"
+  },
+  "issuer": "did:example:456",
+  "issuanceDate": "2025-01-01T00:00:00Z",
+  "id": "urn:bnid:_:0195fec2-4ae1-7cca-9182-03fd7da5142b",
+  "proof": {
+    "type": "BbsBlsSignature2020",
+    "created": "2025-01-01T00:00:01Z",
+    "proofPurpose": "assertionMethod",
+    "proofValue": "rV56L+QYozATRy3GOVLomzUo99sXtw2x0Cy9dEkHJ15wi4cS12cQJRIwzONVi3YscdhaSKoqD1jWmwb5A/khLZnDq5eo3QzDgTVClYuV86opL3HJyoS4+t2rRt3wl+chnATy2jqr5zMEvcVJ3gdXpQ==",
+    "verificationMethod": "did:example:456#key1"
+  }
+}
 ```
 
 ##### Verify the Document
