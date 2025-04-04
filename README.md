@@ -709,7 +709,7 @@ Example Output After Signing
     "id": "https://example.com/status-list#<placeholder>",
     "type": "StatusList2021Entry",
     "statusPurpose": "revocation",
-    "statusListIndex": <placeholder>,
+    "statusListIndex": "<placeholder>",
     "statusListCredential": "https://example.com/status-list"
   },
   "issuer": "did:example:456",
