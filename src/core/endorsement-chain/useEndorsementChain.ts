@@ -20,10 +20,15 @@ export const TitleEscrowInterface = {
 };
 
 // Helper to fetch Title Escrow Factory Address
-const fetchTitleEscrowFactoryAddress = async (
-  tokenRegistry: ethers.Contract | ethersV6.Contract,
+const getTitleEscrowFactoryAddress = async (
+  tokenRegistryAddress: string,
+  provider: Provider | ethersV6.Provider,
 ): Promise<string> => {
-  return tokenRegistry.titleEscrowFactory();
+  const Contract = getEthersContractFromProvider(provider);
+  const tokenRegistryAbi = ['function titleEscrowFactory() external view returns (address)'];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tokenRegistry = new Contract(tokenRegistryAddress, tokenRegistryAbi, provider as any);
+  return await tokenRegistry.titleEscrowFactory();
 };
 
 // Interact with contract using calldata
@@ -104,16 +109,7 @@ export const getTitleEscrowAddress = async (
     titleEscrowVersion?: 'v4' | 'v5';
   },
 ): Promise<string> => {
-  const Contract = getEthersContractFromProvider(provider);
-
-  const tokenRegistryAbi = [
-    'function titleEscrowFactory() external view returns (address)',
-    'function ownerOf(uint256 tokenId) view returns (address)',
-  ];
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const tokenRegistry = new Contract(tokenRegistryAddress, tokenRegistryAbi, provider as any);
-  const titleEscrowOwner = await tokenRegistry.ownerOf(tokenId);
+  const titleEscrowOwner = await getDocumentOwner(tokenRegistryAddress, tokenId, provider);
 
   const BURN_ADDRESS = '0x000000000000000000000000000000000000dEaD';
   const isInactiveEscrow = [BURN_ADDRESS, tokenRegistryAddress]
@@ -122,7 +118,10 @@ export const getTitleEscrowAddress = async (
 
   if (!isInactiveEscrow) return titleEscrowOwner;
 
-  const titleEscrowFactoryAddress = await fetchTitleEscrowFactoryAddress(tokenRegistry);
+  const titleEscrowFactoryAddress = await getTitleEscrowFactoryAddress(
+    tokenRegistryAddress,
+    provider,
+  );
 
   return resolveTitleEscrowAddress(
     provider,
@@ -131,6 +130,18 @@ export const getTitleEscrowAddress = async (
     tokenId,
     options,
   );
+};
+
+export const getDocumentOwner = async (
+  tokenRegistryAddress: string,
+  tokenId: string,
+  provider: Provider | ethersV6.Provider,
+): Promise<string> => {
+  const Contract = getEthersContractFromProvider(provider);
+  const tokenRegistryAbi = ['function ownerOf(uint256 tokenId) view returns (address)'];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tokenRegistry = new Contract(tokenRegistryAddress, tokenRegistryAbi, provider as any);
+  return await tokenRegistry.ownerOf(tokenId);
 };
 
 // Check Title Escrow Interface Support
