@@ -52,8 +52,20 @@ const resolveTitleEscrowAddress = async (
   titleEscrowFactoryAddress: string,
   tokenRegistryAddress: string,
   tokenId: string,
+  options?: {
+    titleEscrowVersion?: 'v4' | 'v5';
+  },
 ): Promise<string> => {
   try {
+    if (options?.titleEscrowVersion === 'v4') {
+      return await calldata(
+        provider,
+        'getAddress(address,uint256)',
+        titleEscrowFactoryAddress,
+        ['address', 'uint256'],
+        [tokenRegistryAddress, tokenId],
+      );
+    }
     return await calldata(
       provider,
       'getEscrowAddress(address,uint256)',
@@ -62,6 +74,16 @@ const resolveTitleEscrowAddress = async (
       [tokenRegistryAddress, tokenId],
     );
   } catch {
+    if (options?.titleEscrowVersion === 'v4') {
+      // If 'v4' option fails, try searching with 'v5' function getEscrowAddress
+      return await calldata(
+        provider,
+        'getEscrowAddress(address,uint256)',
+        titleEscrowFactoryAddress,
+        ['address', 'uint256'],
+        [tokenRegistryAddress, tokenId],
+      );
+    }
     // Have to query getAddress using calldata as getAddress is a internal function in ethers v6.
     // getAddress in ethers v6, return TitleEscrowFactoryAddress instead of TitleEscrowAddress
     return await calldata(
@@ -78,6 +100,9 @@ export const getTitleEscrowAddress = async (
   tokenRegistryAddress: string,
   tokenId: string,
   provider: Provider | ethersV6.Provider,
+  options?: {
+    titleEscrowVersion?: 'v4' | 'v5';
+  },
 ): Promise<string> => {
   const Contract = getEthersContractFromProvider(provider);
 
@@ -104,6 +129,7 @@ export const getTitleEscrowAddress = async (
     titleEscrowFactoryAddress,
     tokenRegistryAddress,
     tokenId,
+    options,
   );
 };
 
