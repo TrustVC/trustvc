@@ -1,5 +1,4 @@
-import { beforeEach } from 'node:test';
-import { describe, it, vi } from 'vitest';
+import { beforeEach, describe, it, vi } from 'vitest';
 import { verifyDocument } from '../..';
 import * as transferableRecordsUtils from '../../verify/fragments/document-status/transferableRecords/utils';
 import {
