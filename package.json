@@ -110,19 +110,19 @@
     }
   },
   "dependencies": {
-    "@tradetrust-tt/dnsprove": "^2.16.0",
+    "@tradetrust-tt/dnsprove": "^2.17.0",
     "@tradetrust-tt/token-registry-v4": "npm:@tradetrust-tt/token-registry@^4.15.2",
-    "@tradetrust-tt/token-registry-v5": "npm:@tradetrust-tt/token-registry@^5.1.4",
+    "@tradetrust-tt/token-registry-v5": "npm:@tradetrust-tt/token-registry@^5.2.0",
     "@tradetrust-tt/tradetrust": "^6.10.1",
     "@tradetrust-tt/tradetrust-utils": "^2.2.1",
-    "@tradetrust-tt/tt-verify": "^9.3.1",
-    "@trustvc/w3c-context": "^1.2.2",
-    "@trustvc/w3c-credential-status": "^1.2.2",
+    "@tradetrust-tt/tt-verify": "^9.3.3",
+    "@trustvc/w3c-context": "^1.2.3",
+    "@trustvc/w3c-credential-status": "^1.2.3",
     "@trustvc/w3c-issuer": "^1.2.1",
-    "@trustvc/w3c-vc": "^1.2.4",
+    "@trustvc/w3c-vc": "^1.2.7",
     "did-resolver": "^4.1.0",
-    "ethers": "^5.7.2",
-    "ethersV6": "npm:ethers@^6.13.5",
+    "ethers": "^5.8.0",
+    "ethersV6": "npm:ethers@^6.13.6",
     "js-sha3": "^0.9.3",
     "ts-chacha20": "^1.2.0",
     "web-did-resolver": "^2.0.27"
@@ -162,10 +162,10 @@
     "vitest": "^1.6.0"
   },
   "overrides": {
-    "ethers": "^5.7.2"
+    "ethers": "^5.8.0"
   },
   "peerDependencies": {
-    "ethers": "^5.7.2"
+    "ethers": "^5.8.0"
   },
   "optionalDependencies": {
     "@rollup/rollup-linux-x64-gnu": "~4.28.0"

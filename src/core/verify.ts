@@ -1,5 +1,5 @@
 import { utils } from '@tradetrust-tt/tradetrust';
-import { SignedVerifiableCredential } from '@trustvc/w3c-vc';
+import { DocumentLoader, SignedVerifiableCredential } from '@trustvc/w3c-vc';
 import { ethers } from 'ethers';
 import {
   DocumentsToVerify,
@@ -8,6 +8,26 @@ import {
   VerificationFragment,
   w3cVerifiers,
 } from '../verify';
+
+type VerificationBuilderOptions = {
+  rpcProviderUrl?: string;
+  documentLoader?: DocumentLoader;
+};
+
+interface VerifyDocumentParams {
+  /**
+   * @deprecated
+   * Use { rpcProviderUrl?: string, documentLoader?: DocumentLoader } object instead
+   */
+  (
+    document: DocumentsToVerify | SignedVerifiableCredential,
+    options: string,
+  ): Promise<VerificationFragment[]>;
+  (
+    document: DocumentsToVerify | SignedVerifiableCredential,
+    options?: VerificationBuilderOptions,
+  ): Promise<VerificationFragment[]>;
+}
 
 /**
  * Asynchronously verifies a document (OpenAttestation or W3C Verifiable Credential) using a specified Ethereum-compatible JSON-RPC provider.
@@ -19,19 +39,25 @@ import {
  * The function takes an Ethereum-compatible JSON-RPC provider URL, which allows the user to specify the network
  * (e.g., Ethereum, Polygon) for DID resolution and verification tasks.
  * @param {DocumentsToVerify | SignedVerifiableCredential} document - The document to be verified, either an OpenAttestation document or a W3C Verifiable Credential.
- * @param {string} rpcProviderUrl - The Ethereum-compatible JSON-RPC provider URL (e.g., Infura, Alchemy, Polygon, etc.) to resolve DIDs and verify credentials.
+ * @param {VerificationBuilderOptions} options - The options object containing the provider URL and document loader.
+ * @param {string} options.rpcProviderUrl - The Ethereum-compatible JSON-RPC provider URL (e.g., Infura, Alchemy, Polygon, etc.) to resolve DIDs and verify credentials.
+ * @param {DocumentLoader} options.documentLoader - The document loader to be used for loading JSON-LD contexts.
  * @returns {Promise<VerificationFragment[]>} - A promise that resolves to an array of verification fragments,
  *                                              detailing the results of various verification checks such as
  *                                              signature integrity, credential status, issuer identity, etc.
  */
-export const verifyDocument = async (
+export const verifyDocument: VerifyDocumentParams = (
   document: DocumentsToVerify | SignedVerifiableCredential,
-  rpcProviderUrl: string, // Ethereum-compatible provider URL as a parameter
-): Promise<VerificationFragment[]> => {
+  options?: string | VerificationBuilderOptions,
+) => {
+  if (typeof options === 'string') {
+    options = { rpcProviderUrl: options } as VerificationBuilderOptions;
+  }
+
   if (utils.isWrappedV2Document(document) || utils.isWrappedV3Document(document)) {
     // Build the verification process using OpenAttestation verifiers and DID identity proof
     const verify = verificationBuilder(openAttestationVerifiers, {
-      provider: new ethers.providers.JsonRpcProvider(rpcProviderUrl), // Use user-provided provider URL
+      provider: new ethers.providers.JsonRpcProvider(options?.rpcProviderUrl), // Use user-provided provider URL
     });
 
     // Perform verification and return the result
@@ -39,7 +65,8 @@ export const verifyDocument = async (
   } else {
     // Build the verification process using w3c fragments
     const verify = verificationBuilder(w3cVerifiers, {
-      provider: new ethers.providers.JsonRpcProvider(rpcProviderUrl), // Use user-provided provider URL
+      provider: new ethers.providers.JsonRpcProvider(options?.rpcProviderUrl), // Use user-provided provider URL
+      documentLoader: options?.documentLoader,
     });
 
     // Perform verification and return the result

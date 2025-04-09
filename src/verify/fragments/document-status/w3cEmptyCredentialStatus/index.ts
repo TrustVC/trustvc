@@ -1,4 +1,4 @@
-import { VerificationFragment, Verifier } from '@tradetrust-tt/tt-verify';
+import { VerificationFragment, Verifier, VerifierOptions } from '@tradetrust-tt/tt-verify';
 import { SignedVerifiableCredential } from '@trustvc/w3c-vc';
 import { verifyW3CSignature } from '../../../../w3c';
 
@@ -28,9 +28,9 @@ export const w3cEmptyCredentialStatus: Verifier<VerificationFragment> = {
     );
   },
 
-  verify: async (document: unknown) => {
+  verify: async (document: unknown, verifierOptions: VerifierOptions) => {
     const doc = document as SignedVerifiableCredential;
-    const verificationResult = await verifyW3CSignature(doc);
+    const verificationResult = await verifyW3CSignature(doc, verifierOptions);
     if (verificationResult.verified) {
       return {
         type,

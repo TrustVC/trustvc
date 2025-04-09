@@ -1,4 +1,4 @@
-import { VerificationFragment, Verifier } from '@tradetrust-tt/tt-verify';
+import { VerificationFragment, Verifier, VerifierOptions } from '@tradetrust-tt/tt-verify';
 import { SignedVerifiableCredential, verifyW3CSignature } from '../../..';
 
 export const w3cSignatureIntegrity: Verifier<VerificationFragment> = {
@@ -20,9 +20,9 @@ export const w3cSignatureIntegrity: Verifier<VerificationFragment> = {
     return doc.proof?.type === 'BbsBlsSignature2020';
   },
 
-  verify: async (document: unknown) => {
+  verify: async (document: unknown, verifierOptions: VerifierOptions) => {
     const doc = document as SignedVerifiableCredential;
-    const verificationResult = await verifyW3CSignature(doc);
+    const verificationResult = await verifyW3CSignature(doc, verifierOptions);
     if (verificationResult.verified) {
       return {
         type: 'DOCUMENT_INTEGRITY',

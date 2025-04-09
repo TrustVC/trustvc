@@ -1,4 +1,4 @@
-import { VerificationFragment, Verifier } from '@tradetrust-tt/tt-verify';
+import { VerificationFragment, Verifier, VerifierOptions } from '@tradetrust-tt/tt-verify';
 import {
   BitstringStatusListCredentialStatus,
   CredentialStatusType,
@@ -36,14 +36,16 @@ export const w3cCredentialStatus: Verifier<VerificationFragment> = {
     }
   },
 
-  verify: async (document: unknown) => {
+  verify: async (document: unknown, verifierOptions: VerifierOptions) => {
     const doc = document as SignedVerifiableCredential;
     const credentialStatuses = (
       Array.isArray(doc.credentialStatus) ? doc.credentialStatus : [doc.credentialStatus]
     ) as BitstringStatusListCredentialStatus[];
 
     const verificationResult = await Promise.all(
-      credentialStatuses.map((cs) => verifyCredentialStatus(cs, cs?.type as CredentialStatusType)),
+      credentialStatuses.map((cs) =>
+        verifyCredentialStatus(cs, cs?.type as CredentialStatusType, verifierOptions),
+      ),
     );
 
     if (verificationResult.some((r) => r.error)) {
