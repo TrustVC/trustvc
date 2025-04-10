@@ -4,7 +4,7 @@ import { SignedVerifiableCredential } from '../../..';
 
 const checkDidWebResolve = async (
   did: string,
-  documentLoader: DocumentLoader,
+  documentLoader?: DocumentLoader,
 ): Promise<boolean> => {
   try {
     if (documentLoader) {
@@ -61,7 +61,7 @@ export const w3cIssuerIdentity: Verifier<VerificationFragment> = {
         status: 'INVALID',
       };
     }
-    const resolutionResult = await checkDidWebResolve(doc.issuer, verifierOptions.documentLoader);
+    const resolutionResult = await checkDidWebResolve(doc.issuer, verifierOptions?.documentLoader);
 
     if (resolutionResult) {
       return {
