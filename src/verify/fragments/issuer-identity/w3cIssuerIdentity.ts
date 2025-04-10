@@ -1,8 +1,16 @@
-import { VerificationFragment, Verifier } from '@tradetrust-tt/tt-verify';
+import { VerificationFragment, Verifier, VerifierOptions } from '@tradetrust-tt/tt-verify';
+import { DocumentLoader } from '@trustvc/w3c-context';
 import { SignedVerifiableCredential } from '../../..';
 
-const checkDidWebResolve = async (did: string): Promise<boolean> => {
+const checkDidWebResolve = async (
+  did: string,
+  documentLoader: DocumentLoader,
+): Promise<boolean> => {
   try {
+    if (documentLoader) {
+      return !!(await documentLoader(did)).document;
+    }
+
     const { Resolver } = await import('did-resolver');
     const { getResolver: getWebDidResolver } = await import('web-did-resolver');
     const resolver = new Resolver({
@@ -40,7 +48,7 @@ export const w3cIssuerIdentity: Verifier<VerificationFragment> = {
     return Boolean(doc.issuer);
   },
 
-  verify: async (document: unknown) => {
+  verify: async (document: unknown, verifierOptions: VerifierOptions) => {
     const doc = document as SignedVerifiableCredential;
     if (doc.proof?.verificationMethod?.split('#')[0] !== doc.issuer) {
       return {
@@ -53,7 +61,7 @@ export const w3cIssuerIdentity: Verifier<VerificationFragment> = {
         status: 'INVALID',
       };
     }
-    const resolutionResult = await checkDidWebResolve(doc.issuer);
+    const resolutionResult = await checkDidWebResolve(doc.issuer, verifierOptions.documentLoader);
 
     if (resolutionResult) {
       return {

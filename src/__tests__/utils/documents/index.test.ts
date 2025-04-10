@@ -138,5 +138,10 @@ describe.concurrent('documents', () => {
       const chainId = getChainId(WRAPPED_DOCUMENT_DNS_DID_V3);
       expect(chainId).toBe(undefined);
     });
+
+    it('getChainId - Empty Document', async () => {
+      const chainId = getChainId({} as any);
+      expect(chainId).toBe(undefined);
+    });
   });
 });
