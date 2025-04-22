@@ -162,7 +162,7 @@ describe('DocumentBuilder', () => {
       await expect(documentBuilder.sign(testPrivateKey)).rejects.toThrow(
         'Network Error: Unable to verify token registry. Please check the RPC URL or token registry address.',
       );
-    });
+    }, 45_000);
 
     it('should throw an error when signing a document with a revoked credential status', async () => {
       documentBuilder.credentialStatus({
