@@ -68,8 +68,13 @@ export const mergeTransfersV5 = (transferEvents: TransferBaseEvent[]): TransferB
     if (groupedEvents.length === 1) return groupedEvents;
     if (groupedEvents.length > 1) {
       const { owner, holder } = getHolderOwner(groupedEvents);
-      const base = groupedEvents[0];
       const type = identifyEventTypeFromLogs(groupedEvents);
+      /**
+       * Find the first event of the type.
+       * for type INITIAL, the remark is only available in the INITIAL event, TRANSFER_HOLDER and TRANSFER_BENEFICIARY does not contain remark, hence we need to return INITIAL event as base.
+       * for type TRANSFER_OWNERS, it does not exist, both TRANSFER_HOLDER and TRANSFER_BENEFICIARY will have same details, hence default to return first event
+       */
+      const base = groupedEvents.find((event) => event.type === type) ?? groupedEvents[0];
       return [{ ...base, owner, holder, type }];
     }
 
