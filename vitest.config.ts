@@ -16,7 +16,7 @@ export default defineConfig({
   cacheDir: 'node_modules/.vitest',
   test: {
     include: ['**/*.test.{ts,js}'],
-    retry: 3,
+    retry: process.env.CI ? 3 : 0,
     // setupFiles: ['dotenv/config'], //this line
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     env: process.env as any,
