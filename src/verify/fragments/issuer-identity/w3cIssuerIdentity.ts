@@ -1,5 +1,6 @@
 import { VerificationFragment, Verifier, VerifierOptions } from '@tradetrust-tt/tt-verify';
 import { DocumentLoader } from '@trustvc/w3c-context';
+import { queryDidDocument } from '@trustvc/w3c-issuer';
 import { SignedVerifiableCredential } from '../../..';
 
 const checkDidWebResolve = async (
@@ -11,15 +12,9 @@ const checkDidWebResolve = async (
       return !!(await documentLoader(did)).document;
     }
 
-    const { Resolver } = await import('did-resolver');
-    const { getResolver: getWebDidResolver } = await import('web-did-resolver');
-    const resolver = new Resolver({
-      ...getWebDidResolver(),
-    });
+    const { wellKnownDid } = await queryDidDocument({ did });
 
-    const didDocument = await resolver.resolve(did);
-
-    if (!didDocument || !didDocument.didDocument) {
+    if (!wellKnownDid) {
       throw new Error(`Failed to resolve DID: ${did}`);
     }
 
