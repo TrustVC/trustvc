@@ -214,4 +214,19 @@ describe('DocumentBuilder', () => {
       expect(documentBuilder['document'].renderMethod).toEqual([method]);
     });
   });
+
+  describe('qrCode', () => {
+    it('should set the qrcode method', async () => {
+      const method = {
+        uri: 'https://localhost:3000/qrcode',
+        type: 'TrustVCQRCode',
+      };
+
+      documentBuilder.qrCode({
+        uri: 'https://localhost:3000/qrcode',
+        type: 'TrustVCQRCode',
+      });
+      expect(documentBuilder['document'].qrCode).toEqual(method);
+    });
+  });
 });

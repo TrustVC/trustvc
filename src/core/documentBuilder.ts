@@ -55,6 +55,16 @@ export interface RenderMethod {
 }
 
 /**
+ * Configuration for the qrcoode used in a Verifiable Credential document.
+ * @property {string} uri - A unique identifier for the qrcode, typically a URL or URI.
+ * @property {string} type - The type of the qrcode method (e.g., 'TrustVCQRCode').
+ */
+export interface qrCode {
+  uri: string;
+  type: string;
+}
+
+/**
  * Main class responsible for building, configuring, and signing documents with credential statuses.
  */
 export class DocumentBuilder {
@@ -133,6 +143,14 @@ export class DocumentBuilder {
     if (this.isSigned) throw new Error('Configuration Error: Document is already signed.');
     this.document.renderMethod = [method];
     this.addContext('https://trustvc.io/context/render-method-context.json'); // Add render method context to document.
+    return this;
+  }
+
+  // Defines the qrcode for the document.
+  qrCode(method: qrCode) {
+    if (this.isSigned) throw new Error('Configuration Error: Document is already signed.');
+    this.document.qrCode = method;
+    this.addContext('https://trustvc.io/context/qrcode-context.json'); // Add qrcode context to document.
     return this;
   }
 

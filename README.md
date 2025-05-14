@@ -666,6 +666,16 @@ builder.renderMethod({
 });
 ```
 
+##### Define QR Code Method
+Set the qrcode method to be used for the document.
+
+```ts
+builder.qrCode({
+  uri: 'https://example.com/qrcode',
+  type: 'TrustVCQRCode',
+});
+```
+
 ##### Sign the Document
 To sign the document, provide a `PrivateKeyPair` from `@trustvc/trustvc`.
 
@@ -690,6 +700,7 @@ Example Output After Signing
     "https://w3c-ccg.github.io/citizenship-vocab/contexts/citizenship-v1.jsonld",
     "https://w3id.org/vc/status-list/2021/v1",
     "https://trustvc.io/context/render-method-context.json",
+    "https://trustvc.io/context/qrcode-context.json",
     "https://w3id.org/security/bbs/v1"
   ],
   "type": ["VerifiableCredential"],
@@ -705,6 +716,10 @@ Example Output After Signing
       "templateName": "BILL_OF_LADING"
     }
   ],
+  "qrCode": {
+      "uri": "https://example.com/qrcode",
+      "type": "TrustVCQRCode"
+  },
   "credentialStatus": {
     "id": "https://example.com/status-list#<placeholder>",
     "type": "StatusList2021Entry",
