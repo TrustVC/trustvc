@@ -8,7 +8,7 @@ const providerV6 = ethersV6.JsonRpcProvider;
 
 const testCases = [
   {
-    rpcUrl: 'https://polygon-amoy.drpc.org',
+    rpcUrl: 'https://rpc-amoy.polygon.technology',
     description: 'Token Registry V4 with Transfer, Surrender, Burnt events - Amoy',
     tokenRegistryAddress: '0x71D28767662cB233F887aD2Bb65d048d760bA694',
     tokenId: '0x780e38c6345dac12cedb7aacc69492ff31cc5236cd60da46261aa1c27691141e',
@@ -134,10 +134,10 @@ const testCases = [
         timestamp: 1713958422000,
       },
     ],
-    timeout: 60_000,
+    timeout: 180_000,
   },
   {
-    rpcUrl: 'https://polygon-amoy.drpc.org',
+    rpcUrl: 'https://rpc-amoy.polygon.technology',
     description: 'Token Registry V5 with Transfer, Surrender, Burnt events - Amoy',
     tokenRegistryAddress: '0x3781bd0bbd15Bf5e45c7296115821933d47362be',
     tokenId: '0xe3fa2bbdbfd093d2bb4e1555dde01338af25d5cf1d6d87bd0f22d7302f133f9a',
@@ -273,10 +273,10 @@ const testCases = [
         type: 'RETURN_TO_ISSUER_ACCEPTED',
       },
     ],
-    timeout: 60_000,
+    timeout: 180_000,
   },
   {
-    rpcUrl: 'https://polygon-amoy.drpc.org',
+    rpcUrl: 'https://rpc-amoy.polygon.technology',
     description: 'Token Registry V5 with Transfer, Surrender, Burnt events - Amoy',
     tokenRegistryAddress: '0x3781bd0bbd15Bf5e45c7296115821933d47362be',
     tokenId: '0xe3fa2bbdbfd093d2bb4e1555dde01338af25d5cf1d6d87bd0f22d7302f133f9c',
@@ -292,7 +292,7 @@ const testCases = [
         remark: 'Issuance',
       },
     ],
-    timeout: 60_000,
+    timeout: 180_000,
   },
   {
     rpcUrl: `https://sepolia.infura.io/v3/${process.env.INFURA_API_KEY}`,
@@ -311,7 +311,7 @@ const testCases = [
         type: 'INITIAL',
       },
     ],
-    timeout: 60_000,
+    timeout: 180_000,
   },
   {
     rpcUrl: `https://sepolia.infura.io/v3/${process.env.INFURA_API_KEY}`,
@@ -370,7 +370,7 @@ const testCases = [
         type: 'REJECT_TRANSFER_BENEFICIARY',
       },
     ],
-    timeout: 60_000,
+    timeout: 180_000,
   },
   {
     rpcUrl: `https://rpc.stabilityprotocol.com/zgt/${process.env.STABILITY_API_KEY}`,
@@ -389,7 +389,7 @@ const testCases = [
         type: 'INITIAL',
       },
     ],
-    timeout: 60_000,
+    timeout: 180_000,
   },
   {
     rpcUrl: `https://rpc.testnet.stabilityprotocol.com/zgt/${process.env.STABILITY_API_KEY}`,
@@ -408,7 +408,7 @@ const testCases = [
         type: 'INITIAL',
       },
     ],
-    timeout: 60_000,
+    timeout: 180_000,
   },
   {
     rpcUrl: `https://rpc.testnet.stabilityprotocol.com/zgt/${process.env.STABILITY_API_KEY}`,
@@ -427,7 +427,7 @@ const testCases = [
         type: 'INITIAL',
       },
     ],
-    timeout: 60_000,
+    timeout: 180_000,
   },
   {
     rpcUrl: `https://astronlayer2.bitfactory.cn/rpc/`,
@@ -446,7 +446,7 @@ const testCases = [
         type: 'INITIAL',
       },
     ],
-    timeout: 60_000,
+    timeout: 180_000,
   },
   {
     rpcUrl: `https://dev-astronlayer2.bitfactory.cn/query/`,
@@ -535,7 +535,7 @@ const testCases = [
         type: 'RETURN_TO_ISSUER_ACCEPTED',
       },
     ],
-    timeout: 60_000,
+    timeout: 180_000,
   },
   {
     rpcUrl: `https://rpc.ankr.com/xdc/${process.env.ANKR_API_KEY}`,
@@ -554,7 +554,7 @@ const testCases = [
         type: 'INITIAL',
       },
     ],
-    timeout: 60_000,
+    timeout: 180_000,
   },
   {
     rpcUrl: `https://rpc.ankr.com/xdc_testnet/${process.env.ANKR_API_KEY}`,
@@ -633,7 +633,7 @@ const testCases = [
         type: 'SURRENDER_REJECTED',
       },
     ],
-    timeout: 60_000,
+    timeout: 180_000,
   },
   {
     rpcUrl: `https://rpc.ankr.com/xdc_testnet/${process.env.ANKR_API_KEY}`,
@@ -662,7 +662,7 @@ const testCases = [
         type: 'TRANSFER_HOLDER',
       },
     ],
-    timeout: 60_000,
+    timeout: 180_000,
   },
   {
     rpcUrl: `https://polygon-mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
@@ -721,7 +721,7 @@ const testCases = [
         type: 'SURRENDER_REJECTED',
       },
     ],
-    timeout: 60_000,
+    timeout: 180_000,
   },
   {
     rpcUrl: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
@@ -740,15 +740,15 @@ const testCases = [
         type: 'INITIAL',
       },
     ],
-    timeout: 60_000,
+    timeout: 180_000,
   },
   {
-    rpcUrl: 'https://polygon-amoy.drpc.org',
+    rpcUrl: 'https://rpc-amoy.polygon.technology',
     description: 'Invalid Token Registry Version - Amoy',
     tokenRegistryAddress: '0x96cc41e7007dee20eb409586e2e8206d5053219b',
     tokenId: '0xd97a8af5c38157b95c558b7801862f4b53171149926d76d0c5b2b279016eed0a',
     expectedError: 'Only Token Registry V4/V5 is supported',
-    timeout: 60_000,
+    timeout: 180_000,
   },
 ];
 
