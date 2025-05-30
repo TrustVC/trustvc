@@ -10,6 +10,7 @@ import {
 
 const {
   isTransferableAsset,
+  isDocumentRevokable,
   getAssetId,
   isWrappedV2Document,
   isSignedWrappedV2Document,
@@ -46,6 +47,7 @@ export {
   isSignedWrappedV2Document,
   isSignedWrappedV3Document,
   isTransferableAsset,
+  isDocumentRevokable,
   isWrappedV2Document,
   isWrappedV3Document,
 };
