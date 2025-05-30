@@ -14,7 +14,7 @@ const providerUrl = 'https://rpc-amoy.polygon.technology';
 describe.concurrent('W3C verify', () => {
   describe.concurrent('W3C_VERIFIABLE_DOCUMENT', () => {
     it('should verify the document and return all valid fragments', async ({ expect }) => {
-      expect(await verifyDocument(W3C_VERIFIABLE_DOCUMENT, '')).toMatchInlineSnapshot(`
+      expect(await verifyDocument(W3C_VERIFIABLE_DOCUMENT)).toMatchInlineSnapshot(`
         [
           {
             "data": true,
@@ -67,7 +67,7 @@ describe.concurrent('W3C verify', () => {
       expect,
     }) => {
       const tampered: any = { ...W3C_VERIFIABLE_DOCUMENT, expirationDate: '2029-12-03T12:19:53Z' };
-      expect(await verifyDocument(tampered, '')).toEqual(
+      expect(await verifyDocument(tampered)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             data: false,
@@ -93,7 +93,7 @@ describe.concurrent('W3C verify', () => {
         },
       };
 
-      expect(await verifyDocument(tampered, '')).toEqual(
+      expect(await verifyDocument(tampered)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             name: 'W3CSignatureIntegrity',
@@ -115,7 +115,7 @@ describe.concurrent('W3C verify', () => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { issuer, ...documentWithoutIssuer } = W3C_VERIFIABLE_DOCUMENT;
 
-      expect(await verifyDocument(documentWithoutIssuer as any, '')).toEqual(
+      expect(await verifyDocument(documentWithoutIssuer as any)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             name: 'W3CIssuerIdentity',
@@ -143,7 +143,7 @@ describe.concurrent('W3C verify', () => {
         },
       };
 
-      expect(await verifyDocument(tampered, '')).toEqual(
+      expect(await verifyDocument(tampered)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             data: false,
@@ -162,7 +162,7 @@ describe.concurrent('W3C verify', () => {
       expect,
     }) => {
       const tampered: any = { ...W3C_VERIFIABLE_DOCUMENT, issuer: 'did:example:abc' };
-      expect(await verifyDocument(tampered, '')).toEqual(
+      expect(await verifyDocument(tampered)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             data: false,
@@ -183,7 +183,7 @@ describe.concurrent('W3C verify', () => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { credentialStatus, ...documentWithoutCredentialStatus } = W3C_VERIFIABLE_DOCUMENT;
 
-      expect(await verifyDocument(documentWithoutCredentialStatus as any, '')).toEqual(
+      expect(await verifyDocument(documentWithoutCredentialStatus as any)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             name: 'W3CCredentialStatus',
@@ -210,7 +210,7 @@ describe.concurrent('W3C verify', () => {
         },
       };
 
-      expect(await verifyDocument(tampered, '')).toEqual(
+      expect(await verifyDocument(tampered)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             data: expect.arrayContaining([
@@ -238,7 +238,7 @@ describe.concurrent('W3C verify', () => {
         },
       };
 
-      expect(await verifyDocument(tampered, '')).toEqual(
+      expect(await verifyDocument(tampered)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             name: 'W3CCredentialStatus',
@@ -263,8 +263,9 @@ describe.concurrent('W3C verify', () => {
       'should return VALID status for TransferableRecords',
       { timeout: 300000 },
       async ({ expect }) => {
-        expect(await verifyDocument(W3C_TRANSFERABLE_RECORD as any, providerUrl))
-          .toMatchInlineSnapshot(`
+        expect(
+          await verifyDocument(W3C_TRANSFERABLE_RECORD as any, { rpcProviderUrl: providerUrl }),
+        ).toMatchInlineSnapshot(`
             [
               {
                 "data": true,
@@ -322,7 +323,7 @@ describe.concurrent('W3C verify', () => {
             tokenRegistry: '',
           },
         };
-        expect(await verifyDocument(tampered, providerUrl)).toEqual(
+        expect(await verifyDocument(tampered, { rpcProviderUrl: providerUrl })).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
               name: 'TransferableRecords',
@@ -352,7 +353,7 @@ describe.concurrent('W3C verify', () => {
           },
         },
       };
-      expect(await verifyDocument(tampered, providerUrl)).toEqual(
+      expect(await verifyDocument(tampered, { rpcProviderUrl: providerUrl })).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             name: 'TransferableRecords',
@@ -378,7 +379,7 @@ describe.concurrent('W3C verify', () => {
           tokenId: '123',
         },
       };
-      expect(await verifyDocument(tampered, providerUrl)).toEqual(
+      expect(await verifyDocument(tampered, { rpcProviderUrl: providerUrl })).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             name: 'TransferableRecords',
@@ -401,7 +402,9 @@ describe.concurrent('W3C verify', () => {
         new Error('Unexpected error'),
       );
 
-      expect(await verifyDocument(W3C_TRANSFERABLE_RECORD, providerUrl)).toEqual(
+      expect(
+        await verifyDocument(W3C_TRANSFERABLE_RECORD, { rpcProviderUrl: providerUrl }),
+      ).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             name: 'TransferableRecords',
@@ -421,7 +424,7 @@ describe.concurrent('W3C verify', () => {
 
 describe.concurrent('V3 verify', () => {
   it('should verify a DND_DID document and return fragments', async ({ expect }) => {
-    expect(await verifyDocument(SIGNED_WRAPPED_DOCUMENT_DNS_DID_V3, '')).toMatchInlineSnapshot(`
+    expect(await verifyDocument(SIGNED_WRAPPED_DOCUMENT_DNS_DID_V3)).toMatchInlineSnapshot(`
       [
         {
           "data": true,
@@ -505,8 +508,11 @@ describe.concurrent('V3 verify', () => {
     'should verify a DID_TOKEN_REGISTRY document and return fragments',
     { timeout: 300000 },
     async ({ expect }) => {
-      expect(await verifyDocument(WRAPPED_DOCUMENT_DID_TOKEN_REGISTRY_V3, providerUrl))
-        .toMatchInlineSnapshot(`
+      expect(
+        await verifyDocument(WRAPPED_DOCUMENT_DID_TOKEN_REGISTRY_V3, {
+          rpcProviderUrl: providerUrl,
+        }),
+      ).toMatchInlineSnapshot(`
         [
           {
             "data": true,
@@ -584,10 +590,9 @@ describe.concurrent('V3 verify', () => {
 describe.concurrent('V2 verify', () => {
   it('should verify a document and return fragments', { timeout: 300000 }, async ({ expect }) => {
     expect(
-      await verifyDocument(
-        WRAPPED_DOCUMENT_DNS_TXT_V2,
-        'https://ethereum-sepolia-rpc.publicnode.com',
-      ),
+      await verifyDocument(WRAPPED_DOCUMENT_DNS_TXT_V2, {
+        rpcProviderUrl: 'https://ethereum-sepolia-rpc.publicnode.com',
+      }),
     ).toMatchInlineSnapshot(`
       [
         {

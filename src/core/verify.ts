@@ -12,6 +12,7 @@ import {
 type VerificationBuilderOptions = {
   rpcProviderUrl?: string;
   documentLoader?: DocumentLoader;
+  provider?: ethers.providers.Provider;
 };
 
 interface VerifyDocumentParams {
@@ -40,8 +41,9 @@ interface VerifyDocumentParams {
  * (e.g., Ethereum, Polygon) for DID resolution and verification tasks.
  * @param {DocumentsToVerify | SignedVerifiableCredential} document - The document to be verified, either an OpenAttestation document or a W3C Verifiable Credential.
  * @param {VerificationBuilderOptions} options - The options object containing the provider URL and document loader.
- * @param {string} options.rpcProviderUrl - The Ethereum-compatible JSON-RPC provider URL (e.g., Infura, Alchemy, Polygon, etc.) to resolve DIDs and verify credentials.
- * @param {DocumentLoader} options.documentLoader - The document loader to be used for loading JSON-LD contexts.
+ * @param {string} options.rpcProviderUrl - The Ethereum-compatible JSON-RPC provider URL (e.g., Infura, Alchemy, etc.).
+ * @param {DocumentLoader} options.documentLoader - The document loader to be used for loading JSON-LD contexts, DIDs and credential status.
+ * @param {ethers.providers.Provider} options.provider - Ethers v5 provider. overrides rpcProviderUrl
  * @returns {Promise<VerificationFragment[]>} - A promise that resolves to an array of verification fragments,
  *                                              detailing the results of various verification checks such as
  *                                              signature integrity, credential status, issuer identity, etc.
@@ -54,10 +56,13 @@ export const verifyDocument: VerifyDocumentParams = (
     options = { rpcProviderUrl: options } as VerificationBuilderOptions;
   }
 
+  const provider =
+    options?.provider || new ethers.providers.JsonRpcProvider(options?.rpcProviderUrl);
+
   if (utils.isWrappedV2Document(document) || utils.isWrappedV3Document(document)) {
     // Build the verification process using OpenAttestation verifiers and DID identity proof
     const verify = verificationBuilder(openAttestationVerifiers, {
-      provider: new ethers.providers.JsonRpcProvider(options?.rpcProviderUrl), // Use user-provided provider URL
+      provider,
     });
 
     // Perform verification and return the result
@@ -65,7 +70,7 @@ export const verifyDocument: VerifyDocumentParams = (
   } else {
     // Build the verification process using w3c fragments
     const verify = verificationBuilder(w3cVerifiers, {
-      provider: new ethers.providers.JsonRpcProvider(options?.rpcProviderUrl), // Use user-provided provider URL
+      provider,
       documentLoader: options?.documentLoader,
     });
 
