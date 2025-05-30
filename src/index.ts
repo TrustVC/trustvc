@@ -19,7 +19,7 @@ import {
   v5GetEventFromReceipt,
   v5ComputeInterfaceId,
 } from './token-registry-v5';
-export { TypedContractMethod } from './token-registry-v5/typedContractMethod';
+export type { TypedContractMethod } from './token-registry-v5/typedContractMethod';
 
 export * from './core';
 export * from './open-attestation';

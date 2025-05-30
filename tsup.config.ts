@@ -1,57 +1,14 @@
 import cpy from 'cpy';
-import { execa } from 'execa';
-import { rimraf } from 'rimraf';
 import { defineConfig } from 'tsup';
-
-const outExtension = ({ options, format }) => {
-  const formatMap = {
-    cjs: '.cjs',
-    esm: '.mjs',
-  };
-  return {
-    js: formatMap[format],
-    dts: `.d.ts`,
-  };
-};
-
-const onSuccess = async (): Promise<void> => {
-  // await cpy(['package.json'], 'dist', {
-  //   dot: true,
-  //   overwrite: true,
-  // });
-
-  // await Promise.all(
-  //   ['dist/w3c-vc/', 'dist/esm/w3c-vc'].map(async (path) => {
-  //     const r = await new Promise((resolve) => {
-  //       const r = rimraf(path);
-  //       rimraf.moveRemoveSync(path);
-  //       resolve(r);
-  //     });
-  //   }),
-  // );
-
-  // await execa({
-  //   stdout: process.stdout,
-  //   stderr: process.stderr,
-  // })`npx resolve-tspaths -p tsconfig.build.json -s ./dist/cjs -o ./dist/cjs --verbose`;
-
-  // Copy all json files
-  await cpy(['src/**/*.json'], 'dist', {
-    overwrite: true,
-  });
-  await cpy(['src/**/*.json'], 'dist/esm', {
-    overwrite: true,
-  });
-};
 
 export default defineConfig([
   {
-    dts: false,
+    // CJS build
+    dts: false, // No .d.ts files from this build
     sourcemap: false,
     treeshake: true,
     splitting: false,
-    clean: true,
-    legacyOutput: true,
+    clean: true, // Clean the entire dist directory once at the beginning
     outDir: 'dist/cjs',
     platform: 'node',
     target: 'esnext',
@@ -62,16 +19,21 @@ export default defineConfig([
     bundle: false,
     minify: false,
     keepNames: true,
-    // outExtension,
-    onSuccess,
-    // esbuildPlugins: [fixImportsPlugin()],
+    onSuccess: async () => {
+      console.log('CJS build successful, copying JSON files to dist/cjs...');
+      await cpy(['src/**/*.json'], 'dist/cjs', {
+        overwrite: true,
+      });
+      console.log('JSON files copied to dist/cjs.');
+    },
   },
   {
-    dts: false,
+    // ESM build
+    dts: false, // No .d.ts files from this build
     sourcemap: false,
     treeshake: true,
     splitting: false,
-    clean: true,
+    clean: false, // CJS build already cleaned
     legacyOutput: true,
     outDir: 'dist',
     platform: 'node',
@@ -83,28 +45,32 @@ export default defineConfig([
     bundle: false,
     minify: false,
     keepNames: true,
-    // outExtension,
-    onSuccess,
+    onSuccess: async () => {
+      console.log('ESM build successful, copying JSON files to dist/esm...');
+      await cpy(['src/**/*.json'], 'dist/esm', {
+        overwrite: true,
+      });
+      console.log('JSON files copied to dist/esm.');
+    },
   },
   {
+    // DTS only build
     dts: {
       only: true,
     },
-    sourcemap: false,
-    treeshake: true,
-    splitting: false,
-    clean: true,
-    legacyOutput: true,
+    sourcemap: false, // Not applicable for dts only
+    treeshake: false, // Not applicable for dts only
+    splitting: false, // Crucial: Keep false to avoid chunked/hashed .d.ts names
+    clean: false, // Other builds ran, don't clean their output
     outDir: 'dist/types',
     platform: 'node',
     target: 'esnext',
     entry: ['src/**/*.ts', '!src/**/*.{test,spec}.ts', '!src/__tests__/**'],
-    tsconfig: 'tsconfig.build.json',
-    shims: true,
-    bundle: false,
-    minify: false,
-    keepNames: true,
-    // outExtension,
-    onSuccess,
+    tsconfig: 'tsconfig.build.json', // This tsconfig must have "declaration": true
+    shims: false, // Not applicable for dts only
+    bundle: false, // IMPORTANT: Transpile files individually to maintain structure
+    minify: false, // Not applicable
+    keepNames: true, // Generally not critical for dts-only
+    // No onSuccess usually needed for DTS, unless you have specific post-processing for types
   },
 ]);
