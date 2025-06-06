@@ -18,6 +18,8 @@ jobs:
   tests:
     name: Tests
     uses: ./.github/workflows/tests.yml
+    secrets:
+      ANKR_API_KEY: ${{ secrets.ANKR_API_KEY }}
 
   linters:
     name: Linters

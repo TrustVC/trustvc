@@ -1,760 +1,17 @@
+import { generateTestingUtils } from 'eth-testing';
 import { ethers } from 'ethers';
 import { ethers as ethersV6 } from 'ethersV6';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { fetchEndorsementChain } from '../../core';
+import _ from 'lodash';
+import { testCases } from '../fixtures/endorsement-chain';
 
 const provider = ethers.providers.JsonRpcProvider;
 const providerV6 = ethersV6.JsonRpcProvider;
 
-const testCases = [
-  {
-    rpcUrl: `https://rpc.ankr.com/polygon_amoy/${process.env.ANKR_API_KEY}`,
-    description: 'Token Registry V4 with Transfer, Surrender, Burnt events - Amoy',
-    tokenRegistryAddress: '0x71D28767662cB233F887aD2Bb65d048d760bA694',
-    tokenId: '0x780e38c6345dac12cedb7aacc69492ff31cc5236cd60da46261aa1c27691141e',
-    expected: [
-      {
-        type: 'INITIAL',
-        transactionHash: '0x2d98ae3908f0edd095a871a0c56dd3c0e1cfd657b53f28f7c01b1cb83bebc28b',
-        transactionIndex: 5,
-        blockNumber: 6162747,
-        owner: '0xCA93690Bb57EEaB273c796a9309246BC0FB93649',
-        holder: '0xCA93690Bb57EEaB273c796a9309246BC0FB93649',
-        remark: '',
-        timestamp: 1713778879000,
-      },
-      {
-        type: 'TRANSFER_HOLDER',
-        transactionHash: '0x38df7d1bd50f89aefa3a4385afe12f4d9dd320bcdc24d9ff7a775193fa5b6178',
-        transactionIndex: 4,
-        blockNumber: 6164050,
-        owner: '0xCA93690Bb57EEaB273c796a9309246BC0FB93649',
-        holder: '0xd3DD13B7e8D7454F4Fdf0e1a630FDE4f9De84749',
-        remark: '',
-        timestamp: 1713782103000,
-      },
-      {
-        type: 'TRANSFER_BENEFICIARY',
-        transactionHash: '0x4a3be9573991980738e99a1f39485b9141c9012419076cbc1bd87038b3efd313',
-        transactionIndex: 3,
-        blockNumber: 6201774,
-        owner: '0xB7F0Eb2b207E93D0aA4C90329F3227f6f599f885',
-        holder: '0xd3DD13B7e8D7454F4Fdf0e1a630FDE4f9De84749',
-        remark: '',
-        timestamp: 1713866365000,
-      },
-      {
-        type: 'TRANSFER_HOLDER',
-        transactionHash: '0xff88596d7b86e99dfa2851bec90ed47acc30dbde0c7d4924501584809d657135',
-        transactionIndex: 1,
-        blockNumber: 6202088,
-        owner: '0xB7F0Eb2b207E93D0aA4C90329F3227f6f599f885',
-        holder: '0xCA93690Bb57EEaB273c796a9309246BC0FB93649',
-        remark: '',
-        timestamp: 1713867129000,
-      },
-      {
-        type: 'TRANSFER_HOLDER',
-        transactionHash: '0x888ef1ce5cd0455e9bfa50122d76e12d54da87d3b93c34460c2439116c582ca6',
-        transactionIndex: 3,
-        blockNumber: 6202133,
-        owner: '0xB7F0Eb2b207E93D0aA4C90329F3227f6f599f885',
-        holder: '0xB7F0Eb2b207E93D0aA4C90329F3227f6f599f885',
-        remark: '',
-        timestamp: 1713867225000,
-      },
-      {
-        type: 'SURRENDERED',
-        transactionHash: '0x21b804d9bbd9953310eaa62f0d6b0cf9a2821af86913bf252ea75958f84d7b17',
-        transactionIndex: 5,
-        blockNumber: 6203041,
-        owner: '0xB7F0Eb2b207E93D0aA4C90329F3227f6f599f885',
-        holder: '0xB7F0Eb2b207E93D0aA4C90329F3227f6f599f885',
-        remark: '',
-        timestamp: 1713869315000,
-      },
-      {
-        type: 'SURRENDER_REJECTED',
-        transactionHash: '0x611f48ddedeea93f470dd6a3ba96d2eeb9c896fc954e616c3fcb8811d92c3ea4',
-        transactionIndex: 0,
-        blockNumber: 6242100,
-        owner: '0xB7F0Eb2b207E93D0aA4C90329F3227f6f599f885',
-        holder: '0xB7F0Eb2b207E93D0aA4C90329F3227f6f599f885',
-        remark: '',
-        timestamp: 1713956826000,
-      },
-      {
-        type: 'TRANSFER_OWNERS',
-        transactionHash: '0xba94dbbd7905d706244fdd53121d41ec23c4d67ab08d2f0820287d07f4d03989',
-        transactionIndex: 1,
-        blockNumber: 6242178,
-        owner: '0xCA93690Bb57EEaB273c796a9309246BC0FB93649',
-        holder: '0xCA93690Bb57EEaB273c796a9309246BC0FB93649',
-        remark: '',
-        timestamp: 1713956992000,
-      },
-      {
-        type: 'TRANSFER_HOLDER',
-        transactionHash: '0xd95d77620c7916290fecd2a38277dec9010e63872dc96be05f3126767b39ba4e',
-        transactionIndex: 3,
-        blockNumber: 6242197,
-        owner: '0xCA93690Bb57EEaB273c796a9309246BC0FB93649',
-        holder: '0xB7F0Eb2b207E93D0aA4C90329F3227f6f599f885',
-        remark: '',
-        timestamp: 1713957044000,
-      },
-      {
-        type: 'TRANSFER_HOLDER',
-        transactionHash: '0xee5eb7953687e0d2e05be34091e4a59256de4dc7df18eaeaf1a65cbb833ba6a8',
-        transactionIndex: 3,
-        blockNumber: 6242545,
-        owner: '0xCA93690Bb57EEaB273c796a9309246BC0FB93649',
-        holder: '0xCA93690Bb57EEaB273c796a9309246BC0FB93649',
-        remark: '',
-        timestamp: 1713957840000,
-      },
-      {
-        type: 'SURRENDERED',
-        transactionHash: '0x039f729fe72d703a799bfbe6736f51f84639ec166632da8c9ea4e1995016fa95',
-        transactionIndex: 1,
-        blockNumber: 6242768,
-        owner: '0xCA93690Bb57EEaB273c796a9309246BC0FB93649',
-        holder: '0xCA93690Bb57EEaB273c796a9309246BC0FB93649',
-        remark: '',
-        timestamp: 1713958374000,
-      },
-      {
-        type: 'SURRENDER_ACCEPTED',
-        transactionHash: '0xcf6968ef91efe74b8ada1770fc31e811f15989f80b0d518a42e06d4ab5bac8bd',
-        transactionIndex: 3,
-        blockNumber: 6242791,
-        owner: '0x0000000000000000000000000000000000000000',
-        holder: '0x0000000000000000000000000000000000000000',
-        remark: '',
-        timestamp: 1713958422000,
-      },
-    ],
-    timeout: 180_000,
-  },
-  {
-    rpcUrl: `https://rpc.ankr.com/polygon_amoy/${process.env.ANKR_API_KEY}`,
-    description: 'Token Registry V5 with Transfer, Surrender, Burnt events - Amoy',
-    tokenRegistryAddress: '0x3781bd0bbd15Bf5e45c7296115821933d47362be',
-    tokenId: '0xe3fa2bbdbfd093d2bb4e1555dde01338af25d5cf1d6d87bd0f22d7302f133f9a',
-    expected: [
-      {
-        type: 'INITIAL',
-        transactionHash: '0x1a81b333253e30d992660ba9708d9deb47eab9479acaffb464dc7252eb0bcbcd',
-        transactionIndex: 0,
-        blockNumber: 15012819,
-        owner: '0x433097a1C1b8a3e9188d8C54eCC057B1D69f1638',
-        holder: '0x433097a1C1b8a3e9188d8C54eCC057B1D69f1638',
-        timestamp: 1732868913000,
-        remark: '',
-      },
-      {
-        blockNumber: 15068417,
-        holder: '0xe0A71284EF59483795053266CB796B65E48B5124',
-        owner: '0x433097a1C1b8a3e9188d8C54eCC057B1D69f1638',
-        remark: 'Transfer Holdership',
-        timestamp: 1732987077000,
-        transactionHash: '0xd6438cbcf121295023be61b96a01d71e31b53018b03110899091cbb082cc9360',
-        transactionIndex: 1,
-        type: 'TRANSFER_HOLDER',
-      },
-      {
-        blockNumber: 15068463,
-        holder: '0x433097a1C1b8a3e9188d8C54eCC057B1D69f1638',
-        owner: '0x433097a1C1b8a3e9188d8C54eCC057B1D69f1638',
-        remark: 'Reject Holdership',
-        timestamp: 1732987173000,
-        transactionHash: '0x5010bf1c17b29f6c333c170b8293feadd7ea58be1d1098a33cbe2024b4d2a95f',
-        transactionIndex: 1,
-        type: 'REJECT_TRANSFER_HOLDER',
-      },
-      {
-        blockNumber: 15068525,
-        holder: '0xe0A71284EF59483795053266CB796B65E48B5124',
-        owner: '0xe0A71284EF59483795053266CB796B65E48B5124',
-        remark: 'Transfer of Ownership and Holdership',
-        timestamp: 1732987305000,
-        transactionHash: '0xedd28b262666c446354999c4f87f4b1eeaba61f5c95c6a41d80ccbf4059e51e1',
-        transactionIndex: 0,
-        type: 'TRANSFER_OWNERS',
-      },
-      {
-        blockNumber: 15068663,
-        holder: '0x433097a1C1b8a3e9188d8C54eCC057B1D69f1638',
-        owner: '0x433097a1C1b8a3e9188d8C54eCC057B1D69f1638',
-        remark: 'Reject Ownership and Holdership',
-        timestamp: 1732987599000,
-        transactionHash: '0x6710fef3f921de7e3a3e4c782e0fff9222c0fd737f37d8a997b6af133086a86d',
-        transactionIndex: 1,
-        type: 'REJECT_TRANSFER_OWNERS',
-      },
-      {
-        blockNumber: 15068712,
-        holder: '0xCA93690Bb57EEaB273c796a9309246BC0FB93649',
-        owner: '0xe0A71284EF59483795053266CB796B65E48B5124',
-        remark: 'Transfer Holdership',
-        timestamp: 1732987703000,
-        transactionHash: '0xadb9231bece27ae3aac4e2483752046014e983b80d54dfc490e3459da451dbfa',
-        transactionIndex: 0,
-        type: 'TRANSFER_HOLDER',
-      },
-      {
-        blockNumber: 15068740,
-        holder: '0xCA93690Bb57EEaB273c796a9309246BC0FB93649',
-        owner: '0xe0A71284EF59483795053266CB796B65E48B5124',
-        remark: 'Endorse Ownership',
-        timestamp: 1732987763000,
-        transactionHash: '0x3982f31d4dcb46e44df176d00ead1b388de8cab7edbc75fd4424918a8e3d48ec',
-        transactionIndex: 0,
-        type: 'TRANSFER_BENEFICIARY',
-      },
-      {
-        blockNumber: 15068755,
-        holder: '0xCA93690Bb57EEaB273c796a9309246BC0FB93649',
-        owner: '0x433097a1C1b8a3e9188d8C54eCC057B1D69f1638',
-        remark: 'Reject Ownership',
-        timestamp: 1732987795000,
-        transactionHash: '0x6352647f0ebba87639e79cc9667faba8e9ea7281b7d4981a2dbe9374406d6310',
-        transactionIndex: 0,
-        type: 'REJECT_TRANSFER_BENEFICIARY',
-      },
-      {
-        blockNumber: 15069476,
-        holder: '0x433097a1C1b8a3e9188d8C54eCC057B1D69f1638',
-        owner: '0xe0A71284EF59483795053266CB796B65E48B5124',
-        remark: 'Transfer Holder',
-        timestamp: 1732989327000,
-        transactionHash: '0x2d53578ffe1889dd82eecd5e923dabb06b57eb67a2d16e2c8b210e02b398c5c5',
-        transactionIndex: 0,
-        type: 'TRANSFER_HOLDER',
-      },
-      {
-        blockNumber: 15069490,
-        holder: '0x433097a1C1b8a3e9188d8C54eCC057B1D69f1638',
-        owner: '0xe0A71284EF59483795053266CB796B65E48B5124',
-        remark: 'Return To Issuer',
-        timestamp: 1732989357000,
-        transactionHash: '0x8e575e2a281d3bce5d6e4b6298e1e54b9c49bad0ef135ae9e68fc9d02ccc1ba1',
-        transactionIndex: 0,
-        type: 'RETURNED_TO_ISSUER',
-      },
-      {
-        blockNumber: 15069501,
-        holder: '0x433097a1C1b8a3e9188d8C54eCC057B1D69f1638',
-        owner: '0xe0A71284EF59483795053266CB796B65E48B5124',
-        remark: 'Reject Return To Issuer',
-        timestamp: 1732989379000,
-        transactionHash: '0x3bf456d1fa29e4b7cfc3cbfc3a568f5c2c4e1dd8454d25f8822eea3b65c66956',
-        transactionIndex: 0,
-        type: 'RETURN_TO_ISSUER_REJECTED',
-      },
-      {
-        blockNumber: 15069511,
-        holder: '0x433097a1C1b8a3e9188d8C54eCC057B1D69f1638',
-        owner: '0xe0A71284EF59483795053266CB796B65E48B5124',
-        remark: 'Return To Issuer',
-        timestamp: 1732989401000,
-        transactionHash: '0x99e56c4a1ddcf1a8031402a46eb41b4c41f1379f420287aaa57cad0e18ed85ce',
-        transactionIndex: 2,
-        type: 'RETURNED_TO_ISSUER',
-      },
-      {
-        blockNumber: 15069519,
-        holder: '0x0000000000000000000000000000000000000000',
-        owner: '0x0000000000000000000000000000000000000000',
-        remark: 'Accept Return To Issuer',
-        timestamp: 1732989417000,
-        transactionHash: '0xbc9c0a07467310b45f4099578613b0531ab20975d52d1a3485c69e16901e3cb7',
-        transactionIndex: 0,
-        type: 'RETURN_TO_ISSUER_ACCEPTED',
-      },
-    ],
-    timeout: 180_000,
-  },
-  {
-    rpcUrl: `https://rpc.ankr.com/polygon_amoy/${process.env.ANKR_API_KEY}`,
-    description: 'Token Registry V5 with Transfer, Surrender, Burnt events - Amoy',
-    tokenRegistryAddress: '0x3781bd0bbd15Bf5e45c7296115821933d47362be',
-    tokenId: '0xe3fa2bbdbfd093d2bb4e1555dde01338af25d5cf1d6d87bd0f22d7302f133f9c',
-    expected: [
-      {
-        type: 'INITIAL',
-        transactionHash: '0xb075b06a8b49253b8ea36212bfcedc38b5ba4fc66ea3522dba2c7c0faa63e03f',
-        transactionIndex: 0,
-        blockNumber: 20760690,
-        owner: '0x433097a1C1b8a3e9188d8C54eCC057B1D69f1638',
-        holder: '0x433097a1C1b8a3e9188d8C54eCC057B1D69f1638',
-        timestamp: 1745308179000,
-        remark: 'Issuance',
-      },
-    ],
-    timeout: 180_000,
-  },
-  {
-    rpcUrl: `https://sepolia.infura.io/v3/${process.env.INFURA_API_KEY}`,
-    description: 'Token Registry V4 with Transfer, Surrender, Burnt events - Sepolia',
-    tokenRegistryAddress: '0x689a6a40647a383274f947e14f210ae64eb2b9c2',
-    tokenId: '0x69e10a3bfb000b3a84bddd7a6865df0195c4cde17454ddd824640cebcd0b71bb',
-    expected: [
-      {
-        blockNumber: 3580551,
-        holder: '0xEd96058aD996d7ecE428437A18d00C0DFBA72Cc0',
-        owner: '0xEd96058aD996d7ecE428437A18d00C0DFBA72Cc0',
-        remark: '',
-        timestamp: 1685336052000,
-        transactionHash: '0xbf2076896c937a019c939250d9f498e51e250cce31584f2b22885150b753e729',
-        transactionIndex: 38,
-        type: 'INITIAL',
-      },
-    ],
-    timeout: 180_000,
-  },
-  {
-    rpcUrl: `https://sepolia.infura.io/v3/${process.env.INFURA_API_KEY}`,
-    description: 'Token Registry V5 with Transfer, Surrender, Burnt events - Sepolia',
-    tokenRegistryAddress: '0x3A5f212f1D1bf90a8a0B7530698e25620DEb166B',
-    tokenId: '0x951b39bcaddc0e8882883db48ca258ca35ccb01fee328355f0dfda1ff9be9990',
-    expected: [
-      {
-        blockNumber: 7120258,
-        holder: '0x433097a1C1b8a3e9188d8C54eCC057B1D69f1638',
-        owner: '0x433097a1C1b8a3e9188d8C54eCC057B1D69f1638',
-        remark: '',
-        timestamp: 1732162800000,
-        transactionHash: '0x7936938888f24187955b41cc68658e166a73404646bf3ee48e6140fb301474ce',
-        transactionIndex: 32,
-        type: 'INITIAL',
-      },
-      {
-        blockNumber: 7120349,
-        holder: '0xCA93690Bb57EEaB273c796a9309246BC0FB93649',
-        owner: '0x433097a1C1b8a3e9188d8C54eCC057B1D69f1638',
-        remark: '�-',
-        timestamp: 1732163892000,
-        transactionHash: '0x79a141eb59261c32013ad293dca29e099b62f6dd7e60a84c5097e512459eec65',
-        transactionIndex: 27,
-        type: 'TRANSFER_HOLDER',
-      },
-      {
-        blockNumber: 7121047,
-        holder: '0x433097a1C1b8a3e9188d8C54eCC057B1D69f1638',
-        owner: '0x433097a1C1b8a3e9188d8C54eCC057B1D69f1638',
-        remark: '�-',
-        timestamp: 1732172772000,
-        transactionHash: '0x440f857a20115471e0692260196b0da7c274c1e6a77b51302a008072ebb7aa3d',
-        transactionIndex: 50,
-        type: 'REJECT_TRANSFER_HOLDER',
-      },
-      {
-        blockNumber: 7121263,
-        holder: '0xCA93690Bb57EEaB273c796a9309246BC0FB93649',
-        owner: '0xDC674219c4057d7795d9dA3d6AB3d301BF16355D',
-        remark: '�-',
-        timestamp: 1732175508000,
-        transactionHash: '0x33b7cd4d45907784ce226dfa738f556be3792152a2ebd4d2c2aea9f7f4577d09',
-        transactionIndex: 34,
-        type: 'TRANSFER_BENEFICIARY',
-      },
-      {
-        blockNumber: 7121281,
-        holder: '0xCA93690Bb57EEaB273c796a9309246BC0FB93649',
-        owner: '0x433097a1C1b8a3e9188d8C54eCC057B1D69f1638',
-        remark: '�-',
-        timestamp: 1732175748000,
-        transactionHash: '0xb044fcdb9a3550e88d906c64b5bc85fbe583b082f0bba0a39bb8aed8538b90a6',
-        transactionIndex: 51,
-        type: 'REJECT_TRANSFER_BENEFICIARY',
-      },
-    ],
-    timeout: 180_000,
-  },
-  {
-    rpcUrl: `https://rpc.stabilityprotocol.com/zgt/${process.env.STABILITY_API_KEY}`,
-    description: 'Token Registry V4 with Transfer, Surrender, Burnt events - Stability',
-    tokenRegistryAddress: '0x71D28767662cB233F887aD2Bb65d048d760bA694',
-    tokenId: '0xA8C2F1E3742348957A4BE4B2C32E099E1206E4C74D518D3D3A9D8C246BB2DD04',
-    expected: [
-      {
-        blockNumber: 4001421,
-        holder: '0xCA93690Bb57EEaB273c796a9309246BC0FB93649',
-        owner: '0xCA93690Bb57EEaB273c796a9309246BC0FB93649',
-        remark: '',
-        timestamp: 1717571156000,
-        transactionHash: '0x845573ff26f285600942e9960214d30ebea9609f4673bf36a31e1a7dd134a587',
-        transactionIndex: 0,
-        type: 'INITIAL',
-      },
-    ],
-    timeout: 180_000,
-  },
-  {
-    rpcUrl: `https://rpc.testnet.stabilityprotocol.com/zgt/${process.env.STABILITY_API_KEY}`,
-    description: 'Token Registry V4 with Transfer, Surrender, Burnt events - Stability Testnet',
-    tokenRegistryAddress: '0x3d23649EB097fa729A8e1e15Fdb37680Caf766F7',
-    tokenId: '0xbc081530e0471660baeb3964e27bbd0e6499161fdbcdf75a45067d91900f0226',
-    expected: [
-      {
-        blockNumber: 3319,
-        holder: '0x3B75D0620FFf06911B713f2c0AEAC1eF730eBc72',
-        owner: '0x3B75D0620FFf06911B713f2c0AEAC1eF730eBc72',
-        remark: '',
-        timestamp: 1709556352000,
-        transactionHash: '0x2f230cc478b26cc9db1b0133f99e993f4bf581876cdf0a7d50eef1f57d19fb02',
-        transactionIndex: 0,
-        type: 'INITIAL',
-      },
-    ],
-    timeout: 180_000,
-  },
-  {
-    rpcUrl: `https://rpc.testnet.stabilityprotocol.com/zgt/${process.env.STABILITY_API_KEY}`,
-    description: 'Token Registry V5 with Transfer, Surrender, Burnt events - Stability Testnet',
-    tokenRegistryAddress: '0x3E3C1cAa42123d450Aa197bc56C74f465f541fC0',
-    tokenId: '0x000000000000000000000000000000001618608838c7ebb43000e39c245bf9cb',
-    expected: [
-      {
-        blockNumber: 13157733,
-        holder: '0x433097a1C1b8a3e9188d8C54eCC057B1D69f1638',
-        owner: '0x433097a1C1b8a3e9188d8C54eCC057B1D69f1638',
-        remark: '',
-        timestamp: 1735869654000,
-        transactionHash: '0x937bd0b0917e96de3fb739b6c96b06c0f2e9e3159be2d819b06ad7a01b842387',
-        transactionIndex: 0,
-        type: 'INITIAL',
-      },
-    ],
-    timeout: 180_000,
-  },
-  {
-    rpcUrl: `https://astronlayer2.bitfactory.cn/rpc/`,
-    description: 'Token Registry V4 with Transfer, Surrender, Burnt events - Astron',
-    tokenRegistryAddress: '0xf717d93c751f1835078b513275b14121798c7740',
-    tokenId: '0x2820EE82FAA19A68DA11372E69581122C18B9134FE4BC91608155EFAA8370FB3',
-    expected: [
-      {
-        blockNumber: 1052524,
-        holder: '0xCA93690Bb57EEaB273c796a9309246BC0FB93649',
-        owner: '0xCA93690Bb57EEaB273c796a9309246BC0FB93649',
-        remark: '',
-        timestamp: 1731914085000,
-        transactionHash: '0x7f2b3b92ec86e2d5bbc32c985a4e4d017d387b0b4a253c03cd65733706443f9d',
-        transactionIndex: 0,
-        type: 'INITIAL',
-      },
-    ],
-    timeout: 180_000,
-  },
-  {
-    rpcUrl: `https://dev-astronlayer2.bitfactory.cn/query/`,
-    description: 'Token Registry V5 with Transfer, Surrender, Burnt events - AstronTestnet',
-    tokenRegistryAddress: '0xb1Bf514b3893357813F366282E887eE221D5C2dA',
-    tokenId: '0x3820EE82FAA19A68DA11372E69581122C18B9134FE4BC91608155EFAA8370FB5',
-    expected: [
-      {
-        blockNumber: 888113,
-        holder: '0xEA51DEB36348A4B9F52d27b5A3152d582B604C51',
-        owner: '0xEA51DEB36348A4B9F52d27b5A3152d582B604C51',
-        remark: '',
-        timestamp: 1745391131000,
-        transactionHash: '0x5579017eda157a7d77703c9c45035c203103fb937e9c994704cbbabad860b051',
-        transactionIndex: 0,
-        type: 'INITIAL',
-      },
-      {
-        blockNumber: 888130,
-        holder: '0xC9C913c8c3C1Cd416d80A0abF475db2062F161f6',
-        owner: '0xEA51DEB36348A4B9F52d27b5A3152d582B604C51',
-        remark: '',
-        timestamp: 1745391216000,
-        transactionHash: '0x2312642548d0e206e5101321392295ef3c69e74528f5bd4478830cfbb6eb8ee5',
-        transactionIndex: 0,
-        type: 'TRANSFER_HOLDER',
-      },
-      {
-        blockNumber: 888147,
-        holder: '0xC9C913c8c3C1Cd416d80A0abF475db2062F161f6',
-        owner: '0xC9C913c8c3C1Cd416d80A0abF475db2062F161f6',
-        remark: '',
-        timestamp: 1745391301000,
-        transactionHash: '0x7ce0dc2bceab77566993ba49b185f201539dd00a9f5b45556f98c52b2cab577a',
-        transactionIndex: 0,
-        type: 'TRANSFER_BENEFICIARY',
-      },
-      {
-        blockNumber: 888160,
-        holder: '0xEA51DEB36348A4B9F52d27b5A3152d582B604C51',
-        owner: '0xEA51DEB36348A4B9F52d27b5A3152d582B604C51',
-        remark: '',
-        timestamp: 1745391366000,
-        transactionHash: '0xda64e43b4bfe80cfc45204586f969b0d5ae87caba7f7aff1efd3a9b89e804809',
-        transactionIndex: 0,
-        type: 'TRANSFER_OWNERS',
-      },
-      {
-        blockNumber: 888166,
-        holder: '0xEA51DEB36348A4B9F52d27b5A3152d582B604C51',
-        owner: '0xEA51DEB36348A4B9F52d27b5A3152d582B604C51',
-        remark: '',
-        timestamp: 1745391396000,
-        transactionHash: '0x2320f69e724f62a6fb22fc12b0fb02dbc71ceecad924faa52a571d8d67e5626f',
-        transactionIndex: 0,
-        type: 'RETURNED_TO_ISSUER',
-      },
-      {
-        blockNumber: 888174,
-        holder: '0xEA51DEB36348A4B9F52d27b5A3152d582B604C51',
-        owner: '0xEA51DEB36348A4B9F52d27b5A3152d582B604C51',
-        remark: '',
-        timestamp: 1745391436000,
-        transactionHash: '0x6cd40c4f271d4c0eb1956918ee9eb2738312d7abd2755b58051d41d53d8a2385',
-        transactionIndex: 0,
-        type: 'RETURN_TO_ISSUER_REJECTED',
-      },
-      {
-        blockNumber: 888180,
-        holder: '0xEA51DEB36348A4B9F52d27b5A3152d582B604C51',
-        owner: '0xEA51DEB36348A4B9F52d27b5A3152d582B604C51',
-        remark: '',
-        timestamp: 1745391466000,
-        transactionHash: '0x299d5084733af987c56bb5e61bbbadb1ab2231b58da2844e88b408fdc64a2816',
-        transactionIndex: 0,
-        type: 'RETURNED_TO_ISSUER',
-      },
-      {
-        blockNumber: 888184,
-        holder: '0x0000000000000000000000000000000000000000',
-        owner: '0x0000000000000000000000000000000000000000',
-        remark: '',
-        timestamp: 1745391486000,
-        transactionHash: '0xa283d76383dd88cd2610e47f04f9b94fb46d825c6e4f3315f828981643eb997c',
-        transactionIndex: 0,
-        type: 'RETURN_TO_ISSUER_ACCEPTED',
-      },
-    ],
-    timeout: 180_000,
-  },
-  {
-    rpcUrl: `https://rpc.ankr.com/xdc/${process.env.ANKR_API_KEY}`,
-    description: 'Token Registry V4 with Transfer, Surrender, Burnt events - XDC',
-    tokenRegistryAddress: '0x31376b6fb90c6c16320ee8a782e4bbbcc1a96b11',
-    tokenId: '0x6bf54d00b6378305b414ab8dfa88cb967923f15e0630fb189f6029a5aa1f6f1e',
-    expected: [
-      {
-        blockNumber: 82186416,
-        holder: '0x2f45d8c2b55C935d3b9fBD41fCd9ABF790d5FA25',
-        owner: '0x2f45d8c2b55C935d3b9fBD41fCd9ABF790d5FA25',
-        remark: '',
-        timestamp: 1732862198000,
-        transactionHash: '0x354e4432bf6a01f0cef7015bd3ba56097ed4dfac93e446b18eaee4c6398942e5',
-        transactionIndex: 5,
-        type: 'INITIAL',
-      },
-    ],
-    timeout: 180_000,
-  },
-  {
-    rpcUrl: `https://rpc.ankr.com/xdc_testnet/${process.env.ANKR_API_KEY}`,
-    description: 'Token Registry V4 with Transfer, Surrender, Burnt events - XDC Testnet',
-    tokenRegistryAddress: '0x8E869d47C2392C08B335411d4a44254A513fFe01',
-    tokenId: '0x324bf073bca8aabef828bdaf7b9daa6745103777bbb2d9acf1c927e765b21b1',
-    expected: [
-      {
-        blockNumber: 69998017,
-        holder: '0x11F8660319808fa75E0BF218a3D55B045BAB3578',
-        owner: '0x11F8660319808fa75E0BF218a3D55B045BAB3578',
-        remark: '',
-        timestamp: 1733993640000,
-        transactionHash: '0x42f2616a3e2819172417941973ea9111e025c5ebca9d6f468f09b545e887a55b',
-        transactionIndex: 2,
-        type: 'INITIAL',
-      },
-      {
-        blockNumber: 69998026,
-        holder: '0x11F8660319808fa75E0BF218a3D55B045BAB3578',
-        owner: '0x11F8660319808fa75E0BF218a3D55B045BAB3578',
-        remark: '',
-        timestamp: 1733993785000,
-        transactionHash: '0xf8bada5ef58d0ba476f9b9be2215fe00ac3970a31b9d4f08a6fc8ec6ab4e6be0',
-        transactionIndex: 6,
-        type: 'SURRENDERED',
-      },
-      {
-        blockNumber: 69998071,
-        holder: '0x11F8660319808fa75E0BF218a3D55B045BAB3578',
-        owner: '0x11F8660319808fa75E0BF218a3D55B045BAB3578',
-        remark: '',
-        timestamp: 1733994263000,
-        transactionHash: '0x9e3caaa54cb16d75bd1d631ad02a3f4efb692ba96f702d7d4c87865406d848ef',
-        transactionIndex: 4,
-        type: 'SURRENDER_REJECTED',
-      },
-      {
-        blockNumber: 69998157,
-        holder: '0xeBF5EECF62CF9E40E8224F864D162041e3d756B7',
-        owner: '0xeBF5EECF62CF9E40E8224F864D162041e3d756B7',
-        remark: '',
-        timestamp: 1733995202000,
-        transactionHash: '0x0f566832fd3017b34888080ced5c3d4eb5a94247caede17ad26692db72f1ed53',
-        transactionIndex: 1,
-        type: 'TRANSFER_OWNERS',
-      },
-      {
-        blockNumber: 69998382,
-        holder: '0x11F8660319808fa75E0BF218a3D55B045BAB3578',
-        owner: '0x11F8660319808fa75E0BF218a3D55B045BAB3578',
-        remark: '',
-        timestamp: 1733997060000,
-        transactionHash: '0xb2f10d819c9650fa478dc81f4f631560a627340f034309c61751f7e6f20f775e',
-        transactionIndex: 2,
-        type: 'TRANSFER_OWNERS',
-      },
-      {
-        blockNumber: 69998409,
-        holder: '0x11F8660319808fa75E0BF218a3D55B045BAB3578',
-        owner: '0x11F8660319808fa75E0BF218a3D55B045BAB3578',
-        remark: '',
-        timestamp: 1733997307000,
-        transactionHash: '0x3d8b94645352f2b3eb4453ed2034170efe6d6c4f0d14aac05283c238b6b2ac8c',
-        transactionIndex: 8,
-        type: 'SURRENDERED',
-      },
-      {
-        blockNumber: 69998578,
-        holder: '0x11F8660319808fa75E0BF218a3D55B045BAB3578',
-        owner: '0x11F8660319808fa75E0BF218a3D55B045BAB3578',
-        remark: '',
-        timestamp: 1733998559000,
-        transactionHash: '0xf95ca715a7fe141b5333dd988c192dc26acbbcb7788e2bcfbbb933afbc470b96',
-        transactionIndex: 0,
-        type: 'SURRENDER_REJECTED',
-      },
-    ],
-    timeout: 180_000,
-  },
-  {
-    rpcUrl: `https://rpc.ankr.com/xdc_testnet/${process.env.ANKR_API_KEY}`,
-    description: 'Token Registry V5 with Transfer, Surrender, Burnt events - XDC Testnet',
-    tokenRegistryAddress: '0x3D2DD5d6468eE1F149dd424185f02626B29B7492',
-    tokenId: '0x00000000000000000000000001b69b4bd9b38eec',
-    expected: [
-      {
-        blockNumber: 70296217,
-        holder: '0x433097a1C1b8a3e9188d8C54eCC057B1D69f1638',
-        owner: '0x433097a1C1b8a3e9188d8C54eCC057B1D69f1638',
-        remark: '',
-        timestamp: 1736497873000,
-        transactionHash: '0xd969279724429eb157e5f2fd8cda95acfe22010319ac532d92ba5e466c2cbf96',
-        transactionIndex: 2,
-        type: 'INITIAL',
-      },
-      {
-        blockNumber: 70811418,
-        holder: '0xCA93690Bb57EEaB273c796a9309246BC0FB93649',
-        owner: '0x433097a1C1b8a3e9188d8C54eCC057B1D69f1638',
-        remark: '�:f',
-        timestamp: 1737907412000,
-        transactionHash: '0x5be12721404701df22e3fa80334e1933a2df4b86718d4e832de2704cf143676c',
-        transactionIndex: 1,
-        type: 'TRANSFER_HOLDER',
-      },
-    ],
-    timeout: 180_000,
-  },
-  {
-    rpcUrl: `https://polygon-mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
-    description: 'Token Registry V4 with Transfer, Surrender, Burnt events - Polygon',
-    tokenRegistryAddress: '0xFeC7d50A4062497710AC93AF802988FA47b2b8F5',
-    tokenId: '0x2e9846da5cbebf0c7eaddaafa97ece7923942159189b5bb2d02c879aa75a508a',
-    expected: [
-      {
-        blockNumber: 60090340,
-        holder: '0xAd153016cc1372EB79918EeC975246D01aFd02f5',
-        owner: '0xAd153016cc1372EB79918EeC975246D01aFd02f5',
-        remark: '',
-        timestamp: 1722567751000,
-        transactionHash: '0x209d54e0d8b784820bbfe44267914fee29a23bb32ca1cd1eecfaaee97ad854c4',
-        transactionIndex: 116,
-        type: 'INITIAL',
-      },
-      {
-        blockNumber: 60090715,
-        holder: '0xA3ad8adc178584327043DB5f4F531ee15B41D975',
-        owner: '0x0305C336BE1d92633A932bd28c8Ce34483288D42',
-        remark: '',
-        timestamp: 1722568625000,
-        transactionHash: '0x6e6efa4af4636303089c18f944c7f651d6b5f8d9337edab67c2e64a75321ab1e',
-        transactionIndex: 139,
-        type: 'TRANSFER_OWNERS',
-      },
-      {
-        blockNumber: 60097730,
-        holder: '0x0305C336BE1d92633A932bd28c8Ce34483288D42',
-        owner: '0x0305C336BE1d92633A932bd28c8Ce34483288D42',
-        remark: '',
-        timestamp: 1722584467000,
-        transactionHash: '0x545f8a22bb7690e8e6640d9934cf5cec9eb10e359b5b764c9a1e4f4ed03fbe4a',
-        transactionIndex: 35,
-        type: 'TRANSFER_HOLDER',
-      },
-      {
-        blockNumber: 60097748,
-        holder: '0x0305C336BE1d92633A932bd28c8Ce34483288D42',
-        owner: '0x0305C336BE1d92633A932bd28c8Ce34483288D42',
-        remark: '',
-        timestamp: 1722584505000,
-        transactionHash: '0xfdca6ff50b90076bffd517ec80faeb47cbb1e07ea7c250f465b48cbf24db9ad7',
-        transactionIndex: 46,
-        type: 'SURRENDERED',
-      },
-      {
-        blockNumber: 60868996,
-        holder: '0x0305C336BE1d92633A932bd28c8Ce34483288D42',
-        owner: '0x0305C336BE1d92633A932bd28c8Ce34483288D42',
-        remark: '',
-        timestamp: 1724261923000,
-        transactionHash: '0xe31a16c94f5578023b7754f9e964ed378c41d1bf167071c5dfc4eb81844eedcf',
-        transactionIndex: 93,
-        type: 'SURRENDER_REJECTED',
-      },
-    ],
-    timeout: 180_000,
-  },
-  {
-    rpcUrl: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
-    description: 'Token Registry V4 with Transfer, Surrender, Burnt events - Ethereum',
-    tokenRegistryAddress: '0x1550DD7B63a52356194aBBe5dfeCDe3f322FF335',
-    tokenId: '0x75f52c9fca67f19e913186ba5feed72ba799285f32ed3f30ec7768a73b71df90',
-    expected: [
-      {
-        blockNumber: 17911901,
-        holder: '0xDC674219c4057d7795d9dA3d6AB3d301BF16355D',
-        owner: '0xDC674219c4057d7795d9dA3d6AB3d301BF16355D',
-        remark: '',
-        timestamp: 1692001811000,
-        transactionHash: '0xe227d8895c39f3275d3b60867dd7e1244dbde44178ddedc82fbd166b55b3bc16',
-        transactionIndex: 556,
-        type: 'INITIAL',
-      },
-    ],
-    timeout: 180_000,
-  },
-  {
-    rpcUrl: `https://rpc.ankr.com/polygon_amoy/${process.env.ANKR_API_KEY}`,
-    description: 'Invalid Token Registry Version - Amoy',
-    tokenRegistryAddress: '0x96cc41e7007dee20eb409586e2e8206d5053219b',
-    tokenId: '0xd97a8af5c38157b95c558b7801862f4b53171149926d76d0c5b2b279016eed0a',
-    expectedError: 'Only Token Registry V4/V5 is supported',
-    timeout: 180_000,
-  },
-];
-
 describe.concurrent('fetch endorsement chain', () => {
   testCases
-    .filter((a) => !a.rpcUrl.includes('undefined'))
+    .filter((a) => !a.mock && !process.env.CI)
     .forEach(
       ({
         rpcUrl,
@@ -792,4 +49,151 @@ describe.concurrent('fetch endorsement chain', () => {
         );
       },
     );
+
+  it('default test', () => true);
+});
+
+// Mocked test cannot run concurrently
+describe('fetch endorsement chain - Mocked', () => {
+  testCases
+    .filter((a) => a.mock)
+    .forEach(
+      ({
+        rpcUrl,
+        description,
+        tokenRegistryAddress,
+        tokenId,
+        expected,
+        expectedError,
+        timeout,
+        mock,
+      }) => {
+        it.each([
+          {
+            Provider: provider,
+            name: 'ethers v5 provider',
+          },
+          {
+            Provider: providerV6,
+            name: 'ethers v6 provider',
+          },
+        ])(
+          `should work correctly for ${description}, $name`,
+          async ({ Provider }) => {
+            if (mock) {
+              const grouped = _.groupBy(mock, 'function');
+              for (const [group, value] of Object.entries(
+                grouped as { [key: string]: { function: string; params: any; result: any }[] },
+              )) {
+                const originalMethod = (Provider.prototype as any)[group];
+                vi.spyOn(Provider.prototype, group as any).mockImplementation(async function (
+                  this: InstanceType<typeof Provider>,
+                  ...params: any[]
+                ) {
+                  const cache = new Map();
+                  for (const item of value) {
+                    cache.set(JSON.stringify(item.params), item.result);
+                  }
+                  if (cache.has(JSON.stringify(params))) {
+                    return cache.get(JSON.stringify(params));
+                  } else {
+                    console.log(group, `~ params`, params);
+                    const result = await originalMethod.apply(this, params);
+                    console.log(group, `~ result`, params, result);
+                    cache.set(JSON.stringify(params), result);
+                    return result;
+                  }
+                });
+              }
+            }
+
+            const provider = new Provider(rpcUrl);
+            if (expectedError) {
+              await expect(
+                fetchEndorsementChain(tokenRegistryAddress, tokenId, provider),
+              ).rejects.toThrow(expectedError);
+            } else {
+              const result = await fetchEndorsementChain(tokenRegistryAddress, tokenId, provider);
+              expect(result).toBeTruthy();
+              expect(result).toStrictEqual(expected);
+            }
+          },
+          timeout,
+        );
+      },
+    );
+
+  it('default test', () => true);
+});
+
+describe('fetch endorsement chain - Mocked - Web Provider', () => {
+  it.each([testCases[0], testCases[1]])(
+    '$description - fetch with ethers v5 Web3Provider',
+    { timeout: 180_000 },
+    async ({ rpcUrl, tokenRegistryAddress, tokenId, expected, mock }) => {
+      const _provider = new ethersV6.JsonRpcProvider(rpcUrl);
+
+      const grouped = _.groupBy(mock, 'function');
+      for (const [group, value] of Object.entries(
+        grouped as { [key: string]: { function: string; params: any; result: any }[] },
+      )) {
+        vi.spyOn(ethers.providers.Web3Provider.prototype, group as any).mockImplementation(
+          async (...params: any[]) => {
+            const cache = new Map();
+            for (const item of value) {
+              cache.set(JSON.stringify(item.params), item.result);
+            }
+            if (cache.has(JSON.stringify(params))) {
+              return cache.get(JSON.stringify(params));
+            } else {
+              const result = await (_provider as any)[group](...params);
+              cache.set(JSON.stringify(params), result);
+              return result;
+            }
+          },
+        );
+      }
+
+      const provider = new ethers.providers.Web3Provider(generateTestingUtils().getProvider());
+
+      const result = await fetchEndorsementChain(tokenRegistryAddress, tokenId, provider);
+      expect(result).toBeTruthy();
+      expect(result).toStrictEqual(expected);
+    },
+  );
+
+  it.each([testCases[0], testCases[1]])(
+    '$description - fetch with ethers v6 BrowserProvider',
+    { timeout: 180_000 },
+    async ({ rpcUrl, tokenRegistryAddress, tokenId, expected, mock }) => {
+      const _provider = new ethersV6.JsonRpcProvider(rpcUrl);
+
+      const grouped = _.groupBy(mock, 'function');
+      for (const [group, value] of Object.entries(
+        grouped as { [key: string]: { function: string; params: any; result: any }[] },
+      )) {
+        vi.spyOn(ethersV6.BrowserProvider.prototype, group as any).mockImplementation(
+          async (...params: any[]) => {
+            const cache = new Map();
+            for (const item of value) {
+              cache.set(JSON.stringify(item.params), item.result);
+            }
+            if (cache.has(JSON.stringify(params))) {
+              return cache.get(JSON.stringify(params));
+            } else {
+              const result = await (_provider as any)[group](...params);
+              cache.set(JSON.stringify(params), result);
+              return result;
+            }
+          },
+        );
+      }
+
+      const provider = new ethersV6.BrowserProvider(generateTestingUtils().getProvider());
+
+      const result = await fetchEndorsementChain(tokenRegistryAddress, tokenId, provider);
+      expect(result).toBeTruthy();
+      expect(result).toStrictEqual(expected);
+    },
+  );
 });

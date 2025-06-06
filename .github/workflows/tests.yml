@@ -1,5 +1,8 @@
 on:
   workflow_call:
+    secrets:
+      ANKR_API_KEY:
+        required: true
 
 env:
   NODE_ENV: ci
@@ -29,6 +32,8 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - run: npm run test
+        env:
+          ANKR_API_KEY: ${{ secrets.ANKR_API_KEY }}
 
   test-build:
     name: Test Build
