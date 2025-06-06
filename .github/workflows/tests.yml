@@ -1,5 +1,8 @@
 on:
   workflow_call:
+    secrets:
+      ANKR_API_KEY:
+        required: true
 
 env:
   NODE_ENV: ci
