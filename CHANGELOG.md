@@ -1,3 +1,10 @@
+## [1.4.13-alpha.1](https://github.com/TrustVC/trustvc/compare/v1.4.12...v1.4.13-alpha.1) (2025-06-06)
+
+
+### Bug Fixes
+
+* useEndorsementChain fetch log error ([#67](https://github.com/TrustVC/trustvc/issues/67)) ([67a4792](https://github.com/TrustVC/trustvc/commit/67a479297c65ed01b60273b6aaf2ec7dbe16a1f2))
+
 ## [1.4.12](https://github.com/TrustVC/trustvc/compare/v1.4.11...v1.4.12) (2025-05-30)
 
 
