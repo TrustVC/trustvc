@@ -146,6 +146,7 @@
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-prettier": "^5.2.6",
     "eslint-plugin-promise": "^7.2.1",
+    "eth-testing": "^1.14.0",
     "execa": "^9.5.2",
     "husky": "^9.1.7",
     "lint-staged": "^15.5.1",
