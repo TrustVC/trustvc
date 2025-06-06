@@ -3926,23 +3926,25 @@ describe('fetch endorsement chain - Mocked', () => {
               for (const [group, value] of Object.entries(
                 grouped as { [key: string]: { function: string; params: any; result: any }[] },
               )) {
-                vi.spyOn(Provider.prototype, group as any).mockImplementation(
-                  async (...params: any[]) => {
-                    const cache = new Map();
-                    for (const item of value) {
-                      cache.set(JSON.stringify(item.params), item.result);
-                    }
-                    if (cache.has(JSON.stringify(params))) {
-                      return cache.get(JSON.stringify(params));
-                    } else {
-                      console.log(group, '~ params', params);
-                      const result = await (Provider.prototype as any)[group](...params);
-                      console.log(group, '~ result', params, result);
-                      cache.set(JSON.stringify(params), result);
-                      return result;
-                    }
-                  },
-                );
+                const originalMethod = (Provider.prototype as any)[group];
+                vi.spyOn(Provider.prototype, group as any).mockImplementation(async function (
+                  this: InstanceType<typeof Provider>,
+                  ...params: any[]
+                ) {
+                  const cache = new Map();
+                  for (const item of value) {
+                    cache.set(JSON.stringify(item.params), item.result);
+                  }
+                  if (cache.has(JSON.stringify(params))) {
+                    return cache.get(JSON.stringify(params));
+                  } else {
+                    console.log(group, `~ params`, params);
+                    const result = await originalMethod.apply(this, params);
+                    console.log(group, `~ result`, params, result);
+                    cache.set(JSON.stringify(params), result);
+                    return result;
+                  }
+                });
               }
             }
 
@@ -3985,9 +3987,7 @@ describe('fetch endorsement chain - Web Provider', () => {
             if (cache.has(JSON.stringify(params))) {
               return cache.get(JSON.stringify(params));
             } else {
-              console.log(group, '~ params', params);
               const result = await (_provider as any)[group](...params);
-              console.log(group, '~ result', params, result);
               cache.set(JSON.stringify(params), result);
               return result;
             }
@@ -4024,7 +4024,6 @@ describe('fetch endorsement chain - Web Provider', () => {
             } else {
               const result = await (_provider as any)[group](...params);
               cache.set(JSON.stringify(params), result);
-              console.log(group, '~ result', params, result);
               return result;
             }
           },
