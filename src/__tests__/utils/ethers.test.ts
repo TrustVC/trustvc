@@ -34,11 +34,11 @@ describe('Ethers Utils', () => {
       expect(() => isV6EthersProvider(notProvider)).toThrowError('Unknown provider type');
     });
 
-    it('should return false for null', () => {
+    it('should throw for null', () => {
       expect(() => isV6EthersProvider(null)).toThrowError('Unknown provider type');
     });
 
-    it('should return false for undefined', () => {
+    it('should throw for undefined', () => {
       expect(() => isV6EthersProvider(undefined)).toThrowError('Unknown provider type');
     });
   });
