@@ -17,7 +17,9 @@ export const w3cSignatureIntegrity: Verifier<VerificationFragment> = {
 
   test: (document: unknown) => {
     const doc = document as SignedVerifiableCredential;
-    return doc.proof?.type === 'BbsBlsSignature2020';
+    return (
+      doc.proof?.type === 'BbsBlsSignature2020' || doc.proof?.type === 'BbsBlsSignatureProof2020'
+    );
   },
 
   verify: async (document: unknown, verifierOptions: VerifierOptions) => {
