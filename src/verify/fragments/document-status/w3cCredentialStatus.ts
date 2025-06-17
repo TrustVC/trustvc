@@ -7,20 +7,18 @@ import { CredentialStatus, isSignedDocument, verifyCredentialStatus } from '@tru
 import { SignedVerifiableCredential } from '../../..';
 //w3cCredentialStatus enums
 export enum W3CCredentialStatusCode {
-  UNEXPECTED_ERROR = 0,
+  SKIPPED = 0,
   DOCUMENT_NOT_ISSUED = 1,
-  CONTRACT_ADDRESS_INVALID = 2,
-  ETHERS_UNHANDLED_ERROR = 3,
-  SKIPPED = 4,
-  DOCUMENT_REVOKED = 5,
-  DOCUMENT_SUSPENDED = 10,
-  DOCUMENT_REVOKED_AND_SUSPENDED = 11,
-  INVALID_ARGUMENT = 6,
-  CONTRACT_NOT_FOUND = 404,
-  INVALID_ISSUERS = 7,
+  DOCUMENT_REVOKED = 11,
+  DOCUMENT_SUSPENDED = 12,
+  DOCUMENT_REVOKED_AND_SUSPENDED = 101,
+  STATUS_LIST_NOT_FOUND = 404,
   INVALID_VALIDATION_METHOD = 8,
   UNRECOGNIZED_DOCUMENT = 9,
   SERVER_ERROR = 500,
+  UNEXPECTED_ERROR = 4,
+  INVALID_ARGUMENT = 6,
+  INVALID_ISSUERS = 7,
 }
 export const w3cCredentialStatus: Verifier<VerificationFragment> = {
   skip: async () => {
@@ -28,7 +26,7 @@ export const w3cCredentialStatus: Verifier<VerificationFragment> = {
       type: 'DOCUMENT_STATUS',
       name: 'W3CCredentialStatus',
       reason: {
-        code: 0,
+        code: W3CCredentialStatusCode.SKIPPED,
         codeString: 'SKIPPED',
         message: `Document does not have a valid credentialStatus or type.`,
       },
@@ -73,7 +71,7 @@ export const w3cCredentialStatus: Verifier<VerificationFragment> = {
         type: 'DOCUMENT_STATUS',
         name: 'W3CCredentialStatus',
         reason: {
-          code: W3CCredentialStatusCode.ETHERS_UNHANDLED_ERROR,
+          code: W3CCredentialStatusCode.UNEXPECTED_ERROR,
           codeString: 'ERROR',
           message: verificationResult.map((r) => r.error).join(', '),
         },
@@ -104,7 +102,11 @@ export const w3cCredentialStatus: Verifier<VerificationFragment> = {
             : hasRevocation
               ? 'REVOKED'
               : 'SUSPENDED',
-          message: 'Document has been revoked or suspended.',
+          message: hasRevocationAndSuspension
+            ? 'Document has been revoked and suspended.'
+            : hasRevocation
+              ? 'Document has been revoked.'
+              : 'Document has been suspended.',
         },
       };
     }
