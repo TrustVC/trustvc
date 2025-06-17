@@ -238,7 +238,6 @@ describe.concurrent('W3C verify', () => {
           statusListIndex: '131072',
         },
       };
-      console.log(await verifyDocument(tampered));
       expect(await verifyDocument(tampered)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
