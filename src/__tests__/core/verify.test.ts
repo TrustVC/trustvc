@@ -237,12 +237,14 @@ describe.concurrent('W3C verify', () => {
           statusListIndex: '131072',
         },
       };
-
+      console.log(await verifyDocument(tampered));
       expect(await verifyDocument(tampered)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             name: 'W3CCredentialStatus',
             reason: {
+              code: 3,
+              codeString: 'ERROR',
               message: 'Invalid statusListIndex: Index out of range: min=0, max=131071',
             },
             status: 'ERROR',
