@@ -114,11 +114,7 @@
     }
   },
   "dependencies": {
-<<<<<<< HEAD
     "@tradetrust-tt/dnsprove": "^2.18.0",
-=======
-    "@tradetrust-tt/dnsprove": "^2.17.0",
->>>>>>> 3c6c9c7 (fix: upgrade package (#73))
     "@tradetrust-tt/ethers-aws-kms-signer": "^2.1.4",
     "@tradetrust-tt/token-registry-v4": "npm:@tradetrust-tt/token-registry@^4.16.0",
     "@tradetrust-tt/token-registry-v5": "npm:@tradetrust-tt/token-registry@^5.5.0",
