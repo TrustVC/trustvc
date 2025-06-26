@@ -189,7 +189,6 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
           holderAddress: '0xholder',
           tokenId: 1,
         };
-
     const txHash = isV5TT ? 'v5_transfer_holder_tx_hash' : 'v4_transfer_holder_tx_hash';
 
     it('throws error if titleEscrowAddress is missing ', async () => {
@@ -529,7 +528,6 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
           remarks: '0xencrypted_remarks',
         }
       : { newBeneficiaryAddress: '0xbeneficiary', newHolderAddress: '0xholder' };
-
     const txHash = isV5TT ? 'v5_transfer_owners_tx_hash' : 'v4_transfer_owners_tx_hash';
 
     it('throws error if titleEscrowAddress is missing ', async () => {
