@@ -109,9 +109,7 @@ export const getTitleEscrowAddress = async (
     titleEscrowVersion?: 'v4' | 'v5';
   },
 ): Promise<string> => {
-  console.log('i am here 1');
   const titleEscrowOwner = await getDocumentOwner(tokenRegistryAddress, tokenId, provider);
-  console.log('i am here 2');
   const BURN_ADDRESS = '0x000000000000000000000000000000000000dEaD';
   const isInactiveEscrow = [BURN_ADDRESS, tokenRegistryAddress]
     .map((address) => address.toLowerCase())

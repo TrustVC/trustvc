@@ -25,8 +25,7 @@
     "skipLibCheck": true,
     "noUncheckedIndexedAccess": true,
     "noEmit": true,
-    "downlevelIteration": true,
-    "types": ["vitest"]
+    "downlevelIteration": true
   },
   "buildOptions": {
     "outDir": "./dist",
