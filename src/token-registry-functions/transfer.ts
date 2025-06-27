@@ -278,7 +278,6 @@ const transferBeneficiary = async (
 
   const txOptions =
     maxFeePerGas && maxPriorityFeePerGas ? { maxFeePerGas, maxPriorityFeePerGas } : undefined;
-  console.log('txoption', txOptions, isV4TT, isV5TT);
   // Send the actual transaction
   if (isV5TT) {
     const tx = await (titleEscrowContract as v5Contracts.TitleEscrow).transferBeneficiary(
@@ -286,14 +285,12 @@ const transferBeneficiary = async (
       encryptedRemarks,
       txOptions,
     );
-    console.log('isV5TT', tx);
     return tx;
   } else if (isV4TT) {
     const tx = await (titleEscrowContract as v4Contracts.TitleEscrow).transferBeneficiary(
       newBeneficiaryAddress,
       txOptions,
     );
-    console.log('isV4TT', tx);
     return tx;
   }
 };
