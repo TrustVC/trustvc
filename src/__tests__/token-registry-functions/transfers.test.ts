@@ -154,30 +154,31 @@ const providers: ProviderInfo[] = [
     titleEscrowVersion: 'v4',
   },
 ];
-describe.each(providers)(
-  `transfer holder with TR Version $titleEscrowVersion and ethers version $ethersVersion`,
-  async ({ Provider, ethersVersion, titleEscrowVersion }) => {
-    beforeEach(() => {
-      vi.clearAllMocks();
-    });
-    let wallet: ethersV5.Wallet | ethersV6.Wallet;
-    if (ethersVersion === 'v5') {
-      wallet = new WalletV5(PRIVATE_KEY, Provider as any) as ethersV5.Wallet;
-      //   wallet = {
-      //     ...wallet,
-      //     address: '0xcurrent_holder',
-      //     getChainId: vi.fn().mockResolvedValue(CHAIN_ID.mainnet as unknown as number),
-      //   } as any;
-      vi.spyOn(wallet, 'getChainId').mockResolvedValue(CHAIN_ID.mainnet as unknown as number);
-    } else {
-      wallet = new WalletV6(PRIVATE_KEY, Provider as any);
-      vi.spyOn(Provider, 'getNetwork').mockResolvedValue({
-        chainId: CHAIN_ID.mainnet,
-      } as unknown as Network);
-      //   vi.spyOn(wallet, 'getAddress').mockResolvedValue('0xcurrent_holder');
-    }
-    const isV5TT = titleEscrowVersion === 'v5';
-    const mockTitleEscrowContract = isV5TT ? mockV5TitleEscrowContract : mockV4TitleEscrowContract;
+describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEscrowVersion }) => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+  let wallet: ethersV5.Wallet | ethersV6.Wallet;
+  if (ethersVersion === 'v5') {
+    wallet = new WalletV5(PRIVATE_KEY, Provider as any) as ethersV5.Wallet;
+    //   wallet = {
+    //     ...wallet,
+    //     address: '0xcurrent_holder',
+    //     getChainId: vi.fn().mockResolvedValue(CHAIN_ID.mainnet as unknown as number),
+    //   } as any;
+    vi.spyOn(wallet, 'getChainId').mockResolvedValue(CHAIN_ID.mainnet as unknown as number);
+  } else {
+    wallet = new WalletV6(PRIVATE_KEY, Provider as any);
+    vi.spyOn(Provider, 'getNetwork').mockResolvedValue({
+      chainId: CHAIN_ID.mainnet,
+    } as unknown as Network);
+    //   vi.spyOn(wallet, 'getAddress').mockResolvedValue('0xcurrent_holder');
+  }
+  const isV5TT = titleEscrowVersion === 'v5';
+  const mockTitleEscrowContract = isV5TT ? mockV5TitleEscrowContract : mockV4TitleEscrowContract;
+  const titleEscrowAddress = isV5TT ? '0xv5contract' : '0xv4contract';
+
+  describe(`transfer holder with TR Version $titleEscrowVersion and ethers version $ethersVersion`, () => {
     const params = isV5TT
       ? {
           holderAddress: '0xholder',
@@ -188,7 +189,7 @@ describe.each(providers)(
           holderAddress: '0xholder',
           tokenId: 1,
         };
-    const titleEscrowAddress = isV5TT ? '0xv5contract' : '0xv4contract';
+
     const txHash = isV5TT ? 'v5_transfer_holder_tx_hash' : 'v4_transfer_holder_tx_hash';
 
     it('throws error if titleEscrowAddress is missing ', async () => {
@@ -346,48 +347,13 @@ describe.each(providers)(
       expect(mockTitleEscrowContract.transferHolder).toHaveBeenCalledWith(...resultOptions);
       expect(tx).toBe(txHash);
     });
-  },
-);
+  });
 
-describe.each(providers)(
-  `transfer beneficiary with TR Version $titleEscrowVersion and ethers version $ethersVersion`,
-  async ({ Provider, ethersVersion, titleEscrowVersion }) => {
-    beforeEach(() => {
-      vi.clearAllMocks();
-    });
-    let wallet: ethersV5.Wallet | ethersV6.Wallet;
-    if (ethersVersion === 'v5') {
-      wallet = new WalletV5(PRIVATE_KEY, Provider as any) as ethersV5.Wallet;
-      //   wallet = {
-      //     ...wallet,
-      //     address: '0xcurrent_holder',
-      //     getChainId: vi.fn().mockResolvedValue(CHAIN_ID.mainnet as unknown as number),
-      //   } as any;
-
-      vi.spyOn(wallet, 'getChainId').mockResolvedValue(CHAIN_ID.mainnet as unknown as number);
-    } else {
-      wallet = new WalletV6(PRIVATE_KEY, Provider as any);
-      vi.spyOn(Provider, 'getNetwork').mockResolvedValue({
-        chainId: CHAIN_ID.mainnet,
-      } as unknown as Network);
-      //   vi.spyOn(wallet, 'getAddress').mockResolvedValue('0xcurrent_holder');
-    }
-
-    // if (ethersVersion === 'v5') {
-    //   wallet = new WalletV5(PRIVATE_KEY, Provider as any);
-    //   vi.spyOn(wallet, 'getChainId').mockResolvedValue(CHAIN_ID.mainnet as unknown as number);
-    // } else {
-    //   wallet = new WalletV6(PRIVATE_KEY, Provider as any);
-    //   vi.spyOn(Provider, 'getNetwork').mockResolvedValue({
-    //     chainId: CHAIN_ID.mainnet,
-    //   } as unknown as Network);
-    // }
-    const isV5TT = titleEscrowVersion === 'v5';
-    const mockTitleEscrowContract = isV5TT ? mockV5TitleEscrowContract : mockV4TitleEscrowContract;
+  describe(`transfer beneficiary with TR Version $titleEscrowVersion and ethers version $ethersVersion`, () => {
     const params = isV5TT
       ? { newBeneficiaryAddress: '0xbeneficiary', remarks: '0xencrypted_remarks', tokenId: 1 }
       : { newBeneficiaryAddress: '0xbeneficiary', tokenId: 1 };
-    const titleEscrowAddress = isV5TT ? '0xv5contract' : '0xv4contract';
+
     const txHash = isV5TT ? 'v5_transfer_beneficiary_tx_hash' : 'v4_transfer_beneficiary_tx_hash';
 
     it('throws error if titleEscrowAddress is missing ', async () => {
@@ -553,27 +519,9 @@ describe.each(providers)(
       expect(mockTitleEscrowContract.transferBeneficiary).toHaveBeenCalledWith(...resultOptions);
       expect(tx).toBe(txHash);
     });
-  },
-);
+  });
 
-describe.each(providers)(
-  `transfer owners with TR Version $titleEscrowVersion and ethers version $ethersVersion`,
-  async ({ Provider, ethersVersion, titleEscrowVersion }) => {
-    beforeEach(() => {
-      vi.clearAllMocks();
-    });
-    let wallet: ethersV5.Wallet | ethersV6.Wallet;
-    if (ethersVersion === 'v5') {
-      wallet = new WalletV5(PRIVATE_KEY, Provider as any);
-      vi.spyOn(wallet, 'getChainId').mockResolvedValue(CHAIN_ID.mainnet as unknown as number);
-    } else {
-      wallet = new WalletV6(PRIVATE_KEY, Provider as any);
-      vi.spyOn(Provider, 'getNetwork').mockResolvedValue({
-        chainId: CHAIN_ID.mainnet,
-      } as unknown as Network);
-    }
-    const isV5TT = titleEscrowVersion === 'v5';
-    const mockTitleEscrowContract = isV5TT ? mockV5TitleEscrowContract : mockV4TitleEscrowContract;
+  describe(`transfer owners with TR Version $titleEscrowVersion and ethers version $ethersVersion`, () => {
     const params = isV5TT
       ? {
           newBeneficiaryAddress: '0xbeneficiary',
@@ -581,7 +529,7 @@ describe.each(providers)(
           remarks: '0xencrypted_remarks',
         }
       : { newBeneficiaryAddress: '0xbeneficiary', newHolderAddress: '0xholder' };
-    const titleEscrowAddress = isV5TT ? '0xv5contract' : '0xv4contract';
+
     const txHash = isV5TT ? 'v5_transfer_owners_tx_hash' : 'v4_transfer_owners_tx_hash';
 
     it('throws error if titleEscrowAddress is missing ', async () => {
@@ -752,32 +700,13 @@ describe.each(providers)(
       expect(mockTitleEscrowContract.transferOwners).toHaveBeenCalledWith(...resultOptions);
       expect(tx).toBe(txHash);
     });
-  },
-);
+  });
 
-describe.each(providers)(
-  `nominate with TR Version $titleEscrowVersion and ethers version $ethersVersion`,
-  async ({ Provider, ethersVersion, titleEscrowVersion }) => {
-    beforeEach(() => {
-      vi.clearAllMocks();
-    });
-    let wallet: ethersV5.Wallet | ethersV6.Wallet;
-    if (ethersVersion === 'v5') {
-      wallet = new WalletV5(PRIVATE_KEY, Provider as any);
-      vi.spyOn(wallet, 'getChainId').mockResolvedValue(CHAIN_ID.mainnet as unknown as number);
-      //   vi.spyOn(wallet, 'getSigner').mockResolvedValue("");
-    } else {
-      wallet = new WalletV6(PRIVATE_KEY, Provider as any);
-      vi.spyOn(Provider, 'getNetwork').mockResolvedValue({
-        chainId: CHAIN_ID.mainnet,
-      } as unknown as Network);
-    }
-    const isV5TT = titleEscrowVersion === 'v5';
-    const mockTitleEscrowContract = isV5TT ? mockV5TitleEscrowContract : mockV4TitleEscrowContract;
+  describe(`nominate with TR Version $titleEscrowVersion and ethers version $ethersVersion`, () => {
     const params = isV5TT
       ? { newBeneficiaryAddress: '0xbeneficiary', remarks: '0xencrypted_remarks', tokenId: 1 }
       : { newBeneficiaryAddress: '0xbeneficiary', tokenId: 1 };
-    const titleEscrowAddress = isV5TT ? '0xv5contract' : '0xv4contract';
+
     const txHash = isV5TT ? 'v5_nominate_tx_hash' : 'v4_nominate_tx_hash';
 
     it('throws error if titleEscrowAddress is missing ', async () => {
@@ -941,5 +870,5 @@ describe.each(providers)(
       expect(mockTitleEscrowContract.nominate).toHaveBeenCalledWith(...resultOptions);
       expect(tx).toBe(txHash);
     });
-  },
-);
+  });
+});
