@@ -20,7 +20,7 @@ import {
   v5ComputeInterfaceId,
 } from './token-registry-v5';
 export type { TypedContractMethod } from './token-registry-v5/typedContractMethod';
-
+export * from './token-registry-functions';
 export * from './core';
 export * from './open-attestation';
 export * from './verify';
