@@ -1,3 +1,15 @@
+## [1.6.0-alpha.1](https://github.com/TrustVC/trustvc/compare/v1.5.3...v1.6.0-alpha.1) (2025-06-30)
+
+
+### Features
+
+* token registry functions ([#74](https://github.com/TrustVC/trustvc/issues/74)) ([5690fcd](https://github.com/TrustVC/trustvc/commit/5690fcda798192609b0060fab0a3f3f77dca8012))
+
+
+### Miscellaneous Chores
+
+* back merge ([#75](https://github.com/TrustVC/trustvc/issues/75)) ([7cc1891](https://github.com/TrustVC/trustvc/commit/7cc1891ffebceb4eebf1421d3bc348926efa3f10)), closes [#72](https://github.com/TrustVC/trustvc/issues/72) [#72](https://github.com/TrustVC/trustvc/issues/72) [#73](https://github.com/TrustVC/trustvc/issues/73) [#73](https://github.com/TrustVC/trustvc/issues/73)
+
 ## [1.5.5](https://github.com/TrustVC/trustvc/compare/v1.5.4...v1.5.5) (2025-06-18)
 
 
