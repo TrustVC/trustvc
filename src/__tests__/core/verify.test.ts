@@ -8,6 +8,7 @@ import {
   WRAPPED_DOCUMENT_DID_TOKEN_REGISTRY_V3,
   WRAPPED_DOCUMENT_DNS_TXT_V2,
 } from '../fixtures/fixtures';
+import { W3CCredentialStatusCode } from 'src/verify/fragments/document-status/w3cCredentialStatus';
 
 const providerUrl = 'https://rpc-amoy.polygon.technology';
 
@@ -98,7 +99,7 @@ describe.concurrent('W3C verify', () => {
           expect.objectContaining({
             name: 'W3CSignatureIntegrity',
             reason: {
-              code: 0,
+              code: W3CCredentialStatusCode.SKIPPED,
               codeString: 'SKIPPED',
               message: "Document either has no proof or proof.type is not 'BbsBlsSignature2020'.",
             },
@@ -120,7 +121,7 @@ describe.concurrent('W3C verify', () => {
           expect.objectContaining({
             name: 'W3CIssuerIdentity',
             reason: {
-              code: 0,
+              code: W3CCredentialStatusCode.SKIPPED,
               codeString: 'SKIPPED',
               message: 'Document has no issuer field.',
             },
@@ -188,7 +189,7 @@ describe.concurrent('W3C verify', () => {
           expect.objectContaining({
             name: 'W3CCredentialStatus',
             reason: {
-              code: 0,
+              code: W3CCredentialStatusCode.SKIPPED,
               codeString: 'SKIPPED',
               message: 'Document does not have a valid credentialStatus or type.',
             },
@@ -237,12 +238,13 @@ describe.concurrent('W3C verify', () => {
           statusListIndex: '131072',
         },
       };
-
       expect(await verifyDocument(tampered)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             name: 'W3CCredentialStatus',
             reason: {
+              code: W3CCredentialStatusCode.UNEXPECTED_ERROR,
+              codeString: 'ERROR',
               message: 'Invalid statusListIndex: Index out of range: min=0, max=131071',
             },
             status: 'ERROR',
@@ -328,7 +330,7 @@ describe.concurrent('W3C verify', () => {
             expect.objectContaining({
               name: 'TransferableRecords',
               reason: {
-                code: 9,
+                code: W3CCredentialStatusCode.UNRECOGNIZED_DOCUMENT,
                 codeString: 'UNRECOGNIZED_DOCUMENT',
                 message: "Document's credentialStatus does not have tokenRegistry",
               },
@@ -358,7 +360,7 @@ describe.concurrent('W3C verify', () => {
           expect.objectContaining({
             name: 'TransferableRecords',
             reason: {
-              code: 9,
+              code: W3CCredentialStatusCode.UNRECOGNIZED_DOCUMENT,
               codeString: 'UNRECOGNIZED_DOCUMENT',
               message: "Document's credentialStatus does not have tokenNetwork.chainId",
             },
@@ -384,7 +386,7 @@ describe.concurrent('W3C verify', () => {
           expect.objectContaining({
             name: 'TransferableRecords',
             reason: {
-              code: 1,
+              code: W3CCredentialStatusCode.DOCUMENT_NOT_ISSUED,
               codeString: 'DOCUMENT_NOT_MINTED',
               message: 'Document has not been issued under token registry',
             },
