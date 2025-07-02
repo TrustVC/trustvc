@@ -8,6 +8,18 @@ export type GasValue = BigNumber | BigNumberish | string | number;
 export interface RejectTransferParams {
   remarks?: string;
 }
+export interface ReturnToIssuerParams {
+  remarks?: string;
+}
+
+export interface AcceptReturnedParams {
+  tokenId: string | number;
+  remarks?: string;
+}
+export interface RejectReturnedParams {
+  tokenId: string | number;
+  remarks?: string;
+}
 
 export interface TransactionOptions {
   chainId?: CHAIN_ID;
@@ -28,6 +40,13 @@ export type ContractOptions =
       tokenId: string | number;
       tokenRegistryAddress: string;
     };
+
+export type AcceptReturnedOptions = {
+  tokenRegistryAddress: string;
+};
+export type RejectReturnedOptions = {
+  tokenRegistryAddress: string;
+};
 
 export interface TransferHolderParams {
   holderAddress: string;

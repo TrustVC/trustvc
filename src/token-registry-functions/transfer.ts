@@ -132,7 +132,10 @@ const transferHolder = async (
       txOptions,
     );
   } else if (isV4TT) {
-    return await titleEscrowContract.transferHolder(holderAddress, txOptions);
+    return await (titleEscrowContract as v4Contracts.TitleEscrow).transferHolder(
+      holderAddress,
+      txOptions,
+    );
   }
 };
 

@@ -145,7 +145,7 @@ export const getDocumentOwner = async (
 };
 
 // Check Title Escrow Interface Support
-const checkSupportsInterface = async (
+export const checkSupportsInterface = async (
   titleEscrowAddress: string,
   interfaceId: string,
   provider: Provider | ethersV6.Provider,
