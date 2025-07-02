@@ -9,26 +9,7 @@ vi.mock('src/core', () => ({
   getTitleEscrowAddress: vi.fn(),
   isTitleEscrowVersion: vi.fn(() => Promise.resolve(true)),
   checkSupportsInterface: vi.fn(),
-  // .mockImplementation((titleEscrowAddress: string, interfaceId: string) => {
-  //   // For V5 contract
-  //   if (titleEscrowAddress === MOCK_V5_ADDRESS) {
-  //     return Promise.resolve(
-  //       interfaceId === v5SupportInterfaceIds.TradeTrustTokenRestorable ||
-  //         interfaceId === v5SupportInterfaceIds.TitleEscrow ||
-  //         interfaceId === v5SupportInterfaceIds.TradeTrustTokenMintable,
-  //     );
-  //   }
-  //   // For V4 contract
-  //   else if (titleEscrowAddress === MOCK_V4_ADDRESS) {
-  //     return Promise.resolve(
-  //       interfaceId === v4SupportInterfaceIds.TradeTrustTokenRestorable ||
-  //         interfaceId === v4SupportInterfaceIds.TitleEscrow ||
-  //         interfaceId === v4SupportInterfaceIds.TradeTrustTokenMintable,
-  //     );
-  //   }
-  //   // Default case (not supported)
-  //   return Promise.resolve(false);
-  // }),
+
   TitleEscrowInterface: {
     V4: '0xTitleEscrowIdV4',
     V5: '0xTitleEscrowIdV5',
@@ -90,11 +71,13 @@ export const mockV5TradeTrustTokenContract = {
   callStatic: {
     burn: vi.fn(),
     restore: vi.fn(),
+    mint: vi.fn(),
   },
   supportsInterface: vi.fn(),
   titleEscrowFactory: vi.fn(() => Promise.resolve('0xV5titleescrowfactory')),
   burn: vi.fn(() => Promise.resolve('v5_burn_tx_hash')),
   restore: vi.fn(() => Promise.resolve('v5_restore_tx_hash')),
+  mint: vi.fn(() => Promise.resolve('v5_mint_tx_hash')),
 };
 
 export const mockV5TitleEscrowContract = {
@@ -149,11 +132,13 @@ export const mockV4TradeTrustTokenContract = {
   callStatic: {
     burn: vi.fn(),
     restore: vi.fn(),
+    mint: vi.fn(),
   },
   titleEscrowFactory: vi.fn(() => Promise.resolve('0xV4titleescrowfactory')),
   supportsInterface: vi.fn(),
   burn: vi.fn(() => Promise.resolve('v4_burn_tx_hash')),
   restore: vi.fn(() => Promise.resolve('v4_restore_tx_hash')),
+  mint: vi.fn(() => Promise.resolve('v4_mint_tx_hash')),
 };
 
 export const PRIVATE_KEY = '0x59c6995e998f97a5a004497e5f1ebce0c16828d44b3f8d0bfa3a89d271d5b6b9'; // random local key

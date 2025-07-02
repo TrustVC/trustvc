@@ -21,6 +21,13 @@ export interface RejectReturnedParams {
   remarks?: string;
 }
 
+export interface MintTokenParams {
+  beneficiaryAddress: string;
+  holderAddress: string;
+  tokenId: string | number;
+  remarks?: string;
+}
+
 export interface TransactionOptions {
   chainId?: CHAIN_ID;
   titleEscrowVersion?: 'v4' | 'v5';
@@ -45,6 +52,10 @@ export type AcceptReturnedOptions = {
   tokenRegistryAddress: string;
 };
 export type RejectReturnedOptions = {
+  tokenRegistryAddress: string;
+};
+
+export type MintTokenOptions = {
   tokenRegistryAddress: string;
 };
 

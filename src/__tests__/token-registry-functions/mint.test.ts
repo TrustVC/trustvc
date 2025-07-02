@@ -1,0 +1,216 @@
+import './fixtures.js';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { ethers as ethersV5, Wallet as WalletV5 } from 'ethers';
+import { Wallet as WalletV6, Network, ethers as ethersV6 } from 'ethersV6';
+import * as coreModule from 'src/core';
+
+import { CHAIN_ID } from '@tradetrust-tt/tradetrust-utils';
+import { v5Contracts } from 'src/token-registry-v5';
+import { v4Contracts } from 'src/token-registry-v4';
+import { mint } from 'src/token-registry-functions/mint';
+import {
+  MOCK_V4_ADDRESS,
+  MOCK_V5_ADDRESS,
+  mockV4TradeTrustTokenContract,
+  mockV5TradeTrustTokenContract,
+  PRIVATE_KEY,
+  providerV5,
+  providerV6,
+} from './fixtures.js';
+import { ProviderInfo } from 'src/token-registry-functions/types.js';
+
+const providers: ProviderInfo[] = [
+  {
+    Provider: providerV5,
+    ethersVersion: 'v5',
+    titleEscrowVersion: 'v5',
+  },
+  {
+    Provider: providerV5,
+    ethersVersion: 'v5',
+    titleEscrowVersion: 'v4',
+  },
+  {
+    Provider: providerV6,
+    ethersVersion: 'v6',
+    titleEscrowVersion: 'v5',
+  },
+  {
+    Provider: providerV6,
+    ethersVersion: 'v6',
+    titleEscrowVersion: 'v4',
+  },
+];
+describe('Mint Token', () => {
+  const mockTokenId = '0xTokenId';
+  const mockRemarks = 'Return remarks';
+  const mockChainId = CHAIN_ID.local;
+  describe.each(providers)(
+    'Mint Token with TR version $titleEscrowVersion and ethers version $ethersVersion',
+    async ({ Provider, ethersVersion, titleEscrowVersion }) => {
+      const isV5TT = titleEscrowVersion === 'v5';
+      //   let mockContract = isV5TT ? mockV5TradeTrustTokenContract : mockV4TradeTrustTokenContract;
+      const mockTxResponse = titleEscrowVersion === 'v5' ? 'v5_mint_tx_hash' : 'v4_mint_tx_hash';
+
+      let wallet: ethersV5.Wallet | ethersV6.Wallet;
+      if (ethersVersion === 'v5') {
+        wallet = new WalletV5(PRIVATE_KEY, Provider as any) as ethersV5.Wallet;
+        vi.spyOn(wallet, 'getChainId').mockResolvedValue(CHAIN_ID.local as unknown as number);
+      } else {
+        wallet = new WalletV6(PRIVATE_KEY, Provider as any);
+        vi.spyOn(Provider, 'getNetwork').mockResolvedValue({
+          chainId: CHAIN_ID.local,
+        } as unknown as Network);
+      }
+      const mockTokenRegistryAddress = isV5TT ? MOCK_V5_ADDRESS : MOCK_V4_ADDRESS;
+      const mockBeneficiaryAddress = '0xBeneficiaryAddress';
+      const mockHolderAddress = '0xHolderAddress';
+      //   const titleEscrowAddress = isV5TT ? '0xv5contract' : '0xv4contract';
+      beforeEach(() => {
+        vi.clearAllMocks();
+        // vi.spyOn(coreModule, 'encrypt').mockReturnValue(mockEncryptedRemarks.slice(2));
+        vi.spyOn(coreModule, 'checkSupportsInterface').mockImplementation(
+          async (address, interfaceId) => {
+            return (
+              interfaceId ===
+              (isV5TT ? '0xTradeTrustTokenMintableIdV5' : '0xTradeTrustTokenMintableIdV4')
+            );
+          },
+        );
+        mockV5TradeTrustTokenContract.callStatic.mint.mockResolvedValue(true);
+        mockV4TradeTrustTokenContract.callStatic.mint.mockResolvedValue(true);
+      });
+
+      it('should reject returned token with remarks', async () => {
+        const result = await mint(
+          { tokenRegistryAddress: mockTokenRegistryAddress },
+          wallet,
+          {
+            beneficiaryAddress: mockBeneficiaryAddress,
+            holderAddress: mockHolderAddress,
+            tokenId: mockTokenId,
+            remarks: mockRemarks,
+          },
+          { chainId: mockChainId, id: 'encryption-id' },
+        );
+
+        expect(result).toEqual(mockTxResponse);
+        if (isV5TT) expect(coreModule.encrypt).toHaveBeenCalledWith(mockRemarks, 'encryption-id');
+        expect(
+          (isV5TT ? v5Contracts : v4Contracts).TradeTrustToken__factory.connect,
+        ).toHaveBeenCalled();
+      });
+
+      it('should reject returned token without remarks', async () => {
+        const result = await mint(
+          { tokenRegistryAddress: mockTokenRegistryAddress },
+          wallet,
+          {
+            beneficiaryAddress: mockBeneficiaryAddress,
+            holderAddress: mockHolderAddress,
+            tokenId: mockTokenId,
+          },
+          { chainId: mockChainId, titleEscrowVersion },
+        );
+
+        expect(result).toEqual(mockTxResponse);
+        expect(coreModule.encrypt).not.toHaveBeenCalled();
+      });
+
+      it('should throw when callStatic fails', async () => {
+        const mockError = new Error('callStatic error');
+        if (isV5TT) {
+          mockV5TradeTrustTokenContract.callStatic.mint.mockRejectedValue(mockError);
+        } else {
+          mockV4TradeTrustTokenContract.callStatic.mint.mockRejectedValue(mockError);
+        }
+        await expect(
+          mint(
+            { tokenRegistryAddress: mockTokenRegistryAddress },
+            wallet,
+            {
+              beneficiaryAddress: mockBeneficiaryAddress,
+              holderAddress: mockHolderAddress,
+              tokenId: mockTokenId,
+              remarks: mockRemarks,
+            },
+            { chainId: mockChainId, id: 'encryption-id' },
+          ),
+        ).rejects.toThrow('Pre-check (callStatic) for acceptReturned failed');
+        if (isV5TT) {
+          mockV5TradeTrustTokenContract.callStatic.mint = vi.fn();
+        } else {
+          mockV4TradeTrustTokenContract.callStatic.mint = vi.fn();
+        }
+      });
+
+      it('should throw when token registry address is missing', async () => {
+        await expect(
+          mint(
+            { tokenRegistryAddress: '' },
+            wallet,
+            {
+              beneficiaryAddress: mockBeneficiaryAddress,
+              holderAddress: mockHolderAddress,
+              tokenId: mockTokenId,
+            },
+            { chainId: mockChainId },
+          ),
+        ).rejects.toThrow('Token registry address is required');
+      });
+
+      it('should throw when provider is missing', async () => {
+        const signerWithoutProvider = new WalletV5('0x'.padEnd(66, '1'));
+
+        await expect(
+          mint(
+            { tokenRegistryAddress: mockTokenRegistryAddress },
+            signerWithoutProvider,
+            {
+              beneficiaryAddress: mockBeneficiaryAddress,
+              holderAddress: mockHolderAddress,
+              tokenId: mockTokenId,
+              remarks: mockRemarks,
+            },
+            { chainId: mockChainId },
+          ),
+        ).rejects.toThrow('Provider is required');
+      });
+
+      it('should throw when version is unsupported', async () => {
+        vi.spyOn(coreModule, 'checkSupportsInterface').mockResolvedValue(false);
+
+        await expect(
+          mint(
+            { tokenRegistryAddress: mockTokenRegistryAddress },
+            wallet,
+            {
+              beneficiaryAddress: mockBeneficiaryAddress,
+              holderAddress: mockHolderAddress,
+              tokenId: mockTokenId,
+              remarks: mockRemarks,
+            },
+            { chainId: mockChainId },
+          ),
+        ).rejects.toThrow('Only Token Registry V4/V5 is supported');
+      });
+
+      it('should work with explicit V5/V4 version', async () => {
+        const result = await mint(
+          { tokenRegistryAddress: mockTokenRegistryAddress },
+          wallet,
+          {
+            beneficiaryAddress: mockBeneficiaryAddress,
+            holderAddress: mockHolderAddress,
+            tokenId: mockTokenId,
+            remarks: mockRemarks,
+          },
+          { chainId: mockChainId, id: 'encryption-id', titleEscrowVersion },
+        );
+
+        expect(result).toEqual(mockTxResponse);
+        expect(coreModule.checkSupportsInterface).not.toHaveBeenCalled();
+      });
+    },
+  );
+});
