@@ -350,7 +350,7 @@ describe('Return Token', () => {
         mockV4TradeTrustTokenContract.callStatic.burn.mockResolvedValue(true);
       });
 
-      it('should reject returned token with remarks', async () => {
+      it('should accept returned token with remarks', async () => {
         const result = await acceptReturned(
           { tokenRegistryAddress: mockTokenRegistryAddress },
           wallet,
@@ -365,7 +365,7 @@ describe('Return Token', () => {
         ).toHaveBeenCalled();
       });
 
-      it('should reject returned token without remarks', async () => {
+      it('should accept returned token without remarks', async () => {
         const result = await acceptReturned(
           { tokenRegistryAddress: mockTokenRegistryAddress },
           wallet,

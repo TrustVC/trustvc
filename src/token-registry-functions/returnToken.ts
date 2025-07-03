@@ -49,7 +49,7 @@ const returnToIssuer = async (
     );
   }
 
-  if (!titleEscrowAddress) throw new Error('Token registry address is required');
+  if (!titleEscrowAddress) throw new Error('Title Escrow address is required');
   if (!signer.provider) throw new Error('Provider is required');
   const { remarks } = params;
 
