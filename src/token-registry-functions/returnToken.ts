@@ -57,7 +57,7 @@ const returnToIssuer = async (
   let titleEscrowContract: v5Contracts.TitleEscrow | v4Contracts.TitleEscrow =
     v5Contracts.TitleEscrow__factory.connect(titleEscrowAddress, signer);
 
-  const encryptedRemarks = remarks ? `0x${encrypt(remarks, options.id!)}` : '0x';
+  const encryptedRemarks = remarks && options.id ? `0x${encrypt(remarks, options.id)}` : '0x';
 
   // Detect version if not explicitly provided
   let isV5TT = titleEscrowVersion === 'v5';
@@ -190,7 +190,7 @@ const rejectReturned = async (
     }
   } catch (e) {
     console.error('callStatic failed:', e);
-    throw new Error('Pre-check (callStatic) for acceptReturned failed');
+    throw new Error('Pre-check (callStatic) for rejectReturned failed');
   }
 
   const txOptions = await getTxOptions(signer, chainId, maxFeePerGas, maxPriorityFeePerGas);

@@ -2,7 +2,7 @@ import { vi } from 'vitest';
 import { ethers as ethersV5 } from 'ethers';
 import { JsonRpcProvider as JsonRpcProviderV6 } from 'ethersV6';
 export const MOCK_V5_ADDRESS = '0xV5TokenRegistryContract';
-export const MOCK_V4_ADDRESS = '0xV5TokenRegistryContract';
+export const MOCK_V4_ADDRESS = '0xV4TokenRegistryContract';
 
 vi.mock('src/core', () => ({
   encrypt: vi.fn(() => 'encrypted_remarks'),
@@ -125,7 +125,7 @@ export const mockV4TitleEscrowFactoryContract = {
   callStatic: {
     getEscrowAddress: vi.fn(),
   },
-  getAddress: vi.fn(() => Promise.resolve('0xV4titleescrow')),
+  getEscrowAddress: vi.fn(() => Promise.resolve('0xV4titleescrow')),
 };
 
 export const mockV4TradeTrustTokenContract = {

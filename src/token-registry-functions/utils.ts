@@ -27,7 +27,7 @@ const getTxOptions = async (
 // 🔍 Handles both Ethers v5 and v6 signer types
 const getChainIdSafe = async (signer: SignerV6 | Signer): Promise<bigint | number> => {
   if (isV6EthersProvider(signer.provider)) {
-    const network = await (signer as Signer).provider?.getNetwork();
+    const network = await (signer as SignerV6).provider?.getNetwork();
     if (!network?.chainId) throw new Error('Cannot determine chainId: provider is missing');
     return network.chainId;
   }

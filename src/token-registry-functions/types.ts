@@ -1,7 +1,6 @@
 import { CHAIN_ID } from '@tradetrust-tt/tradetrust-utils';
-import { BigNumber } from 'ethers';
-import { BigNumberish } from 'ethersV6';
-import { providerV5, providerV6 } from 'src/__tests__/token-registry-functions/fixtures';
+import { BigNumber, providers as providersV5 } from 'ethers';
+import { BigNumberish, Provider as ProviderV6 } from 'ethersV6';
 
 export type GasValue = BigNumber | BigNumberish | string | number;
 
@@ -76,8 +75,9 @@ export interface TransferOwnersParams {
   newBeneficiaryAddress: string;
   remarks?: string;
 }
+
 export interface ProviderInfo {
-  Provider: typeof providerV5 | typeof providerV6;
+  Provider: providersV5.Provider | ProviderV6;
   ethersVersion: 'v5' | 'v6';
   titleEscrowVersion: 'v4' | 'v5';
 }

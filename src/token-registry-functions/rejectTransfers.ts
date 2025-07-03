@@ -68,7 +68,7 @@ const rejectTransferHolder = async (
     await titleEscrowContract.callStatic.rejectTransferHolder(encryptedRemarks);
   } catch (e) {
     console.error('callStatic failed:', e);
-    throw new Error('Pre-check (callStatic) for transferHolder failed');
+    throw new Error('Pre-check (callStatic) for rejectTransferHolder failed');
   }
 
   const txOptions = await getTxOptions(signer, chainId, maxFeePerGas, maxPriorityFeePerGas);
@@ -136,7 +136,7 @@ const rejectTransferBeneficiary = async (
     await titleEscrowContract.callStatic.rejectTransferBeneficiary(encryptedRemarks);
   } catch (e) {
     console.error('callStatic failed:', e);
-    throw new Error('Pre-check (callStatic) for transferHolder failed');
+    throw new Error('Pre-check (callStatic) for rejectTransferBeneficiary failed');
   }
 
   const txOptions = await getTxOptions(signer, chainId, maxFeePerGas, maxPriorityFeePerGas);
@@ -204,7 +204,7 @@ const rejectTransferOwners = async (
     await titleEscrowContract.callStatic.rejectTransferOwners(encryptedRemarks);
   } catch (e) {
     console.error('callStatic failed:', e);
-    throw new Error('Pre-check (callStatic) for transferHolder failed');
+    throw new Error('Pre-check (callStatic) for rejectTransferOwners failed');
   }
 
   const txOptions = await getTxOptions(signer, chainId, maxFeePerGas, maxPriorityFeePerGas);

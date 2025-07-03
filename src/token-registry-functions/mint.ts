@@ -86,7 +86,7 @@ const mint = async (
     }
   } catch (e) {
     console.error('callStatic failed:', e);
-    throw new Error('Pre-check (callStatic) for acceptReturned failed');
+    throw new Error('Pre-check (callStatic) for mint failed');
   }
 
   const txOptions = await getTxOptions(signer, chainId, maxFeePerGas, maxPriorityFeePerGas);

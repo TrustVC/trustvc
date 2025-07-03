@@ -168,7 +168,7 @@ describe.each(providers)(
             { remarks: mockRemarks },
             { chainId: mockChainId, id: 'encryption-id' },
           ),
-        ).rejects.toThrow('Pre-check (callStatic) for transferHolder failed');
+        ).rejects.toThrow('Pre-check (callStatic) for rejectTransferHolder failed');
         mockV5TitleEscrowContract.callStatic.rejectTransferHolder = vi.fn();
       });
 
@@ -292,7 +292,7 @@ describe.each(providers)(
             { remarks: mockRemarks },
             { chainId: mockChainId, id: 'encryption-id' },
           ),
-        ).rejects.toThrow('Pre-check (callStatic) for transferHolder failed');
+        ).rejects.toThrow('Pre-check (callStatic) for rejectTransferBeneficiary failed');
         mockV5TitleEscrowContract.callStatic.rejectTransferBeneficiary = vi.fn();
       });
 
@@ -416,7 +416,7 @@ describe.each(providers)(
             { remarks: mockRemarks },
             { chainId: mockChainId, id: 'encryption-id' },
           ),
-        ).rejects.toThrow('Pre-check (callStatic) for transferHolder failed');
+        ).rejects.toThrow('Pre-check (callStatic) for rejectTransferOwners failed');
         mockV5TitleEscrowContract.callStatic.rejectTransferOwners = vi.fn();
       });
 

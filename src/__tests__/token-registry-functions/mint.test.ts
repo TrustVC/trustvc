@@ -43,7 +43,7 @@ const providers: ProviderInfo[] = [
 ];
 describe('Mint Token', () => {
   const mockTokenId = '0xTokenId';
-  const mockRemarks = 'Return remarks';
+  const mockRemarks = 'Mint remarks';
   const mockChainId = CHAIN_ID.local;
   describe.each(providers)(
     'Mint Token with TR version $titleEscrowVersion and ethers version $ethersVersion',
@@ -81,7 +81,7 @@ describe('Mint Token', () => {
         mockV4TradeTrustTokenContract.callStatic.mint.mockResolvedValue(true);
       });
 
-      it('should reject returned token with remarks', async () => {
+      it('should  Mint token with remarks', async () => {
         const result = await mint(
           { tokenRegistryAddress: mockTokenRegistryAddress },
           wallet,
@@ -101,7 +101,7 @@ describe('Mint Token', () => {
         ).toHaveBeenCalled();
       });
 
-      it('should reject returned token without remarks', async () => {
+      it('should mint token without remarks', async () => {
         const result = await mint(
           { tokenRegistryAddress: mockTokenRegistryAddress },
           wallet,
@@ -136,7 +136,7 @@ describe('Mint Token', () => {
             },
             { chainId: mockChainId, id: 'encryption-id' },
           ),
-        ).rejects.toThrow('Pre-check (callStatic) for acceptReturned failed');
+        ).rejects.toThrow('Pre-check (callStatic) for mint failed');
         if (isV5TT) {
           mockV5TradeTrustTokenContract.callStatic.mint = vi.fn();
         } else {

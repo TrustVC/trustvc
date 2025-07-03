@@ -81,7 +81,7 @@ describe('Return Token', () => {
             return versionInterface === (isV5TT ? '0xTitleEscrowIdV5' : '0xTitleEscrowIdV4');
           },
         );
-        mockV5TitleEscrowContract.callStatic.rejectTransferHolder.mockResolvedValue(true);
+        mockV5TitleEscrowContract.callStatic.returnToIssuer.mockResolvedValue(true);
         mockV4TitleEscrowContract.callStatic.surrender.mockResolvedValue(true);
       });
 
@@ -257,7 +257,7 @@ describe('Return Token', () => {
             { tokenId: mockTokenId, remarks: mockRemarks },
             { chainId: mockChainId, id: 'encryption-id' },
           ),
-        ).rejects.toThrow('Pre-check (callStatic) for acceptReturned failed');
+        ).rejects.toThrow('Pre-check (callStatic) for rejectReturned failed');
         if (isV5TT) {
           mockV5TradeTrustTokenContract.callStatic.restore = vi.fn();
         } else {
