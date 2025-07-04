@@ -1,4 +1,3 @@
-import { CHAIN_ID, SUPPORTED_CHAINS } from '@tradetrust-tt/tradetrust-utils';
 import {
   encrypt,
   getTitleEscrowAddress,
@@ -7,74 +6,44 @@ import {
 } from 'src/core';
 import { v4Contracts } from 'src/token-registry-v4';
 import { v5Contracts } from 'src/token-registry-v5';
-import { BigNumberish, Signer as SignerV6 } from 'ethersV6';
-import { BigNumber, Signer } from 'ethers';
-import { isV6EthersProvider } from 'src/utils/ethers';
+import { Signer as SignerV6 } from 'ethersV6';
+import { ContractTransaction, Signer } from 'ethers';
+import {
+  ContractOptions,
+  NominateParams,
+  TransactionOptions,
+  TransferBeneficiaryParams,
+  TransferHolderParams,
+  TransferOwnersParams,
+} from './types';
+import { getTxOptions } from './utils';
 
-interface TransferHolderParams {
-  holderAddress: string;
-  remarks?: string;
-}
-interface TransferBeneficiaryParams {
-  newBeneficiaryAddress: string;
-  remarks?: string;
-}
-interface NominateParams {
-  newBeneficiaryAddress: string;
-  remarks?: string;
-}
-interface TransferOwnersParams {
-  newHolderAddress: string;
-  newBeneficiaryAddress: string;
-  remarks?: string;
-}
-
-interface TransferOptions {
-  chainId?: CHAIN_ID;
-  titleEscrowVersion?: 'v4' | 'v5';
-  maxFeePerGas?: BigNumberish | string | number | BigNumber;
-  maxPriorityFeePerGas?: BigNumberish | string | number | BigNumber;
-  id?: string;
-}
-
-// 🔍 Handles both Ethers v5 and v6 signer types
-const getChainIdSafe = async (signer: SignerV6 | Signer): Promise<bigint | number> => {
-  if (isV6EthersProvider(signer.provider)) {
-    const network = await (signer as Signer).provider?.getNetwork();
-    if (!network?.chainId) throw new Error('Cannot determine chainId: provider is missing');
-    return network.chainId;
-  }
-  return await (signer as Signer).getChainId();
-};
-// const getSignerAddressSafe = async (signer: SignerV6 | Signer): Promise<string> => {
-//   if (isV6EthersProvider(signer.provider)) {
-//     return await (signer as SignerV6).getAddress();
-//   }
-//   return (signer as any).address;
-// };
-
-type ContractOptions =
-  | {
-      titleEscrowAddress: string; // Present — no restrictions on the rest
-      tokenId?: string | number;
-      tokenRegistryAddress?: string;
-    }
-  | {
-      titleEscrowAddress?: undefined; // Absent — must provide both below
-      tokenId: string | number;
-      tokenRegistryAddress: string;
-    };
-
+/**
+ * Transfers holder role of a Title Escrow contract to a new address.
+ * The caller of this function must be the current holder.
+ * @param {ContractOptions} contractOptions - Contains `tokenRegistryAddress` and optionally `tokenId` and  `titleEscrowAddress`.
+ * @param {Signer | SignerV6} signer - The signer (ethers v5 or v6) who initiates the transaction.
+ * @param {TransferHolderParams} params - Object containing `holderAddress` (address to transfer to) and optional `remarks`.
+ * @param {TransactionOptions} options - Transaction options including:
+ *   - `titleEscrowVersion` (optional): Either "v4" or "v5"
+ *   - `chainId` (optional): Used for gas station lookup
+ *   - `maxFeePerGas` (optional), `maxPriorityFeePerGas` (optional): EIP-1559 gas fee configuration
+ *   - `id` (optional): ID used for encrypting remarks
+ * @throws If required fields like `titleEscrowAddress` or `signer.provider` are missing.
+ * @throws If the version is unsupported (neither v4 nor v5).
+ * @throws If the dry-run via `callStatic` fails.
+ * @returns {Promise<ContractTransaction>} The transaction response for `transferHolder`.
+ */
 const transferHolder = async (
   contractOptions: ContractOptions,
   signer: Signer | SignerV6,
   params: TransferHolderParams,
-  options: TransferOptions,
-) => {
+  options: TransactionOptions,
+): Promise<ContractTransaction> => {
   const { tokenRegistryAddress, tokenId } = contractOptions;
   const { titleEscrowVersion } = options;
   let { titleEscrowAddress } = contractOptions;
-  let { chainId, maxFeePerGas, maxPriorityFeePerGas } = options;
+  const { chainId, maxFeePerGas, maxPriorityFeePerGas } = options;
 
   let isV5TT = titleEscrowVersion === 'v5';
   let isV4TT = titleEscrowVersion === 'v4';
@@ -153,18 +122,8 @@ const transferHolder = async (
   }
 
   // If gas values are missing, query gas station if available
-  if (!maxFeePerGas || !maxPriorityFeePerGas) {
-    chainId = chainId ?? ((await getChainIdSafe(signer)) as unknown as CHAIN_ID);
-    const gasStation = SUPPORTED_CHAINS[chainId]?.gasStation;
+  const txOptions = await getTxOptions(signer, chainId, maxFeePerGas, maxPriorityFeePerGas);
 
-    if (gasStation) {
-      const gasFees = await gasStation();
-      maxFeePerGas = gasFees?.maxFeePerGas ?? 0;
-      maxPriorityFeePerGas = gasFees?.maxPriorityFeePerGas ?? 0;
-    }
-  }
-  const txOptions =
-    maxFeePerGas && maxPriorityFeePerGas ? { maxFeePerGas, maxPriorityFeePerGas } : undefined;
   // Send the actual transaction
   if (isV5TT) {
     return await (titleEscrowContract as v5Contracts.TitleEscrow).transferHolder(
@@ -173,20 +132,41 @@ const transferHolder = async (
       txOptions,
     );
   } else if (isV4TT) {
-    return await titleEscrowContract.transferHolder(holderAddress, txOptions);
+    return await (titleEscrowContract as v4Contracts.TitleEscrow).transferHolder(
+      holderAddress,
+      txOptions,
+    );
   }
 };
 
+/**
+ * Transfers the beneficiary role of a Title Escrow contract to a new beneficiary address.
+ * The caller of this function must be the current holder.
+ * @param {ContractOptions}  contractOptions - Contains `tokenRegistryAddress` and optionally `tokenId` and  `titleEscrowAddress`.
+ * @param {Signer | SignerV6} signer - The signer (ethers v5 or v6) who initiates and signs the transaction.
+ * @param {TransferBeneficiaryParams} params - Object containing:
+ *   - `newBeneficiaryAddress`: Address to which the beneficiary role is being transferred.
+ *   - `remarks` (optional): Optional encrypted message attached with the transaction.
+ * @param {TransactionOptions} options - Transaction configuration options:
+ *   - `titleEscrowVersion` (optional): Token registry version, either `'v4'` or `'v5'`.
+ *   - `chainId` (optional): Used to query gas station info if gas fee values are missing.
+ *   - `maxFeePerGas`(optional), `maxPriorityFeePerGas`(optional): EIP-1559 gas fee parameters.
+ *   - `id`(optional): Used for encryption of remarks.
+ * @throws If required values like `titleEscrowAddress` or `signer.provider` are missing.
+ * @throws If the version is unsupported (neither v4 nor v5).
+ * @throws If the dry-run `callStatic` fails for pre-checking the transaction.
+ * @returns {Promise<ContractTransaction>} The transaction response for the `transferBeneficiary` call.
+ */
 const transferBeneficiary = async (
   contractOptions: ContractOptions,
   signer: Signer | SignerV6,
   params: TransferBeneficiaryParams,
-  options: TransferOptions,
-) => {
+  options: TransactionOptions,
+): Promise<ContractTransaction> => {
   const { tokenId, tokenRegistryAddress } = contractOptions;
   const { titleEscrowVersion } = options;
   let { titleEscrowAddress } = contractOptions;
-  let { chainId, maxFeePerGas, maxPriorityFeePerGas } = options;
+  const { chainId, maxFeePerGas, maxPriorityFeePerGas } = options;
 
   let isV5TT = titleEscrowVersion === 'v5';
   let isV4TT = titleEscrowVersion === 'v4';
@@ -265,19 +245,8 @@ const transferBeneficiary = async (
   }
 
   // If gas values are missing, query gas station if available
-  if (!maxFeePerGas || !maxPriorityFeePerGas) {
-    chainId = chainId ?? ((await getChainIdSafe(signer)) as unknown as CHAIN_ID);
-    const gasStation = SUPPORTED_CHAINS[chainId]?.gasStation;
+  const txOptions = await getTxOptions(signer, chainId, maxFeePerGas, maxPriorityFeePerGas);
 
-    if (gasStation) {
-      const gasFees = await gasStation();
-      maxFeePerGas = gasFees?.maxFeePerGas ?? 0;
-      maxPriorityFeePerGas = gasFees?.maxPriorityFeePerGas ?? 0;
-    }
-  }
-
-  const txOptions =
-    maxFeePerGas && maxPriorityFeePerGas ? { maxFeePerGas, maxPriorityFeePerGas } : undefined;
   // Send the actual transaction
   if (isV5TT) {
     const tx = await (titleEscrowContract as v5Contracts.TitleEscrow).transferBeneficiary(
@@ -294,16 +263,36 @@ const transferBeneficiary = async (
     return tx;
   }
 };
+
+/**
+ * Transfers both the holder and beneficiary roles of a Title Escrow contract to new addresses.
+ * The caller of this function must be the current holder and beneficiary both.
+ * @param {ContractOptions} contractOptions - Contains `tokenRegistryAddress` and optionally `tokenId` and  `titleEscrowAddress`.
+ * @param {Signer | SignerV6} signer - The signer (ethers v5 or v6) who initiates and signs the transaction.
+ * @param {TransferOwnersParams} params - Object containing:
+ *   - `newBeneficiaryAddress`: The new beneficiary address.
+ *   - `newHolderAddress`: The new holder address.
+ *   - `remarks` (optional): Optional remarks that will be encrypted and included with the transaction.
+ * @param {TransactionOptions} options - Transaction configuration options:
+ *   - `titleEscrowVersion` (optional): Token registry version, either `'v4'` or `'v5'`.
+ *   - `chainId` (optional): Used for gas station lookup if gas fee values are not provided.
+ *   - `maxFeePerGas`(optional), `maxPriorityFeePerGas`(optional): EIP-1559 gas fee parameters.
+ *   - `id`(optional): Used for encrypting remarks.
+ * @throws If required fields like `titleEscrowAddress` or `signer.provider` are missing.
+ * @throws If the title escrow version is unsupported.
+ * @throws If the pre-check `callStatic.transferOwners` fails.
+ * @returns {Promise<ContractTransaction>} The transaction response from the `transferOwners` call.
+ */
 const transferOwners = async (
   contractOptions: ContractOptions,
   signer: Signer | SignerV6,
   params: TransferOwnersParams,
-  options: TransferOptions,
-) => {
+  options: TransactionOptions,
+): Promise<ContractTransaction> => {
   const { tokenId, tokenRegistryAddress } = contractOptions;
   const { titleEscrowVersion } = options;
   let { titleEscrowAddress } = contractOptions;
-  let { chainId, maxFeePerGas, maxPriorityFeePerGas } = options;
+  const { chainId, maxFeePerGas, maxPriorityFeePerGas } = options;
   let isV5TT = titleEscrowVersion === 'v5';
   let isV4TT = titleEscrowVersion === 'v4';
 
@@ -389,19 +378,8 @@ const transferOwners = async (
   }
 
   // If gas values are missing, query gas station if available
-  if (!maxFeePerGas || !maxPriorityFeePerGas) {
-    chainId = chainId ?? ((await getChainIdSafe(signer)) as unknown as CHAIN_ID);
-    const gasStation = SUPPORTED_CHAINS[chainId]?.gasStation;
+  const txOptions = await getTxOptions(signer, chainId, maxFeePerGas, maxPriorityFeePerGas);
 
-    if (gasStation) {
-      const gasFees = await gasStation();
-      maxFeePerGas = gasFees?.maxFeePerGas ?? 0;
-      maxPriorityFeePerGas = gasFees?.maxPriorityFeePerGas ?? 0;
-    }
-  }
-
-  const txOptions =
-    maxFeePerGas && maxPriorityFeePerGas ? { maxFeePerGas, maxPriorityFeePerGas } : undefined;
   // Send the actual transaction
 
   if (isV5TT) {
@@ -420,16 +398,34 @@ const transferOwners = async (
   }
 };
 
+/**
+ * Nominates a new beneficiary on the Title Escrow contract.
+ * The caller of this function must be the current beneficiary.
+ * @param {ContractOptions} contractOptions - Contains `tokenRegistryAddress` and optionally `tokenId` and  `titleEscrowAddress`.
+ * @param {Signer | SignerV6} signer - The signer (ethers v5 or v6) who will sign and send the transaction.
+ * @param {NominateParams} params - Nomination parameters:
+ *   - `newBeneficiaryAddress`: The Ethereum address to nominate as the new beneficiary.
+ *   - `remarks` (optional): Remarks to include with the transaction (will be encrypted).
+ * @param {TransactionOptions} options - Transaction-level configuration:
+ *   - `titleEscrowVersion` (optional): Specifies token registry version, either `'v4'` or `'v5'`.
+ *   - `chainId` (optional): Chain ID used for querying gas stations if fees are not set.
+ *   - `maxFeePerGas`(optional), `maxPriorityFeePerGas`(optional): EIP-1559-compatible gas fee settings.
+ *   - `id`(optional): Used for encrypting the remarks string.
+ * @throws If required inputs like `titleEscrowAddress` or `signer.provider` are missing.
+ * @throws If token registry version is unsupported.
+ * @throws If the dry-run `callStatic.nominate()` fails.
+ * @returns {Promise<ContractTransaction>} The transaction response from the `nominate` method.
+ */
 const nominate = async (
   contractOptions: ContractOptions,
   signer: Signer | SignerV6,
   params: NominateParams,
-  options: TransferOptions,
-) => {
+  options: TransactionOptions,
+): Promise<ContractTransaction> => {
   const { tokenId, tokenRegistryAddress } = contractOptions;
   const { titleEscrowVersion } = options;
   let { titleEscrowAddress } = contractOptions;
-  let { chainId, maxFeePerGas, maxPriorityFeePerGas } = options;
+  const { chainId, maxFeePerGas, maxPriorityFeePerGas } = options;
 
   let isV5TT = titleEscrowVersion === 'v5';
   let isV4TT = titleEscrowVersion === 'v4';
@@ -504,19 +500,8 @@ const nominate = async (
   }
 
   // If gas values are missing, query gas station if available
-  if (!maxFeePerGas || !maxPriorityFeePerGas) {
-    chainId = chainId ?? ((await getChainIdSafe(signer)) as unknown as CHAIN_ID);
-    const gasStation = SUPPORTED_CHAINS[chainId]?.gasStation;
+  const txOptions = await getTxOptions(signer, chainId, maxFeePerGas, maxPriorityFeePerGas);
 
-    if (gasStation) {
-      const gasFees = await gasStation();
-      maxFeePerGas = gasFees?.maxFeePerGas ?? 0;
-      maxPriorityFeePerGas = gasFees?.maxPriorityFeePerGas ?? 0;
-    }
-  }
-
-  const txOptions =
-    maxFeePerGas && maxPriorityFeePerGas ? { maxFeePerGas, maxPriorityFeePerGas } : undefined;
   // Send the actual transaction
 
   if (isV5TT) {
