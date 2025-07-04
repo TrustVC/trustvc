@@ -40,107 +40,101 @@ const providers: ProviderInfo[] = [
   },
 ];
 
-describe.each(providers)(
-  'ownerOf function for ethers version $ethersVersion and TR version $titleEscrowVersion',
-  ({ Provider, ethersVersion, titleEscrowVersion }) => {
-    const mockTokenId = '0xTokenId';
-    const mockChainId = CHAIN_ID.local;
-    const isV5TT = titleEscrowVersion === 'v5';
-    // let mockContract = isV5TT ? mockV5TradeTrustTokenContract : mockV4TradeTrustTokenContract;
+describe.each(providers)('ownerOf', ({ Provider, ethersVersion, titleEscrowVersion }) => {
+  const mockTokenId = '0xTokenId';
+  const mockChainId = CHAIN_ID.local;
+  const isV5TT = titleEscrowVersion === 'v5';
+  // let mockContract = isV5TT ? mockV5TradeTrustTokenContract : mockV4TradeTrustTokenContract;
 
-    let wallet: ethersV5.Wallet | ethersV6.Wallet;
-    if (ethersVersion === 'v5') {
-      wallet = new WalletV5(PRIVATE_KEY, Provider as any) as ethersV5.Wallet;
-      vi.spyOn(wallet, 'getChainId').mockResolvedValue(mockChainId as unknown as number);
-    } else {
-      wallet = new WalletV6(PRIVATE_KEY, Provider as any);
-      vi.spyOn(Provider, 'getNetwork').mockResolvedValue({
-        chainId: mockChainId,
-      } as unknown as Network);
-    }
-    const mockTokenRegistryAddress = isV5TT ? MOCK_V5_ADDRESS : MOCK_V4_ADDRESS;
+  let wallet: ethersV5.Wallet | ethersV6.Wallet;
+  if (ethersVersion === 'v5') {
+    wallet = new WalletV5(PRIVATE_KEY, Provider as any) as ethersV5.Wallet;
+    vi.spyOn(wallet, 'getChainId').mockResolvedValue(CHAIN_ID.local as unknown as number);
+  } else {
+    wallet = new WalletV6(PRIVATE_KEY, Provider as any);
+    vi.spyOn(Provider, 'getNetwork').mockResolvedValue({
+      chainId: CHAIN_ID.local,
+    } as unknown as Network);
+  }
+  const mockTokenRegistryAddress = isV5TT ? MOCK_V5_ADDRESS : MOCK_V4_ADDRESS;
 
-    beforeEach(() => {
-      vi.clearAllMocks();
-      vi.spyOn(coreModule, 'checkSupportsInterface').mockImplementation(
-        async (address, interfaceId) => {
-          return interfaceId === (isV5TT ? '0xSBTIdV5' : '0xSBTIdV4');
-        },
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.spyOn(coreModule, 'checkSupportsInterface').mockImplementation(
+      async (address, interfaceId) => {
+        return interfaceId === (isV5TT ? '0xSBTIdV5' : '0xSBTIdV4');
+      },
+    );
+  });
+
+  // afterEach(() => {
+  //   vi.restoreAllMocks();
+  // });
+
+  describe('Successful Calls', () => {
+    it('should return owner for V5/v4 contract (auto-detected)', async () => {
+      const result = await ownerOf(
+        { tokenRegistryAddress: mockTokenRegistryAddress },
+        wallet,
+        { tokenId: mockTokenId },
+        { chainId: mockChainId },
       );
+
+      expect(result).toBe(MOCK_OWNER_ADDRESS);
+      expect(
+        (isV5TT ? v5Contracts : v4Contracts).TradeTrustToken__factory.connect,
+      ).toHaveBeenCalled();
     });
 
-    // afterEach(() => {
-    //   vi.restoreAllMocks();
-    // });
+    it('should return owner for V5/v4 contract (explicit version)', async () => {
+      const result = await ownerOf(
+        { tokenRegistryAddress: mockTokenRegistryAddress },
+        wallet,
+        { tokenId: mockTokenId },
+        { chainId: mockChainId, titleEscrowVersion: titleEscrowVersion },
+      );
 
-    describe('Successful Calls', () => {
-      beforeEach(() => {
-        vi.clearAllMocks();
-      });
-      it('should return owner for V5/v4 contract (auto-detected)', async () => {
-        const result = await ownerOf(
+      expect(result).toBe(MOCK_OWNER_ADDRESS);
+      expect(coreModule.checkSupportsInterface).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Error Handling', () => {
+    it('should throw when token registry address is missing', async () => {
+      await expect(
+        ownerOf(
+          { tokenRegistryAddress: '' },
+          wallet,
+          { tokenId: mockTokenId },
+          { chainId: mockChainId },
+        ),
+      ).rejects.toThrow('Token registry address is required');
+    });
+
+    it('should throw when provider is missing', async () => {
+      const signerWithoutProvider = new WalletV5('0x'.padEnd(66, '1'));
+
+      await expect(
+        ownerOf(
+          { tokenRegistryAddress: mockTokenRegistryAddress },
+          signerWithoutProvider,
+          { tokenId: mockTokenId },
+          { chainId: mockChainId },
+        ),
+      ).rejects.toThrow('Provider is required');
+    });
+
+    it('should throw when version is unsupported', async () => {
+      vi.spyOn(coreModule, 'checkSupportsInterface').mockResolvedValue(false);
+
+      await expect(
+        ownerOf(
           { tokenRegistryAddress: mockTokenRegistryAddress },
           wallet,
           { tokenId: mockTokenId },
-          {},
-        );
-
-        expect(result).toBe(MOCK_OWNER_ADDRESS);
-        expect(
-          (isV5TT ? v5Contracts : v4Contracts).TradeTrustToken__factory.connect,
-        ).toHaveBeenCalled();
-      });
-
-      it('should return owner for V5/v4 contract (explicit version)', async () => {
-        const result = await ownerOf(
-          { tokenRegistryAddress: mockTokenRegistryAddress },
-          wallet,
-          { tokenId: mockTokenId },
-          { titleEscrowVersion },
-        );
-
-        expect(result).toBe(MOCK_OWNER_ADDRESS);
-        expect(coreModule.checkSupportsInterface).not.toHaveBeenCalled();
-      });
+          { chainId: mockChainId },
+        ),
+      ).rejects.toThrow('Only Token Registry V4/V5 is supported');
     });
-
-    describe('Error Handling', () => {
-      it('should throw when token registry address is missing', async () => {
-        await expect(
-          ownerOf(
-            { tokenRegistryAddress: '' },
-            wallet,
-            { tokenId: mockTokenId },
-            { chainId: mockChainId },
-          ),
-        ).rejects.toThrow('Token registry address is required');
-      });
-
-      it('should throw when provider is missing', async () => {
-        const signerWithoutProvider = new WalletV5('0x'.padEnd(66, '1'));
-
-        await expect(
-          ownerOf(
-            { tokenRegistryAddress: mockTokenRegistryAddress },
-            signerWithoutProvider,
-            { tokenId: mockTokenId },
-            { chainId: mockChainId },
-          ),
-        ).rejects.toThrow('Provider is required');
-      });
-
-      it('should throw when version is unsupported', async () => {
-        vi.spyOn(coreModule, 'checkSupportsInterface').mockResolvedValue(false);
-
-        await expect(
-          ownerOf(
-            { tokenRegistryAddress: mockTokenRegistryAddress },
-            wallet,
-            { tokenId: mockTokenId },
-            { chainId: mockChainId },
-          ),
-        ).rejects.toThrow('Only Token Registry V4/V5 is supported');
-      });
-    });
-  },
-);
+  });
+});
