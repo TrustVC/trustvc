@@ -3,6 +3,7 @@ import { ethers as ethersV5 } from 'ethers';
 import { JsonRpcProvider as JsonRpcProviderV6 } from 'ethersV6';
 export const MOCK_V5_ADDRESS = '0xV5TokenRegistryContract';
 export const MOCK_V4_ADDRESS = '0xV4TokenRegistryContract';
+export const MOCK_OWNER_ADDRESS = '0xowner';
 
 vi.mock('src/core', () => ({
   encrypt: vi.fn(() => 'encrypted_remarks'),
@@ -34,6 +35,7 @@ vi.mock('src/token-registry-v5', () => {
       TradeTrustTokenMintable: '0xTradeTrustTokenMintableIdV5',
       TradeTrustTokenRestorable: '0xTradeTrustTokenRestorableIdV5',
       TradeTrustTokenBurnable: '0xTradeTrustTokenBurnableIdV5',
+      SBT: '0xSBTIdV5',
     },
   };
 });
@@ -56,6 +58,7 @@ vi.mock('src/token-registry-v4', () => {
       TradeTrustTokenMintable: '0xTradeTrustTokenMintableIdV4',
       TradeTrustTokenRestorable: '0xTradeTrustTokenRestorableIdV4',
       TradeTrustTokenBurnable: '0xTradeTrustTokenBurnableIdV4',
+      SBT: '0xSBTIdV4',
     },
   };
 });
@@ -78,6 +81,7 @@ export const mockV5TradeTrustTokenContract = {
   burn: vi.fn(() => Promise.resolve('v5_burn_tx_hash')),
   restore: vi.fn(() => Promise.resolve('v5_restore_tx_hash')),
   mint: vi.fn(() => Promise.resolve('v5_mint_tx_hash')),
+  ownerOf: vi.fn(() => Promise.resolve(MOCK_OWNER_ADDRESS)),
 };
 
 export const mockV5TitleEscrowContract = {
@@ -139,6 +143,7 @@ export const mockV4TradeTrustTokenContract = {
   burn: vi.fn(() => Promise.resolve('v4_burn_tx_hash')),
   restore: vi.fn(() => Promise.resolve('v4_restore_tx_hash')),
   mint: vi.fn(() => Promise.resolve('v4_mint_tx_hash')),
+  ownerOf: vi.fn(() => Promise.resolve(MOCK_OWNER_ADDRESS)),
 };
 
 export const PRIVATE_KEY = '0x59c6995e998f97a5a004497e5f1ebce0c16828d44b3f8d0bfa3a89d271d5b6b9'; // random local key
