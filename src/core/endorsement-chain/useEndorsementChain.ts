@@ -146,18 +146,16 @@ export const getDocumentOwner = async (
 
 // Check Title Escrow Interface Support
 export const checkSupportsInterface = async (
-  titleEscrowAddress: string,
+  contractAddress: string,
   interfaceId: string,
   provider: Provider | ethersV6.Provider,
 ): Promise<boolean> => {
   try {
     const Contract = getEthersContractFromProvider(provider);
-    const titleEscrowAbi = [
-      'function supportsInterface(bytes4 interfaceId) external view returns (bool)',
-    ];
+    const abi = ['function supportsInterface(bytes4 interfaceId) external view returns (bool)'];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const titleEscrowContract = new Contract(titleEscrowAddress, titleEscrowAbi, provider as any);
-    return await titleEscrowContract.supportsInterface(interfaceId);
+    const contract = new Contract(contractAddress, abi, provider as any);
+    return await contract.supportsInterface(interfaceId);
   } catch {
     return false;
   }

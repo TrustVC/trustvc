@@ -24,10 +24,10 @@ const ownerOf = async (
 ): Promise<string> => {
   const { tokenRegistryAddress } = contractOptions;
   const { titleEscrowVersion } = options;
+  const { tokenId } = params;
 
   if (!tokenRegistryAddress) throw new Error('Token registry address is required');
   if (!signer.provider) throw new Error('Provider is required');
-  const { tokenId } = params;
 
   // Detect version if not explicitly provided checkSupportsInterface
   let isV5TT = titleEscrowVersion === 'v5';
