@@ -200,20 +200,22 @@ export const fetchEndorsementChain = async (
   tokenId: string,
   provider: Provider | ethersV6.Provider,
   keyId?: string,
+  titleEscrowAddress?: string,
 ): Promise<EndorsementChain> => {
   if (!tokenRegistryAddress || !tokenId || !provider) {
     throw new Error('Missing required dependencies');
   }
-  const titleEscrowAddress = await getTitleEscrowAddress(tokenRegistryAddress, tokenId, provider);
+  const resolvedTitleEscrowAddress =
+    titleEscrowAddress ?? (await getTitleEscrowAddress(tokenRegistryAddress, tokenId, provider));
 
   const [isV4, isV5] = await Promise.all([
     isTitleEscrowVersion({
-      titleEscrowAddress,
+      titleEscrowAddress: resolvedTitleEscrowAddress,
       versionInterface: TitleEscrowInterface.V4,
       provider,
     }),
     isTitleEscrowVersion({
-      titleEscrowAddress,
+      titleEscrowAddress: resolvedTitleEscrowAddress,
       versionInterface: TitleEscrowInterface.V5,
       provider,
     }),
@@ -228,14 +230,14 @@ export const fetchEndorsementChain = async (
   if (isV4) {
     const [tokenLogs, titleEscrowLogs] = await Promise.all([
       fetchTokenTransfers(provider, tokenRegistryAddress, tokenId),
-      fetchEscrowTransfersV4(provider, titleEscrowAddress),
+      fetchEscrowTransfersV4(provider, resolvedTitleEscrowAddress),
     ]);
 
     transferEvents = mergeTransfersV4([...titleEscrowLogs, ...tokenLogs]);
   } else if (isV5) {
     const titleEscrowLogs = await fetchEscrowTransfersV5(
       provider,
-      titleEscrowAddress,
+      resolvedTitleEscrowAddress,
       tokenRegistryAddress,
     );
     transferEvents = mergeTransfersV5(titleEscrowLogs);
