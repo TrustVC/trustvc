@@ -4,6 +4,11 @@ import { config } from 'dotenv';
 config({ path: '.env' });
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      'src/': new URL('./src/', import.meta.url).pathname,
+    },
+  },
   define: {
     'import.meta.vitest': 'undefined',
   },
@@ -15,6 +20,7 @@ export default defineConfig({
   ],
   cacheDir: 'node_modules/.vitest',
   test: {
+    globals: true,
     include: ['**/*.test.{ts,js}'],
     retry: process.env.CI ? 3 : 0,
     // setupFiles: ['dotenv/config'], //this line
