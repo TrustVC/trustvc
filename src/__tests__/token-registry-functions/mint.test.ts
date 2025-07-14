@@ -2,12 +2,12 @@ import './fixtures.js';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ethers as ethersV5, Wallet as WalletV5 } from 'ethers';
 import { Wallet as WalletV6, Network, ethers as ethersV6 } from 'ethersV6';
-import * as coreModule from 'src/core';
+import * as coreModule from '../../core';
 
 import { CHAIN_ID } from '@tradetrust-tt/tradetrust-utils';
-import { v5Contracts } from 'src/token-registry-v5';
-import { v4Contracts } from 'src/token-registry-v4';
-import { mint } from 'src/token-registry-functions';
+import { v5Contracts } from '../../token-registry-v5';
+import { v4Contracts } from '../../token-registry-v4';
+import { mint } from '../../token-registry-functions';
 import {
   MOCK_V4_ADDRESS,
   MOCK_V5_ADDRESS,
@@ -17,7 +17,7 @@ import {
   providerV5,
   providerV6,
 } from './fixtures.js';
-import { ProviderInfo } from 'src/token-registry-functions/types';
+import { ProviderInfo } from '../../token-registry-functions/types';
 
 const providers: ProviderInfo[] = [
   {

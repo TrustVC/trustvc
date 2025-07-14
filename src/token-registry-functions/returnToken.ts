@@ -4,9 +4,9 @@ import {
   getTitleEscrowAddress,
   isTitleEscrowVersion,
   TitleEscrowInterface,
-} from 'src/core';
-import { v5Contracts, v5SupportInterfaceIds } from 'src/token-registry-v5';
-import { v4Contracts, v4SupportInterfaceIds } from 'src/token-registry-v4';
+} from '../../src/core';
+import { v5Contracts, v5SupportInterfaceIds } from '../../src/token-registry-v5';
+import { v4Contracts, v4SupportInterfaceIds } from '../../src/token-registry-v4';
 import { Signer as SignerV6 } from 'ethersV6';
 import { ContractTransaction, Signer } from 'ethers';
 import { getTxOptions } from './utils';

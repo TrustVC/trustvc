@@ -2,15 +2,15 @@ import './fixtures.js';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ethers as ethersV5, Wallet as WalletV5 } from 'ethers';
 import { ethers as ethersV6, Network, Wallet as WalletV6 } from 'ethersV6';
-import * as coreModule from 'src/core';
+import * as coreModule from '../../core';
 import { CHAIN_ID } from '@tradetrust-tt/tradetrust-utils';
 import {
   rejectTransferBeneficiary,
   rejectTransferHolder,
   rejectTransferOwners,
-} from 'src/token-registry-functions/rejectTransfers';
+} from '../../token-registry-functions/rejectTransfers';
 import { mockV5TitleEscrowContract, PRIVATE_KEY, providerV5, providerV6 } from './fixtures';
-import { ProviderInfo } from 'src/token-registry-functions/types.js';
+import { ProviderInfo } from '../../token-registry-functions/types.js';
 
 const providers: ProviderInfo[] = [
   {
