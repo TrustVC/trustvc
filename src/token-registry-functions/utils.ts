@@ -1,4 +1,4 @@
-import { isV6EthersProvider } from 'src/utils/ethers';
+import { isV6EthersProvider } from './../../src/utils/ethers';
 import { GasValue } from './types';
 import { CHAIN_ID, SUPPORTED_CHAINS } from '@tradetrust-tt/tradetrust-utils';
 import { Signer } from 'ethers';
@@ -21,7 +21,7 @@ const getTxOptions = async (
       maxPriorityFeePerGas = gasFees?.maxPriorityFeePerGas ?? 0;
     }
   }
-  return maxFeePerGas && maxPriorityFeePerGas ? { maxFeePerGas, maxPriorityFeePerGas } : undefined;
+  return maxFeePerGas && maxPriorityFeePerGas ? { maxFeePerGas, maxPriorityFeePerGas } : {};
 };
 
 // 🔍 Handles both Ethers v5 and v6 signer types

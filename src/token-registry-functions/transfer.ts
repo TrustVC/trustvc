@@ -3,11 +3,11 @@ import {
   getTitleEscrowAddress,
   isTitleEscrowVersion,
   TitleEscrowInterface,
-} from 'src/core';
-import { v4Contracts } from 'src/token-registry-v4';
-import { v5Contracts } from 'src/token-registry-v5';
-import { Signer as SignerV6 } from 'ethersV6';
-import { ContractTransaction, Signer } from 'ethers';
+} from './../../src/core';
+import { v4Contracts } from './../../src/token-registry-v4';
+import { v5Contracts } from './../../src/token-registry-v5';
+import { Signer as SignerV6, Contract as ContractV6 } from 'ethersV6';
+import { Contract as ContractV5, ContractTransaction, Signer } from 'ethers';
 import {
   ContractOptions,
   NominateParams,
@@ -17,6 +17,7 @@ import {
   TransferOwnersParams,
 } from './types';
 import { getTxOptions } from './utils';
+import { getEthersContractFromProvider, isV6EthersProvider } from './../../src/utils/ethers';
 
 /**
  * Transfers holder role of a Title Escrow contract to a new address.
@@ -49,6 +50,8 @@ const transferHolder = async (
   let isV4TT = titleEscrowVersion === 'v4';
 
   if (!titleEscrowAddress) {
+    if (!tokenRegistryAddress) throw new Error('Token registry address is required');
+    if (!tokenId) throw new Error('Token ID is required');
     titleEscrowAddress = await getTitleEscrowAddress(
       tokenRegistryAddress,
       tokenId as string,
@@ -62,8 +65,8 @@ const transferHolder = async (
   const { holderAddress, remarks } = params;
 
   // Connect V5 contract by default
-  let titleEscrowContract: v5Contracts.TitleEscrow | v4Contracts.TitleEscrow =
-    v5Contracts.TitleEscrow__factory.connect(titleEscrowAddress, signer);
+  // let titleEscrowContract: v5Contracts.TitleEscrow | v4Contracts.TitleEscrow =
+  //   v5Contracts.TitleEscrow__factory.connect(titleEscrowAddress, signer);
 
   const encryptedRemarks = remarks ? `0x${encrypt(remarks, options.id!)}` : '0x';
 
@@ -86,11 +89,22 @@ const transferHolder = async (
     throw new Error('Only Token Registry V4/V5 is supported');
   }
 
-  // Switch to V4 if needed
-  if (isV4TT) {
-    titleEscrowContract = v4Contracts.TitleEscrow__factory.connect(
+  const Contract = getEthersContractFromProvider(signer.provider);
+  // Connect V5 contract by default
+  let titleEscrowContract: ContractV5 | ContractV6;
+  if (isV5TT) {
+    titleEscrowContract = new Contract(
       titleEscrowAddress,
-      signer as Signer,
+      v5Contracts.TitleEscrow__factory.abi,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      signer as any,
+    );
+  } else if (isV4TT) {
+    titleEscrowContract = new Contract(
+      titleEscrowAddress,
+      v4Contracts.TitleEscrow__factory.abi,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      signer as any,
     );
   }
   //   check for current holder and signer
@@ -106,15 +120,13 @@ const transferHolder = async (
 
   // Check callStatic (dry run)
   try {
-    if (isV5TT) {
-      await (titleEscrowContract as v5Contracts.TitleEscrow).callStatic.transferHolder(
-        holderAddress,
-        encryptedRemarks,
-      );
-    } else if (isV4TT) {
-      await (titleEscrowContract as v4Contracts.TitleEscrow).callStatic.transferHolder(
-        holderAddress,
-      );
+    const isV6 = isV6EthersProvider(signer.provider);
+    const args = isV5TT ? [holderAddress, encryptedRemarks] : [holderAddress];
+
+    if (isV6) {
+      await (titleEscrowContract as ContractV6).transferHolder.staticCall(...args);
+    } else {
+      await (titleEscrowContract as ContractV5).callStatic.transferHolder(...args);
     }
   } catch (e) {
     console.error('callStatic failed:', e);
@@ -123,19 +135,11 @@ const transferHolder = async (
 
   // If gas values are missing, query gas station if available
   const txOptions = await getTxOptions(signer, chainId, maxFeePerGas, maxPriorityFeePerGas);
-
   // Send the actual transaction
   if (isV5TT) {
-    return await (titleEscrowContract as v5Contracts.TitleEscrow).transferHolder(
-      holderAddress,
-      encryptedRemarks,
-      txOptions,
-    );
+    return await titleEscrowContract.transferHolder(holderAddress, encryptedRemarks, txOptions);
   } else if (isV4TT) {
-    return await (titleEscrowContract as v4Contracts.TitleEscrow).transferHolder(
-      holderAddress,
-      txOptions,
-    );
+    return await titleEscrowContract.transferHolder(holderAddress, txOptions);
   }
 };
 
@@ -183,10 +187,6 @@ const transferBeneficiary = async (
   if (!signer.provider) throw new Error('Provider is required');
   const { newBeneficiaryAddress, remarks } = params;
 
-  // Connect V5 contract by default
-  let titleEscrowContract: v5Contracts.TitleEscrow | v4Contracts.TitleEscrow =
-    v5Contracts.TitleEscrow__factory.connect(titleEscrowAddress, signer);
-
   const encryptedRemarks = remarks ? `0x${encrypt(remarks, options.id!)}` : '0x';
 
   // Detect version if not explicitly provided
@@ -208,11 +208,22 @@ const transferBeneficiary = async (
     throw new Error('Only Token Registry V4/V5 is supported');
   }
 
-  // Switch to V4 if needed
-  if (!isV5TT) {
-    titleEscrowContract = v4Contracts.TitleEscrow__factory.connect(
+  const Contract = getEthersContractFromProvider(signer.provider);
+  // Connect V5 contract by default
+  let titleEscrowContract: ContractV5 | ContractV6;
+  if (isV5TT) {
+    titleEscrowContract = new Contract(
       titleEscrowAddress,
-      signer as Signer,
+      v5Contracts.TitleEscrow__factory.abi,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      signer as any,
+    );
+  } else if (isV4TT) {
+    titleEscrowContract = new Contract(
+      titleEscrowAddress,
+      v4Contracts.TitleEscrow__factory.abi,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      signer as any,
     );
   }
 
@@ -229,15 +240,13 @@ const transferBeneficiary = async (
 
   // Check callStatic (dry run)
   try {
-    if (isV5TT) {
-      await (titleEscrowContract as v5Contracts.TitleEscrow).callStatic.transferBeneficiary(
-        newBeneficiaryAddress,
-        encryptedRemarks,
-      );
-    } else if (isV4TT) {
-      await (titleEscrowContract as v4Contracts.TitleEscrow).callStatic.transferBeneficiary(
-        newBeneficiaryAddress,
-      );
+    const isV6 = isV6EthersProvider(signer.provider);
+    const args = isV5TT ? [newBeneficiaryAddress, encryptedRemarks] : [newBeneficiaryAddress];
+
+    if (isV6) {
+      await (titleEscrowContract as ContractV6).transferBeneficiary.staticCall(...args);
+    } else {
+      await (titleEscrowContract as ContractV5).callStatic.transferBeneficiary(...args);
     }
   } catch (e) {
     console.error('callStatic failed:', e);
@@ -249,18 +258,13 @@ const transferBeneficiary = async (
 
   // Send the actual transaction
   if (isV5TT) {
-    const tx = await (titleEscrowContract as v5Contracts.TitleEscrow).transferBeneficiary(
+    return await titleEscrowContract.transferBeneficiary(
       newBeneficiaryAddress,
       encryptedRemarks,
       txOptions,
     );
-    return tx;
   } else if (isV4TT) {
-    const tx = await (titleEscrowContract as v4Contracts.TitleEscrow).transferBeneficiary(
-      newBeneficiaryAddress,
-      txOptions,
-    );
-    return tx;
+    return await titleEscrowContract.transferBeneficiary(newBeneficiaryAddress, txOptions);
   }
 };
 
@@ -308,10 +312,6 @@ const transferOwners = async (
   if (!signer.provider) throw new Error('Provider is required');
   const { newBeneficiaryAddress, newHolderAddress, remarks } = params;
 
-  // Connect V5 contract by default
-  let titleEscrowContract: v5Contracts.TitleEscrow | v4Contracts.TitleEscrow =
-    v5Contracts.TitleEscrow__factory.connect(titleEscrowAddress, signer);
-
   const encryptedRemarks = remarks ? `0x${encrypt(remarks, options.id!)}` : '0x';
 
   // Detect version if not explicitly provided
@@ -333,11 +333,22 @@ const transferOwners = async (
     throw new Error('Only Token Registry V4/V5 is supported');
   }
 
-  // Switch to V4 if needed
-  if (!isV5TT) {
-    titleEscrowContract = v4Contracts.TitleEscrow__factory.connect(
+  const Contract = getEthersContractFromProvider(signer.provider);
+  // Connect V5 contract by default
+  let titleEscrowContract: ContractV5 | ContractV6;
+  if (isV5TT) {
+    titleEscrowContract = new Contract(
       titleEscrowAddress,
-      signer as Signer,
+      v5Contracts.TitleEscrow__factory.abi,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      signer as any,
+    );
+  } else if (isV4TT) {
+    titleEscrowContract = new Contract(
+      titleEscrowAddress,
+      v4Contracts.TitleEscrow__factory.abi,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      signer as any,
     );
   }
 
@@ -360,17 +371,15 @@ const transferOwners = async (
 
   // Check callStatic (dry run)
   try {
-    if (isV5TT) {
-      await (titleEscrowContract as v5Contracts.TitleEscrow).callStatic.transferOwners(
-        newBeneficiaryAddress,
-        newHolderAddress,
-        encryptedRemarks,
-      );
-    } else if (isV4TT) {
-      await (titleEscrowContract as v4Contracts.TitleEscrow).callStatic.transferOwners(
-        newBeneficiaryAddress,
-        newHolderAddress,
-      );
+    const isV6 = isV6EthersProvider(signer.provider);
+    const args = isV5TT
+      ? [newBeneficiaryAddress, newHolderAddress, encryptedRemarks]
+      : [newBeneficiaryAddress, newHolderAddress];
+
+    if (isV6) {
+      await (titleEscrowContract as ContractV6).transferOwners.staticCall(...args);
+    } else {
+      await (titleEscrowContract as ContractV5).callStatic.transferOwners(...args);
     }
   } catch (e) {
     console.error('callStatic failed:', e);
@@ -383,14 +392,14 @@ const transferOwners = async (
   // Send the actual transaction
 
   if (isV5TT) {
-    return await (titleEscrowContract as v5Contracts.TitleEscrow).transferOwners(
+    return await titleEscrowContract.transferOwners(
       newBeneficiaryAddress,
       newHolderAddress,
       encryptedRemarks,
       txOptions,
     );
   } else if (isV4TT) {
-    return await (titleEscrowContract as v4Contracts.TitleEscrow).transferOwners(
+    return await titleEscrowContract.transferOwners(
       newBeneficiaryAddress,
       newHolderAddress,
       txOptions,
@@ -442,10 +451,6 @@ const nominate = async (
   if (!signer.provider) throw new Error('Provider is required');
   const { newBeneficiaryAddress, remarks } = params;
 
-  // Connect V5 contract by default
-  let titleEscrowContract: v5Contracts.TitleEscrow | v4Contracts.TitleEscrow =
-    v5Contracts.TitleEscrow__factory.connect(titleEscrowAddress, signer);
-
   const encryptedRemarks = remarks ? `0x${encrypt(remarks, options.id!)}` : '0x';
 
   // Detect version if not explicitly provided
@@ -464,11 +469,22 @@ const nominate = async (
     ]);
   }
 
-  // Switch to V4 if needed
-  if (!isV5TT) {
-    titleEscrowContract = v4Contracts.TitleEscrow__factory.connect(
+  const Contract = getEthersContractFromProvider(signer.provider);
+  // Connect V5 contract by default
+  let titleEscrowContract: ContractV5 | ContractV6;
+  if (isV5TT) {
+    titleEscrowContract = new Contract(
       titleEscrowAddress,
-      signer as Signer,
+      v5Contracts.TitleEscrow__factory.abi,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      signer as any,
+    );
+  } else if (isV4TT) {
+    titleEscrowContract = new Contract(
+      titleEscrowAddress,
+      v4Contracts.TitleEscrow__factory.abi,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      signer as any,
     );
   }
 
@@ -483,16 +499,15 @@ const nominate = async (
   //   }
 
   // Check callStatic (dry run)
+  // Check callStatic (dry run)
   try {
-    if (isV5TT) {
-      await (titleEscrowContract as v5Contracts.TitleEscrow).callStatic.nominate(
-        newBeneficiaryAddress,
-        encryptedRemarks,
-      );
-    } else if (isV4TT) {
-      await (titleEscrowContract as v4Contracts.TitleEscrow).callStatic.nominate(
-        newBeneficiaryAddress,
-      );
+    const isV6 = isV6EthersProvider(signer.provider);
+    const args = isV5TT ? [newBeneficiaryAddress, encryptedRemarks] : [newBeneficiaryAddress];
+
+    if (isV6) {
+      await (titleEscrowContract as ContractV6).nominate.staticCall(...args);
+    } else {
+      await (titleEscrowContract as ContractV5).callStatic.nominate(...args);
     }
   } catch (e) {
     console.error('callStatic failed:', e);
@@ -505,16 +520,9 @@ const nominate = async (
   // Send the actual transaction
 
   if (isV5TT) {
-    return await (titleEscrowContract as v5Contracts.TitleEscrow).nominate(
-      newBeneficiaryAddress,
-      encryptedRemarks,
-      txOptions,
-    );
+    return await titleEscrowContract.nominate(newBeneficiaryAddress, encryptedRemarks, txOptions);
   } else if (isV4TT) {
-    return await (titleEscrowContract as v4Contracts.TitleEscrow).nominate(
-      newBeneficiaryAddress,
-      txOptions,
-    );
+    return await titleEscrowContract.nominate(newBeneficiaryAddress, txOptions);
   }
 };
 
