@@ -2,16 +2,16 @@ import './fixtures.js';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ethers as ethersV5, Wallet as WalletV5 } from 'ethers';
 import { ethers as ethersV6, Network, Wallet as WalletV6 } from 'ethersV6';
-import * as coreModule from 'src/core';
-import { encrypt } from 'src/core';
+import * as coreModule from '../../core';
+import { encrypt } from '../../core';
 import { CHAIN_ID } from '@tradetrust-tt/tradetrust-utils';
 import {
   transferBeneficiary,
   transferHolder,
   transferOwners,
   nominate,
-} from 'src/token-registry-functions';
-import { ProviderInfo } from 'src/token-registry-functions/types';
+} from '../../token-registry-functions';
+import { ProviderInfo } from '../../token-registry-functions/types';
 import {
   mockV4TitleEscrowContract,
   mockV5TitleEscrowContract,
