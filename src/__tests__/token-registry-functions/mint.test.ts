@@ -2,12 +2,12 @@ import './fixtures.js';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ethers as ethersV5, Wallet as WalletV5 } from 'ethers';
 import { Wallet as WalletV6, Network, ethers as ethersV6 } from 'ethersV6';
-import * as coreModule from 'src/core';
+import * as coreModule from '../../core';
 
 import { CHAIN_ID } from '@tradetrust-tt/tradetrust-utils';
-import { v5Contracts } from 'src/token-registry-v5';
-import { v4Contracts } from 'src/token-registry-v4';
-import { mint } from 'src/token-registry-functions/mint';
+import { v5Contracts } from '../../token-registry-v5';
+import { v4Contracts } from '../../token-registry-v4';
+import { mint } from '../../token-registry-functions';
 import {
   MOCK_V4_ADDRESS,
   MOCK_V5_ADDRESS,
@@ -17,7 +17,7 @@ import {
   providerV5,
   providerV6,
 } from './fixtures.js';
-import { ProviderInfo } from 'src/token-registry-functions/types.js';
+import { ProviderInfo } from '../../token-registry-functions/types';
 
 const providers: ProviderInfo[] = [
   {
@@ -55,11 +55,11 @@ describe('Mint Token', () => {
       let wallet: ethersV5.Wallet | ethersV6.Wallet;
       if (ethersVersion === 'v5') {
         wallet = new WalletV5(PRIVATE_KEY, Provider as any) as ethersV5.Wallet;
-        vi.spyOn(wallet, 'getChainId').mockResolvedValue(CHAIN_ID.local as unknown as number);
+        vi.spyOn(wallet, 'getChainId').mockResolvedValue(mockChainId as unknown as number);
       } else {
         wallet = new WalletV6(PRIVATE_KEY, Provider as any);
         vi.spyOn(Provider, 'getNetwork').mockResolvedValue({
-          chainId: CHAIN_ID.local,
+          chainId: mockChainId,
         } as unknown as Network);
       }
       const mockTokenRegistryAddress = isV5TT ? MOCK_V5_ADDRESS : MOCK_V4_ADDRESS;

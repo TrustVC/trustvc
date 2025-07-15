@@ -1,4 +1,4 @@
-import { isV6EthersProvider } from 'src/utils/ethers';
+import { isV6EthersProvider } from '../utils/ethers';
 import { GasValue } from './types';
 import { CHAIN_ID, SUPPORTED_CHAINS } from '@tradetrust-tt/tradetrust-utils';
 import { Signer } from 'ethers';

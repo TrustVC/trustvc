@@ -26,6 +26,9 @@ export interface MintTokenParams {
   tokenId: string | number;
   remarks?: string;
 }
+export interface OwnerOfTokenParams {
+  tokenId: string | number;
+}
 
 export interface TransactionOptions {
   chainId?: CHAIN_ID;
@@ -55,6 +58,9 @@ export type RejectReturnedOptions = {
 };
 
 export type MintTokenOptions = {
+  tokenRegistryAddress: string;
+};
+export type OwnerOfTokenOptions = {
   tokenRegistryAddress: string;
 };
 
