@@ -1,3 +1,11 @@
+## [1.6.0-alpha.2](https://github.com/TrustVC/trustvc/compare/v1.6.0-alpha.1...v1.6.0-alpha.2) (2025-07-15)
+
+
+### Features
+
+* mint function ([#78](https://github.com/TrustVC/trustvc/issues/78)) ([2ea52ce](https://github.com/TrustVC/trustvc/commit/2ea52ce2ed010ba2da095d6444f135f014dbb442)), closes [#72](https://github.com/TrustVC/trustvc/issues/72) [#72](https://github.com/TrustVC/trustvc/issues/72) [#73](https://github.com/TrustVC/trustvc/issues/73) [#73](https://github.com/TrustVC/trustvc/issues/73) [#72](https://github.com/TrustVC/trustvc/issues/72)
+* owner of function ([#79](https://github.com/TrustVC/trustvc/issues/79)) ([81d0e36](https://github.com/TrustVC/trustvc/commit/81d0e3633c1b011bd2b431dbb21854ade2082312))
+
 ## [1.6.0-alpha.1](https://github.com/TrustVC/trustvc/compare/v1.5.3...v1.6.0-alpha.1) (2025-06-30)
 
 
