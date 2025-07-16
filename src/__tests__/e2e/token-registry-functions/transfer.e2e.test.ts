@@ -161,8 +161,6 @@ providers.forEach(({ Provider, ethersVersion, titleEscrowVersion }) => {
         await new Promise((resolve) => setTimeout(resolve, 1000));
       });
       it('should mint token 0 with beneficiary1 and holder1', async function () {
-        console.log('Minting token 0...');
-
         const contractOptions: MintTokenOptions = {
           tokenRegistryAddress: tradeTrustTokenAddress,
         };
@@ -182,17 +180,13 @@ providers.forEach(({ Provider, ethersVersion, titleEscrowVersion }) => {
 
         const tx1 = await mint(contractOptions, owner as unknown as Signer, params, options);
         await tx1.wait();
-        console.log('Token 0 minted successfully');
 
         // Verify token ownership
         const ownerOfToken0 = await TradeTrustTokenContract.ownerOf('0');
-        console.log('Token 0 owner:', ownerOfToken0);
         expect(ownerOfToken0).to.not.equal('0x0000000000000000000000000000000000000000');
       });
 
       it('should mint token 1 with beneficiary2 and holder2', async function () {
-        console.log('Minting token 1...');
-
         const contractOptions: MintTokenOptions = {
           tokenRegistryAddress: tradeTrustTokenAddress,
         };
@@ -212,17 +206,13 @@ providers.forEach(({ Provider, ethersVersion, titleEscrowVersion }) => {
 
         const tx2 = await mint(contractOptions, owner as unknown as Signer, params, options);
         await tx2.wait();
-        console.log('Token 1 minted successfully');
 
         // Verify token ownership
         const ownerOfToken1 = await TradeTrustTokenContract.ownerOf('1');
-        console.log('Token 1 owner:', ownerOfToken1);
         expect(ownerOfToken1).to.not.equal('0x0000000000000000000000000000000000000000');
       });
 
       it('should fail when trying to mint duplicate token ID', async function () {
-        console.log('Testing duplicate token ID minting...');
-
         const contractOptions: MintTokenOptions = {
           tokenRegistryAddress: tradeTrustTokenAddress,
         };
@@ -249,8 +239,6 @@ providers.forEach(({ Provider, ethersVersion, titleEscrowVersion }) => {
       });
 
       it('should fail when minting with invalid beneficiary address', async function () {
-        console.log('Testing invalid address minting...');
-
         const contractOptions: MintTokenOptions = {
           tokenRegistryAddress: tradeTrustTokenAddress,
         };
@@ -277,8 +265,6 @@ providers.forEach(({ Provider, ethersVersion, titleEscrowVersion }) => {
       });
 
       it('should fail when non-owner tries to mint', async function () {
-        console.log('Testing unauthorized minting...');
-
         const contractOptions: MintTokenOptions = {
           tokenRegistryAddress: tradeTrustTokenAddress,
         };
@@ -311,8 +297,6 @@ providers.forEach(({ Provider, ethersVersion, titleEscrowVersion }) => {
           this.skip();
         }
 
-        console.log('Testing encrypted remarks minting...');
-
         const contractOptions: MintTokenOptions = {
           tokenRegistryAddress: tradeTrustTokenAddress,
         };
@@ -336,13 +320,9 @@ providers.forEach(({ Provider, ethersVersion, titleEscrowVersion }) => {
         // Verify token was created successfully
         const ownerOfToken = await TradeTrustTokenContract.ownerOf('997');
         expect(ownerOfToken).to.not.equal('0x0000000000000000000000000000000000000000');
-
-        console.log('Token with encrypted remarks minted successfully');
       });
 
       it('should mint token without remarks', async function () {
-        console.log('Testing minting without remarks...');
-
         const contractOptions: MintTokenOptions = {
           tokenRegistryAddress: tradeTrustTokenAddress,
         };
@@ -365,13 +345,10 @@ providers.forEach(({ Provider, ethersVersion, titleEscrowVersion }) => {
         // Verify token was created successfully
         const ownerOfToken = await TradeTrustTokenContract.ownerOf('996');
         expect(ownerOfToken).to.not.equal('0x0000000000000000000000000000000000000000');
-
-        console.log('Token without remarks minted successfully');
       });
 
       it('should set up title escrow addresses and contract instances', async function () {
         // Get title escrow addresses using the factory
-        console.log('Getting title escrow addresses...');
 
         const titleEscrow0Address =
           titleEscrowVersion === 'v5'
@@ -398,9 +375,6 @@ providers.forEach(({ Provider, ethersVersion, titleEscrowVersion }) => {
                 tradeTrustTokenAddress,
                 '1',
               );
-
-        console.log('Title Escrow 0 Address:', titleEscrow0Address);
-        console.log('Title Escrow 1 Address:', titleEscrow1Address);
 
         // Get contract instances
         titleEscrow0 = createContract(
@@ -430,8 +404,6 @@ providers.forEach(({ Provider, ethersVersion, titleEscrowVersion }) => {
           beneficiary2: beneficiary2.address,
         };
 
-        console.log('Title escrow addresses and contract instances set up successfully');
-
         // Verify that escrow contracts are properly connected
         expect(titleEscrow0Address).to.not.equal('0x0000000000000000000000000000000000000000');
         expect(titleEscrow1Address).to.not.equal('0x0000000000000000000000000000000000000000');
@@ -439,8 +411,6 @@ providers.forEach(({ Provider, ethersVersion, titleEscrowVersion }) => {
       });
 
       it('should verify token registry state after minting', async function () {
-        console.log('Verifying token registry state...');
-
         // Verify specific token ownership
         const token0Owner = await TradeTrustTokenContract.ownerOf('0');
         const token1Owner = await TradeTrustTokenContract.ownerOf('1');
