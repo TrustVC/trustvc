@@ -5,8 +5,6 @@ import { Wallet as WalletV6, Network, ethers as ethersV6 } from 'ethersV6';
 import * as coreModule from '../../core';
 
 import { CHAIN_ID } from '@tradetrust-tt/tradetrust-utils';
-import { v5Contracts } from '../../token-registry-v5';
-import { v4Contracts } from '../../token-registry-v4';
 import { mint } from '../../token-registry-functions';
 import {
   MOCK_V4_ADDRESS,
@@ -18,6 +16,7 @@ import {
   providerV6,
 } from './fixtures.js';
 import { ProviderInfo } from '../../token-registry-functions/types';
+import { getEthersContractFromProvider } from 'src/utils/ethers/index.js';
 
 const providers: ProviderInfo[] = [
   {
@@ -66,6 +65,18 @@ describe('Mint Token', () => {
       const mockBeneficiaryAddress = '0xBeneficiaryAddress';
       const mockHolderAddress = '0xHolderAddress';
       //   const titleEscrowAddress = isV5TT ? '0xv5contract' : '0xv4contract';
+      const mockTradeTrustTokenContract = isV5TT
+        ? mockV5TradeTrustTokenContract
+        : mockV4TradeTrustTokenContract;
+      beforeAll(() => {
+        // Clear any existing mocks first
+        vi.clearAllMocks();
+        const mockContractConstructor = (mockContract: any) => vi.fn(() => mockContract);
+        // Only set up the mock if it hasn't been set up yet
+        vi.mocked(getEthersContractFromProvider).mockReturnValue(
+          mockContractConstructor(mockTradeTrustTokenContract),
+        );
+      });
       beforeEach(() => {
         vi.clearAllMocks();
         // vi.spyOn(coreModule, 'encrypt').mockReturnValue(mockEncryptedRemarks.slice(2));
@@ -77,8 +88,8 @@ describe('Mint Token', () => {
             );
           },
         );
-        mockV5TradeTrustTokenContract.callStatic.mint.mockResolvedValue(true);
-        mockV4TradeTrustTokenContract.callStatic.mint.mockResolvedValue(true);
+        mockTradeTrustTokenContract.callStatic.mint.mockResolvedValue(true);
+        mockTradeTrustTokenContract.mint.staticCall.mockResolvedValue(true);
       });
 
       it('should  Mint token with remarks', async () => {
@@ -96,9 +107,6 @@ describe('Mint Token', () => {
 
         expect(result).toEqual(mockTxResponse);
         if (isV5TT) expect(coreModule.encrypt).toHaveBeenCalledWith(mockRemarks, 'encryption-id');
-        expect(
-          (isV5TT ? v5Contracts : v4Contracts).TradeTrustToken__factory.connect,
-        ).toHaveBeenCalled();
       });
 
       it('should mint token without remarks', async () => {
@@ -119,11 +127,8 @@ describe('Mint Token', () => {
 
       it('should throw when callStatic fails', async () => {
         const mockError = new Error('callStatic error');
-        if (isV5TT) {
-          mockV5TradeTrustTokenContract.callStatic.mint.mockRejectedValue(mockError);
-        } else {
-          mockV4TradeTrustTokenContract.callStatic.mint.mockRejectedValue(mockError);
-        }
+        mockTradeTrustTokenContract.callStatic.mint.mockRejectedValue(mockError);
+        mockTradeTrustTokenContract.mint.staticCall.mockRejectedValue(mockError);
         await expect(
           mint(
             { tokenRegistryAddress: mockTokenRegistryAddress },

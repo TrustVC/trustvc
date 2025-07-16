@@ -24,6 +24,7 @@ import {
   providerV6,
 } from './fixtures.js';
 import { ProviderInfo } from '../../token-registry-functions/types.js';
+import { getEthersContractFromProvider } from 'src/utils/ethers/index.js';
 
 const providers: ProviderInfo[] = [
   {
@@ -70,7 +71,21 @@ describe('Return Token', () => {
         } as unknown as Network);
       }
       const isV5TT = titleEscrowVersion === 'v5';
+      const mockTitleEscrowContract = isV5TT
+        ? mockV5TitleEscrowContract
+        : mockV4TitleEscrowContract;
       const titleEscrowAddress = isV5TT ? '0xv5contract' : '0xv4contract';
+
+      // Handle both v5 and v6 contract constructors
+      beforeAll(() => {
+        // Clear any existing mocks first
+        vi.clearAllMocks();
+        const mockContractConstructor = (mockContract: any) => vi.fn(() => mockContract);
+        // Only set up the mock if it hasn't been set up yet
+        vi.mocked(getEthersContractFromProvider).mockReturnValue(
+          mockContractConstructor(mockTitleEscrowContract),
+        );
+      });
 
       beforeEach(() => {
         vi.clearAllMocks();

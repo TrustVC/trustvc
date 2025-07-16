@@ -95,9 +95,30 @@ export const mockV5TradeTrustTokenContract = {
   },
   supportsInterface: vi.fn(),
   titleEscrowFactory: vi.fn(() => Promise.resolve('0xV5titleescrowfactory')),
-  burn: vi.fn(() => Promise.resolve('v5_burn_tx_hash')),
-  restore: vi.fn(() => Promise.resolve('v5_restore_tx_hash')),
-  mint: vi.fn(() => Promise.resolve('v5_mint_tx_hash')),
+  burn: Object.assign(
+    // Direct call returns hash string
+    vi.fn(() => Promise.resolve('v5_burn_tx_hash')),
+    {
+      // Static call returns boolean
+      staticCall: vi.fn(() => Promise.resolve(true)),
+    },
+  ),
+  restore: Object.assign(
+    // Direct call returns hash string
+    vi.fn(() => Promise.resolve('v5_restore_tx_hash')),
+    {
+      // Static call returns boolean
+      staticCall: vi.fn(() => Promise.resolve(true)),
+    },
+  ),
+  mint: Object.assign(
+    // Direct call returns hash string
+    vi.fn(() => Promise.resolve('v5_mint_tx_hash')),
+    {
+      // Static call returns boolean
+      staticCall: vi.fn(() => Promise.resolve(true)),
+    },
+  ),
   ownerOf: vi.fn(() => Promise.resolve(MOCK_OWNER_ADDRESS)),
 };
 
@@ -241,9 +262,30 @@ export const mockV4TradeTrustTokenContract = {
   },
   titleEscrowFactory: vi.fn(() => Promise.resolve('0xV4titleescrowfactory')),
   supportsInterface: vi.fn(),
-  burn: vi.fn(() => Promise.resolve('v4_burn_tx_hash')),
-  restore: vi.fn(() => Promise.resolve('v4_restore_tx_hash')),
-  mint: vi.fn(() => Promise.resolve('v4_mint_tx_hash')),
+  burn: Object.assign(
+    // Direct call returns hash string
+    vi.fn(() => Promise.resolve('v4_burn_tx_hash')),
+    {
+      // Static call returns boolean
+      staticCall: vi.fn(() => Promise.resolve(true)),
+    },
+  ),
+  restore: Object.assign(
+    // Direct call returns hash string
+    vi.fn(() => Promise.resolve('v4_restore_tx_hash')),
+    {
+      // Static call returns boolean
+      staticCall: vi.fn(() => Promise.resolve(true)),
+    },
+  ),
+  mint: Object.assign(
+    // Direct call returns hash string
+    vi.fn(() => Promise.resolve('v4_mint_tx_hash')),
+    {
+      // Static call returns boolean
+      staticCall: vi.fn(() => Promise.resolve(true)),
+    },
+  ),
   ownerOf: vi.fn(() => Promise.resolve(MOCK_OWNER_ADDRESS)),
 };
 
