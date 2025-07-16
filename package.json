@@ -10,8 +10,9 @@
   ],
   "scripts": {
     "test": "npx vitest --run --test-timeout=15000",
-    "test:e2e": "ts-node scripts/run-e2e-tests.ts test",
-    "e2e:node": "ts-node scripts/run-e2e-tests.ts node",
+    "test:e2e": "concurrently -k \"npm run e2e:node\" \"npm run wait-and-test\"",
+    "e2e:node": "npx hardhat node",
+    "wait-and-test": "wait-on tcp:8545 && npm run e2e:test",
     "e2e:test": "npx hardhat test src/__tests__/e2e/**/*.test.ts --network hardhat",
     "type-check": "tsc --noEmit",
     "lint": "npx eslint . --color --format=table --max-warnings=0",
@@ -145,6 +146,7 @@
     "@types/mocha": "^10.0.10",
     "@types/node": "^18.19.86",
     "@vitest/coverage-v8": "^1.6.1",
+    "concurrently": "^9.2.0",
     "cpy": "^11.1.0",
     "dotenv": "^16.5.0",
     "eslint": "^9.25.1",
@@ -168,7 +170,8 @@
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.31.0",
     "vite-plugin-dts": "^3.9.1",
-    "vitest": "^1.6.1"
+    "vitest": "^1.6.1",
+    "wait-on": "^8.0.3"
   },
   "overrides": {
     "ethers": "^5.8.0"

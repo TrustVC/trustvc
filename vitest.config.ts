@@ -31,7 +31,7 @@ export default defineConfig({
         inline: ['@govtechsg/oa-verify', '@tradetrust-tt/tt-verify'], // Inline oa-verify package directly
       },
     },
-    exclude: ['dist', 'node_modules', '*/type{s}.{ts,js}'],
+    exclude: ['dist', 'node_modules', '*/type{s}.{ts,js}', 'src/__tests__/e2e/**'],
     coverage: {
       enabled: true,
       provider: 'v8',

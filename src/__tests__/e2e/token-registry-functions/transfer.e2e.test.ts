@@ -1,10 +1,7 @@
 import { expect } from 'chai';
 import { network } from 'hardhat';
 import { ethers as ethersV6 } from 'ethersV6';
-import '@nomiclabs/hardhat-ethers';
-import '@nomicfoundation/hardhat-chai-matchers';
 import { CHAIN_ID } from '@tradetrust-tt/tradetrust-utils';
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 
 // Import the functions we want to test
 import {
@@ -18,13 +15,13 @@ import type {
   MintTokenOptions,
   MintTokenParams,
   TransactionOptions,
-} from '../../../../src/token-registry-functions/types';
+  ProviderInfo,
+} from '../../../token-registry-functions/types';
 import { v5Contracts } from '../../../token-registry-v5';
 import { ethers, Signer } from 'ethers';
 
 // Import our new signer utilities
 import { getSignersV5, getSignersV6, providerV5, providerV6 } from '../fixtures';
-import { ProviderInfo } from '../../../token-registry-functions/types';
 import {
   createContract,
   getV4TitleEscrowContractFromTitleEscrowFactory,
@@ -71,13 +68,13 @@ providers.forEach(({ Provider, ethersVersion, titleEscrowVersion }) => {
     let titleEscrowFactoryAddress: any;
     let titleEscrow0: any;
     let titleEscrow1: any;
-    let owner: ethers.Wallet | ethersV6.Wallet | SignerWithAddress;
-    let holder1: ethers.Wallet | ethersV6.Wallet | SignerWithAddress;
-    let beneficiary1: ethers.Wallet | ethersV6.Wallet | SignerWithAddress;
-    let holder2: ethers.Wallet | ethersV6.Wallet | SignerWithAddress;
-    let beneficiary2: ethers.Wallet | ethersV6.Wallet | SignerWithAddress;
-    let newHolder: ethers.Wallet | ethersV6.Wallet | SignerWithAddress;
-    let newBeneficiary: ethers.Wallet | ethersV6.Wallet | SignerWithAddress;
+    let owner: ethers.Wallet | ethersV6.Wallet;
+    let holder1: ethers.Wallet | ethersV6.Wallet;
+    let beneficiary1: ethers.Wallet | ethersV6.Wallet;
+    let holder2: ethers.Wallet | ethersV6.Wallet;
+    let beneficiary2: ethers.Wallet | ethersV6.Wallet;
+    let newHolder: ethers.Wallet | ethersV6.Wallet;
+    let newBeneficiary: ethers.Wallet | ethersV6.Wallet;
     let addresses: ContractAddresses;
     let tradeTrustTokenAddress: string;
 
