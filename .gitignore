@@ -5,7 +5,7 @@ dist
 tmp
 /out-tsc
 .coverage
-cache
+cache/
 
 # dependencies
 node_modules
