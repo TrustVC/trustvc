@@ -16,18 +16,19 @@ vi.mock('../../utils/ethers', async (importOriginal) => {
   };
 });
 
-vi.mock('../../core', () => ({
+vi.mock('src/core', () => ({
   encrypt: vi.fn(() => 'encrypted_remarks'),
   getTitleEscrowAddress: vi.fn(),
   isTitleEscrowVersion: vi.fn(() => Promise.resolve(true)),
   checkSupportsInterface: vi.fn(),
+
   TitleEscrowInterface: {
     V4: '0xTitleEscrowIdV4',
     V5: '0xTitleEscrowIdV5',
   },
 }));
 
-vi.mock('../../token-registry-v5', () => {
+vi.mock('src/token-registry-v5', () => {
   return {
     v5Contracts: {
       TitleEscrow__factory: {
@@ -53,7 +54,7 @@ vi.mock('../../token-registry-v5', () => {
   };
 });
 
-vi.mock('../../token-registry-v4', () => {
+vi.mock('src/token-registry-v4', () => {
   return {
     v4Contracts: {
       TitleEscrow__factory: {
@@ -244,7 +245,14 @@ export const mockV4TitleEscrowContract = {
   ),
   holder: vi.fn(() => Promise.resolve('0xcurrent_holder')),
   beneficiary: vi.fn(() => Promise.resolve('0xcurrent_beneficiary')),
-  surrender: vi.fn(() => Promise.resolve('v4_surrender_tx_hash')),
+  surrender: Object.assign(
+    // Direct call returns hash string
+    vi.fn(() => Promise.resolve('v4_surrender_tx_hash')),
+    {
+      // Static call returns boolean
+      staticCall: vi.fn(() => Promise.resolve(true)),
+    },
+  ),
 };
 export const mockV4TitleEscrowFactoryContract = {
   callStatic: {

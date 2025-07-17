@@ -5,8 +5,6 @@ import { Wallet as WalletV6, Network, ethers as ethersV6 } from 'ethersV6';
 import * as coreModule from '../../core';
 
 import { CHAIN_ID } from '@tradetrust-tt/tradetrust-utils';
-import { v5Contracts } from '../../token-registry-v5';
-import { v4Contracts } from '../../token-registry-v4';
 import { acceptReturned, rejectReturned, returnToIssuer } from '../../token-registry-functions';
 import {
   MOCK_V4_ADDRESS,
@@ -20,6 +18,7 @@ import {
   providerV6,
 } from './fixtures.js';
 import { ProviderInfo } from '../../token-registry-functions/types.js';
+import { getEthersContractFromProvider } from '../../utils/ethers/index.js';
 
 const providers: ProviderInfo[] = [
   {
@@ -48,6 +47,7 @@ describe('Return Token', () => {
   const mockRemarks = 'Return remarks';
   const mockChainId = CHAIN_ID.local;
   const mockEncryptedRemarks = '0xencryptedRemarks';
+
   describe.each(providers)(
     'Return Token with TR version $titleEscrowVersion and ethers version $ethersVersion',
     async ({ Provider, ethersVersion, titleEscrowVersion }) => {
@@ -67,7 +67,16 @@ describe('Return Token', () => {
       }
       const isV5TT = titleEscrowVersion === 'v5';
       const titleEscrowAddress = isV5TT ? '0xv5contract' : '0xv4contract';
-
+      // Handle both v5 and v6 contract constructors
+      beforeAll(() => {
+        // Clear any existing mocks first
+        vi.clearAllMocks();
+        const mockContractConstructor = (mockContract: any) => vi.fn(() => mockContract);
+        // Only set up the mock if it hasn't been set up yet
+        vi.mocked(getEthersContractFromProvider).mockReturnValue(
+          mockContractConstructor(isV5TT ? mockV5TitleEscrowContract : mockV4TitleEscrowContract),
+        );
+      });
       beforeEach(() => {
         vi.clearAllMocks();
         vi.spyOn(coreModule, 'getTitleEscrowAddress').mockResolvedValue(titleEscrowAddress);
@@ -95,9 +104,6 @@ describe('Return Token', () => {
 
         expect(result).toEqual(mockTxResponse);
         expect(coreModule.encrypt).toHaveBeenCalledWith(mockRemarks, 'encryption-id');
-        expect(
-          (isV5TT ? v5Contracts : v4Contracts).TitleEscrow__factory.connect,
-        ).toHaveBeenCalled();
       });
 
       it('should return to issuer without remarks', async () => {
@@ -197,7 +203,17 @@ describe('Return Token', () => {
         } as unknown as Network);
       }
       const mockTokenRegistryAddress = isV5TT ? MOCK_V5_ADDRESS : MOCK_V4_ADDRESS;
-      //   const titleEscrowAddress = isV5TT ? '0xv5contract' : '0xv4contract';
+      beforeAll(() => {
+        // Clear any existing mocks first
+        vi.clearAllMocks();
+        const mockContractConstructor = (mockContract: any) => vi.fn(() => mockContract);
+        // Only set up the mock if it hasn't been set up yet
+        vi.mocked(getEthersContractFromProvider).mockReturnValue(
+          mockContractConstructor(
+            isV5TT ? mockV5TradeTrustTokenContract : mockV4TradeTrustTokenContract,
+          ),
+        );
+      });
       beforeEach(() => {
         vi.clearAllMocks();
         // vi.spyOn(coreModule, 'encrypt').mockReturnValue(mockEncryptedRemarks.slice(2));
@@ -223,9 +239,6 @@ describe('Return Token', () => {
 
         expect(result).toEqual(mockTxResponse);
         if (isV5TT) expect(coreModule.encrypt).toHaveBeenCalledWith(mockRemarks, 'encryption-id');
-        expect(
-          (isV5TT ? v5Contracts : v4Contracts).TradeTrustToken__factory.connect,
-        ).toHaveBeenCalled();
       });
 
       it('should reject returned token without remarks', async () => {
@@ -259,8 +272,10 @@ describe('Return Token', () => {
         ).rejects.toThrow('Pre-check (callStatic) for rejectReturned failed');
         if (isV5TT) {
           mockV5TradeTrustTokenContract.callStatic.restore = vi.fn();
+          mockV5TradeTrustTokenContract.restore.staticCall = vi.fn();
         } else {
           mockV4TradeTrustTokenContract.callStatic.restore = vi.fn();
+          mockV4TradeTrustTokenContract.restore.staticCall = vi.fn();
         }
       });
 
@@ -333,7 +348,17 @@ describe('Return Token', () => {
         } as unknown as Network);
       }
       const mockTokenRegistryAddress = isV5TT ? MOCK_V5_ADDRESS : MOCK_V4_ADDRESS;
-      //   const titleEscrowAddress = isV5TT ? '0xv5contract' : '0xv4contract';
+      beforeAll(() => {
+        // Clear any existing mocks first
+        vi.clearAllMocks();
+        const mockContractConstructor = (mockContract: any) => vi.fn(() => mockContract);
+        // Only set up the mock if it hasn't been set up yet
+        vi.mocked(getEthersContractFromProvider).mockReturnValue(
+          mockContractConstructor(
+            isV5TT ? mockV5TradeTrustTokenContract : mockV4TradeTrustTokenContract,
+          ),
+        );
+      });
       beforeEach(() => {
         vi.clearAllMocks();
 
@@ -359,9 +384,6 @@ describe('Return Token', () => {
 
         expect(result).toEqual(mockTxResponse);
         if (isV5TT) expect(coreModule.encrypt).toHaveBeenCalledWith(mockRemarks, 'encryption-id');
-        expect(
-          (isV5TT ? v5Contracts : v4Contracts).TradeTrustToken__factory.connect,
-        ).toHaveBeenCalled();
       });
 
       it('should accept returned token without remarks', async () => {
@@ -395,8 +417,10 @@ describe('Return Token', () => {
         ).rejects.toThrow('Pre-check (callStatic) for acceptReturned failed');
         if (isV5TT) {
           mockV5TradeTrustTokenContract.callStatic.burn = vi.fn();
+          mockV5TradeTrustTokenContract.burn.staticCall = vi.fn();
         } else {
           mockV4TradeTrustTokenContract.callStatic.burn = vi.fn();
+          mockV4TradeTrustTokenContract.burn.staticCall = vi.fn();
         }
       });
 
