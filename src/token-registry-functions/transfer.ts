@@ -17,7 +17,7 @@ import {
   TransferOwnersParams,
 } from './types';
 import { getTxOptions } from './utils';
-import { getEthersContractFromProvider, isV6EthersProvider } from './../../src/utils/ethers';
+import { getEthersContractFromProvider, isV6EthersProvider } from '../utils/ethers';
 
 /**
  * Transfers holder role of a Title Escrow contract to a new address.

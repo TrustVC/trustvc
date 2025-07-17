@@ -1,6 +1,6 @@
 import { ethers as ethersV6, ContractRunner } from 'ethersV6';
-import { v5Contracts } from '../../../src/token-registry-v5';
-import { v4Contracts } from '../../../src/token-registry-v4';
+import { v5Contracts } from '../../token-registry-v5';
+import { v4Contracts } from '../../token-registry-v4';
 import { ethers, Signer } from 'ethers';
 
 export function getVersionedContractFactory(

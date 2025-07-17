@@ -5,7 +5,7 @@ import { Signer as SignerV6, Contract as ContractV6 } from 'ethersV6';
 import { Contract as ContractV5, ContractTransaction, Signer } from 'ethers';
 import { getTxOptions } from './utils';
 import { MintTokenOptions, MintTokenParams, TransactionOptions } from './types';
-import { getEthersContractFromProvider, isV6EthersProvider } from './../../src/utils/ethers';
+import { getEthersContractFromProvider, isV6EthersProvider } from '../utils/ethers';
 
 /**
  * Mints a new token into the TradeTrustToken registry with the specified beneficiary and holder.
