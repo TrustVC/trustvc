@@ -1,7 +1,5 @@
 import { expect } from 'chai';
 import { ethers as ethersV6, ZeroAddress } from 'ethersV6';
-import '@nomiclabs/hardhat-ethers';
-import '@nomicfoundation/hardhat-chai-matchers';
 import { CHAIN_ID } from '@tradetrust-tt/tradetrust-utils';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 
@@ -10,27 +8,24 @@ import {
   transferBeneficiary,
   transferOwners,
   nominate,
-} from '../../../token-registry-functions/transfer';
-import { mint } from '../../../token-registry-functions/mint';
-import type {
-  MintTokenOptions,
-  MintTokenParams,
-  TransactionOptions,
-} from '../../../token-registry-functions/types';
-import { ethers, Signer } from 'ethers';
-
-// Import our new signer utilities
-import { getSignersV5, getSignersV6, providerV5, providerV6 } from '../fixtures';
-import { ProviderInfo } from '../../../token-registry-functions/types';
-import { createContract, getVersionedContractFactory } from '../utils';
-import {
+  mint,
   rejectReturned,
   rejectTransferBeneficiary,
   rejectTransferHolder,
   rejectTransferOwners,
   returnToIssuer,
 } from '../../../token-registry-functions';
+import type {
+  MintTokenOptions,
+  MintTokenParams,
+  TransactionOptions,
+  ProviderInfo,
+} from '../../../token-registry-functions/types';
+import { ethers, Signer } from 'ethers';
 
+// Import our new signer utilities
+import { getSignersV5, getSignersV6, providerV5, providerV6 } from '../fixtures';
+import { createContract, getVersionedContractFactory } from '../utils';
 interface ContractAddresses {
   tokenAddress: string;
   titleEscrow: string;
