@@ -36,21 +36,3 @@ export const createContract = (
     ? new ethers.Contract(address, abi, signer as Signer)
     : new ethersV6.Contract(address, abi, signer as ContractRunner);
 };
-
-export const getV4TitleEscrowContractFromTitleEscrowFactory = async (
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  provider: any,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  titleEscrowFactory: any,
-  tradeTrustTokenAddress: string,
-  tokenId: string,
-) => {
-  const iface = titleEscrowFactory.interface;
-  const encodedData = iface.encodeFunctionData('getAddress', [tradeTrustTokenAddress, tokenId]);
-  const result = await provider.call({
-    to: titleEscrowFactory.target ?? titleEscrowFactory.address,
-    data: encodedData,
-  });
-  const decodedAddress = iface.decodeFunctionResult('getAddress', result)[0];
-  return decodedAddress;
-};

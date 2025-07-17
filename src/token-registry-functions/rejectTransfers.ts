@@ -3,12 +3,13 @@ import {
   getTitleEscrowAddress,
   isTitleEscrowVersion,
   TitleEscrowInterface,
-} from '../core';
-import { v5Contracts } from '../token-registry-v5';
-import { Signer as SignerV6 } from 'ethersV6';
-import { ContractTransaction, Signer } from 'ethers';
+} from './../core';
+import { v5Contracts } from './../token-registry-v5';
+import { Signer as SignerV6, Contract as ContractV6 } from 'ethersV6';
+import { Contract as ContractV5, ContractTransaction, Signer } from 'ethers';
 import { getTxOptions } from './utils';
 import { ContractOptions, RejectTransferParams, TransactionOptions } from './types';
+import { getEthersContractFromProvider, isV6EthersProvider } from '../utils/ethers';
 
 /**
  * Rejects the transfer of holder for a title escrow contract.
@@ -32,6 +33,8 @@ const rejectTransferHolder = async (
   const { chainId, maxFeePerGas, maxPriorityFeePerGas, titleEscrowVersion } = options;
 
   if (!titleEscrowAddress) {
+    if (!tokenRegistryAddress) throw new Error('Token registry address is required');
+    if (!tokenId) throw new Error('Token ID is required');
     titleEscrowAddress = await getTitleEscrowAddress(
       tokenRegistryAddress,
       tokenId as string,
@@ -40,13 +43,18 @@ const rejectTransferHolder = async (
     );
   }
 
-  if (!titleEscrowAddress) throw new Error('Token registry address is required');
+  if (!titleEscrowAddress) throw new Error('Title escrow address is required');
   if (!signer.provider) throw new Error('Provider is required');
   const { remarks } = params;
 
   // Connect V5 contract by default
-  const titleEscrowContract = v5Contracts.TitleEscrow__factory.connect(titleEscrowAddress, signer);
-
+  const Contract = getEthersContractFromProvider(signer.provider);
+  const titleEscrowContract: ContractV5 | ContractV6 = new Contract(
+    titleEscrowAddress,
+    v5Contracts.TitleEscrow__factory.abi,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    signer as any,
+  );
   const encryptedRemarks = remarks ? `0x${encrypt(remarks, options.id!)}` : '0x';
 
   // Detect version if not explicitly provided
@@ -65,7 +73,14 @@ const rejectTransferHolder = async (
 
   // Check callStatic (dry run)
   try {
-    await titleEscrowContract.callStatic.rejectTransferHolder(encryptedRemarks);
+    const isV6 = isV6EthersProvider(signer.provider);
+    const args = isV5TT ? [encryptedRemarks] : [];
+
+    if (isV6) {
+      await (titleEscrowContract as ContractV6).rejectTransferHolder.staticCall(...args);
+    } else {
+      await (titleEscrowContract as ContractV5).callStatic.rejectTransferHolder(...args);
+    }
   } catch (e) {
     console.error('callStatic failed:', e);
     throw new Error('Pre-check (callStatic) for rejectTransferHolder failed');
@@ -100,6 +115,8 @@ const rejectTransferBeneficiary = async (
   const { chainId, maxFeePerGas, maxPriorityFeePerGas, titleEscrowVersion } = options;
 
   if (!titleEscrowAddress) {
+    if (!tokenRegistryAddress) throw new Error('Token registry address is required');
+    if (!tokenId) throw new Error('Token ID is required');
     titleEscrowAddress = await getTitleEscrowAddress(
       tokenRegistryAddress,
       tokenId as string,
@@ -113,7 +130,13 @@ const rejectTransferBeneficiary = async (
   const { remarks } = params;
 
   // Connect V5 contract by default
-  const titleEscrowContract = v5Contracts.TitleEscrow__factory.connect(titleEscrowAddress, signer);
+  const Contract = getEthersContractFromProvider(signer.provider);
+  const titleEscrowContract: ContractV5 | ContractV6 = new Contract(
+    titleEscrowAddress,
+    v5Contracts.TitleEscrow__factory.abi,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    signer as any,
+  );
 
   const encryptedRemarks = remarks ? `0x${encrypt(remarks, options.id!)}` : '0x';
 
@@ -133,7 +156,14 @@ const rejectTransferBeneficiary = async (
 
   // Check callStatic (dry run)
   try {
-    await titleEscrowContract.callStatic.rejectTransferBeneficiary(encryptedRemarks);
+    const isV6 = isV6EthersProvider(signer.provider);
+    const args = isV5TT ? [encryptedRemarks] : [];
+
+    if (isV6) {
+      await (titleEscrowContract as ContractV6).rejectTransferBeneficiary.staticCall(...args);
+    } else {
+      await (titleEscrowContract as ContractV5).callStatic.rejectTransferBeneficiary(...args);
+    }
   } catch (e) {
     console.error('callStatic failed:', e);
     throw new Error('Pre-check (callStatic) for rejectTransferBeneficiary failed');
@@ -168,6 +198,8 @@ const rejectTransferOwners = async (
   const { chainId, maxFeePerGas, maxPriorityFeePerGas, titleEscrowVersion } = options;
 
   if (!titleEscrowAddress) {
+    if (!tokenRegistryAddress) throw new Error('Token registry address is required');
+    if (!tokenId) throw new Error('Token ID is required');
     titleEscrowAddress = await getTitleEscrowAddress(
       tokenRegistryAddress,
       tokenId as string,
@@ -181,7 +213,13 @@ const rejectTransferOwners = async (
   const { remarks } = params;
 
   // Connect V5 contract by default
-  const titleEscrowContract = v5Contracts.TitleEscrow__factory.connect(titleEscrowAddress, signer);
+  const Contract = getEthersContractFromProvider(signer.provider);
+  const titleEscrowContract: ContractV5 | ContractV6 = new Contract(
+    titleEscrowAddress,
+    v5Contracts.TitleEscrow__factory.abi,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    signer as any,
+  );
 
   const encryptedRemarks = remarks ? `0x${encrypt(remarks, options.id!)}` : '0x';
 
@@ -201,7 +239,14 @@ const rejectTransferOwners = async (
 
   // Check callStatic (dry run)
   try {
-    await titleEscrowContract.callStatic.rejectTransferOwners(encryptedRemarks);
+    const isV6 = isV6EthersProvider(signer.provider);
+    const args = isV5TT ? [encryptedRemarks] : [];
+
+    if (isV6) {
+      await (titleEscrowContract as ContractV6).rejectTransferOwners.staticCall(...args);
+    } else {
+      await (titleEscrowContract as ContractV5).callStatic.rejectTransferOwners(...args);
+    }
   } catch (e) {
     console.error('callStatic failed:', e);
     throw new Error('Pre-check (callStatic) for rejectTransferOwners failed');
