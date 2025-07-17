@@ -10,18 +10,18 @@ import {
   transferBeneficiary,
   transferOwners,
   nominate,
-} from '../../../../src/token-registry-functions/transfer';
-import { mint } from '../../../../src/token-registry-functions/mint';
+} from '../../../token-registry-functions/transfer';
+import { mint } from '../../../token-registry-functions/mint';
 import type {
   MintTokenOptions,
   MintTokenParams,
   TransactionOptions,
-} from '../../../../src/token-registry-functions/types';
+} from '../../../token-registry-functions/types';
 import { ethers, Signer } from 'ethers';
 
 // Import our new signer utilities
 import { getSignersV5, getSignersV6, providerV5, providerV6 } from '../fixtures';
-import { ProviderInfo } from './../../../../src/token-registry-functions/types';
+import { ProviderInfo } from '../../../token-registry-functions/types';
 import { createContract, getVersionedContractFactory } from '../utils';
 import {
   rejectReturned,
@@ -29,7 +29,7 @@ import {
   rejectTransferHolder,
   rejectTransferOwners,
   returnToIssuer,
-} from 'src/token-registry-functions';
+} from '../../../token-registry-functions';
 
 interface ContractAddresses {
   tokenAddress: string;
