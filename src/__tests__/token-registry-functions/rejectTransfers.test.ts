@@ -11,6 +11,7 @@ import {
 } from '../../token-registry-functions/rejectTransfers';
 import { mockV5TitleEscrowContract, PRIVATE_KEY, providerV5, providerV6 } from './fixtures';
 import { ProviderInfo } from '../../token-registry-functions/types.js';
+import { getEthersContractFromProvider } from '../../utils/ethers';
 
 const providers: ProviderInfo[] = [
   {
@@ -36,6 +37,16 @@ describe.each(providers)(
     const mockEncryptedRemarks = '0xencryptedRemarks';
 
     let wallet: ethersV5.Wallet | ethersV6.Wallet;
+    // Handle both v5 and v6 contract constructors
+    beforeAll(() => {
+      // Clear any existing mocks first
+      vi.clearAllMocks();
+      const mockContractConstructor = (mockContract: any) => vi.fn(() => mockContract);
+      // Only set up the mock if it hasn't been set up yet
+      vi.mocked(getEthersContractFromProvider).mockReturnValue(
+        mockContractConstructor(mockV5TitleEscrowContract),
+      );
+    });
     beforeEach(() => {
       // Reset all mocks before each test
       vi.clearAllMocks();
@@ -157,6 +168,9 @@ describe.each(providers)(
         mockV5TitleEscrowContract.callStatic.rejectTransferHolder.mockRejectedValue(
           new Error('Simulated failure'),
         );
+        mockV5TitleEscrowContract.rejectTransferHolder.staticCall.mockRejectedValue(
+          new Error('Simulated failure'),
+        );
 
         await expect(
           rejectTransferHolder(
@@ -170,6 +184,7 @@ describe.each(providers)(
           ),
         ).rejects.toThrow('Pre-check (callStatic) for rejectTransferHolder failed');
         mockV5TitleEscrowContract.callStatic.rejectTransferHolder = vi.fn();
+        mockV5TitleEscrowContract.rejectTransferHolder.staticCall = vi.fn();
       });
 
       it('should use explicit titleEscrowVersion when provided', async () => {
@@ -281,7 +296,9 @@ describe.each(providers)(
         mockV5TitleEscrowContract.callStatic.rejectTransferBeneficiary.mockRejectedValue(
           new Error('Simulated failure'),
         );
-
+        mockV5TitleEscrowContract.rejectTransferBeneficiary.staticCall.mockRejectedValue(
+          new Error('Simulated failure'),
+        );
         await expect(
           rejectTransferBeneficiary(
             {
@@ -294,6 +311,7 @@ describe.each(providers)(
           ),
         ).rejects.toThrow('Pre-check (callStatic) for rejectTransferBeneficiary failed');
         mockV5TitleEscrowContract.callStatic.rejectTransferBeneficiary = vi.fn();
+        mockV5TitleEscrowContract.rejectTransferBeneficiary.staticCall = vi.fn();
       });
 
       it('should use explicit titleEscrowVersion when provided', async () => {
@@ -405,6 +423,9 @@ describe.each(providers)(
         mockV5TitleEscrowContract.callStatic.rejectTransferOwners.mockRejectedValue(
           new Error('Simulated failure'),
         );
+        mockV5TitleEscrowContract.rejectTransferOwners.staticCall.mockRejectedValue(
+          new Error('Simulated failure'),
+        );
 
         await expect(
           rejectTransferOwners(
@@ -418,6 +439,7 @@ describe.each(providers)(
           ),
         ).rejects.toThrow('Pre-check (callStatic) for rejectTransferOwners failed');
         mockV5TitleEscrowContract.callStatic.rejectTransferOwners = vi.fn();
+        mockV5TitleEscrowContract.rejectTransferOwners.staticCall = vi.fn();
       });
 
       it('should use explicit titleEscrowVersion when provided', async () => {
