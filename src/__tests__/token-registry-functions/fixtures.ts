@@ -16,19 +16,18 @@ vi.mock('../../utils/ethers', async (importOriginal) => {
   };
 });
 
-vi.mock('src/core', () => ({
+vi.mock('../../core', () => ({
   encrypt: vi.fn(() => 'encrypted_remarks'),
   getTitleEscrowAddress: vi.fn(),
   isTitleEscrowVersion: vi.fn(() => Promise.resolve(true)),
   checkSupportsInterface: vi.fn(),
-
   TitleEscrowInterface: {
     V4: '0xTitleEscrowIdV4',
     V5: '0xTitleEscrowIdV5',
   },
 }));
 
-vi.mock('src/token-registry-v5', () => {
+vi.mock('../../token-registry-v5', () => {
   return {
     v5Contracts: {
       TitleEscrow__factory: {
@@ -54,7 +53,7 @@ vi.mock('src/token-registry-v5', () => {
   };
 });
 
-vi.mock('src/token-registry-v4', () => {
+vi.mock('../../token-registry-v4', () => {
   return {
     v4Contracts: {
       TitleEscrow__factory: {
