@@ -5,31 +5,27 @@ import '@nomiclabs/hardhat-ethers';
 import '@nomicfoundation/hardhat-chai-matchers';
 import { CHAIN_ID } from '@tradetrust-tt/tradetrust-utils';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
-
-// Import the functions we want to test
-import {
-  transferHolder,
-  transferBeneficiary,
-  transferOwners,
-  nominate,
-} from '../../../../src/token-registry-functions/transfer';
-import { mint } from '../../../../src/token-registry-functions/mint';
 import type {
   MintTokenOptions,
   MintTokenParams,
   TransactionOptions,
-} from '../../../../src/token-registry-functions/types';
+  ProviderInfo,
+} from '../../../token-registry-functions/types';
 import { ethers, Signer } from 'ethers';
 
 // Import our new signer utilities
 import { getSignersV5, getSignersV6, providerV5, providerV6 } from '../fixtures';
-import { ProviderInfo } from './../../../../src/token-registry-functions/types';
 import { createContract, getVersionedContractFactory } from '../utils';
 import {
+  mint,
+  transferHolder,
+  transferBeneficiary,
+  transferOwners,
+  nominate,
   rejectTransferBeneficiary,
   rejectTransferHolder,
   rejectTransferOwners,
-} from 'src/token-registry-functions';
+} from '../../../token-registry-functions';
 
 interface ContractAddresses {
   tokenAddress: string;

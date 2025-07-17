@@ -5,28 +5,24 @@ import { CHAIN_ID } from '@tradetrust-tt/tradetrust-utils';
 
 // Import the functions we want to test
 import {
+  mint,
   transferHolder,
   transferBeneficiary,
   transferOwners,
   nominate,
-} from '../../../token-registry-functions/transfer';
-import { mint } from '../../../token-registry-functions/mint';
+} from '../../../token-registry-functions';
 import type {
   MintTokenOptions,
   MintTokenParams,
   TransactionOptions,
   ProviderInfo,
 } from '../../../token-registry-functions/types';
-import { v5Contracts } from '../../../token-registry-v5';
 import { ethers, Signer } from 'ethers';
 
 // Import our new signer utilities
 import { getSignersV5, getSignersV6, providerV5, providerV6 } from '../fixtures';
-import {
-  createContract,
-  getV4TitleEscrowContractFromTitleEscrowFactory,
-  getVersionedContractFactory,
-} from '../utils';
+import { createContract, getVersionedContractFactory } from '../utils';
+import { getTitleEscrowAddress } from '../../../core';
 
 interface ContractAddresses {
   tokenAddress: string;
@@ -347,31 +343,17 @@ providers.forEach(({ Provider, ethersVersion, titleEscrowVersion }) => {
       it('should set up title escrow addresses and contract instances', async function () {
         // Get title escrow addresses using the factory
 
-        const titleEscrow0Address =
-          titleEscrowVersion === 'v5'
-            ? await (TitleEscrowFactoryContract as v5Contracts.TitleEscrowFactory).getEscrowAddress(
-                tradeTrustTokenAddress,
-                '0',
-              )
-            : await getV4TitleEscrowContractFromTitleEscrowFactory(
-                Provider,
-                TitleEscrowFactoryContract,
-                tradeTrustTokenAddress,
-                '0',
-              );
+        const titleEscrow0Address = await getTitleEscrowAddress(
+          tradeTrustTokenAddress,
+          '0',
+          Provider,
+        );
 
-        const titleEscrow1Address =
-          titleEscrowVersion === 'v5'
-            ? await (TitleEscrowFactoryContract as v5Contracts.TitleEscrowFactory).getEscrowAddress(
-                tradeTrustTokenAddress,
-                '1',
-              )
-            : await getV4TitleEscrowContractFromTitleEscrowFactory(
-                Provider,
-                TitleEscrowFactoryContract,
-                tradeTrustTokenAddress,
-                '1',
-              );
+        const titleEscrow1Address = await getTitleEscrowAddress(
+          tradeTrustTokenAddress,
+          '1',
+          Provider,
+        );
 
         // Get contract instances
         titleEscrow0 = createContract(

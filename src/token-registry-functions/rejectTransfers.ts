@@ -3,13 +3,13 @@ import {
   getTitleEscrowAddress,
   isTitleEscrowVersion,
   TitleEscrowInterface,
-} from './../../src/core';
-import { v5Contracts } from './../../src/token-registry-v5';
+} from './../core';
+import { v5Contracts } from './../token-registry-v5';
 import { Signer as SignerV6, Contract as ContractV6 } from 'ethersV6';
 import { Contract as ContractV5, ContractTransaction, Signer } from 'ethers';
 import { getTxOptions } from './utils';
 import { ContractOptions, RejectTransferParams, TransactionOptions } from './types';
-import { getEthersContractFromProvider, isV6EthersProvider } from '../../src/utils/ethers';
+import { getEthersContractFromProvider, isV6EthersProvider } from '../utils/ethers';
 
 /**
  * Rejects the transfer of holder for a title escrow contract.
