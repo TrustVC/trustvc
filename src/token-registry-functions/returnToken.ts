@@ -7,8 +7,8 @@ import {
 } from '../core';
 import { v5Contracts, v5SupportInterfaceIds } from '../token-registry-v5';
 import { v4Contracts, v4SupportInterfaceIds } from '../token-registry-v4';
-import { Signer as SignerV6 } from 'ethersV6';
-import { ContractTransaction, Signer } from 'ethers';
+import { Signer as SignerV6, Contract as ContractV6 } from 'ethersV6';
+import { Contract as ContractV5, ContractTransaction, Signer } from 'ethers';
 import { getTxOptions } from './utils';
 import {
   AcceptReturnedOptions,
@@ -19,6 +19,7 @@ import {
   ReturnToIssuerParams,
   TransactionOptions,
 } from './types';
+import { getEthersContractFromProvider, isV6EthersProvider } from '../utils/ethers';
 
 /**
  * Returns the token to the original issuer from the Title Escrow contract.
@@ -54,8 +55,8 @@ const returnToIssuer = async (
   const { remarks } = params;
 
   // Connect V5 contract by default
-  let titleEscrowContract: v5Contracts.TitleEscrow | v4Contracts.TitleEscrow =
-    v5Contracts.TitleEscrow__factory.connect(titleEscrowAddress, signer);
+  // let titleEscrowContract: v5Contracts.TitleEscrow | v4Contracts.TitleEscrow =
+  //   v5Contracts.TitleEscrow__factory.connect(titleEscrowAddress, signer);
 
   const encryptedRemarks = remarks && options.id ? `0x${encrypt(remarks, options.id)}` : '0x';
 
@@ -82,21 +83,35 @@ const returnToIssuer = async (
     throw new Error('Only Token Registry V4/V5 is supported');
   }
 
-  if (isV4TT) {
-    titleEscrowContract = v4Contracts.TitleEscrow__factory.connect(
+  const Contract = getEthersContractFromProvider(signer.provider);
+  // Connect V5 contract by default
+  let titleEscrowContract: ContractV5 | ContractV6;
+  if (isV5TT) {
+    titleEscrowContract = new Contract(
       titleEscrowAddress,
-      signer as Signer,
+      v5Contracts.TitleEscrow__factory.abi,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      signer as any,
+    );
+  } else if (isV4TT) {
+    titleEscrowContract = new Contract(
+      titleEscrowAddress,
+      v4Contracts.TitleEscrow__factory.abi,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      signer as any,
     );
   }
 
   // Check callStatic (dry run)
   try {
-    if (isV5TT) {
-      await (titleEscrowContract as v5Contracts.TitleEscrow).callStatic.returnToIssuer(
-        encryptedRemarks,
-      );
-    } else if (isV4TT) {
-      await (titleEscrowContract as v4Contracts.TitleEscrow).callStatic.surrender();
+    const isV6 = isV6EthersProvider(signer.provider);
+    const args = isV5TT ? [encryptedRemarks] : [];
+    const staticCallFxn = isV5TT ? 'returnToIssuer' : 'surrender';
+
+    if (isV6) {
+      await (titleEscrowContract as ContractV6)[staticCallFxn].staticCall(...args);
+    } else {
+      await (titleEscrowContract as ContractV5).callStatic[staticCallFxn](...args);
     }
   } catch (e) {
     console.error('callStatic failed:', e);
@@ -107,12 +122,9 @@ const returnToIssuer = async (
 
   // Send the actual transaction
   if (isV5TT) {
-    return await (titleEscrowContract as v5Contracts.TitleEscrow).returnToIssuer(
-      encryptedRemarks,
-      txOptions,
-    );
+    return await titleEscrowContract.returnToIssuer(encryptedRemarks, txOptions);
   } else if (isV4TT) {
-    return await (titleEscrowContract as v4Contracts.TitleEscrow).surrender(txOptions);
+    return await titleEscrowContract.surrender(txOptions);
   }
 };
 
@@ -163,30 +175,35 @@ const rejectReturned = async (
   if (!isV4TT && !isV5TT) {
     throw new Error('Only Token Registry V4/V5 is supported');
   }
+  const Contract = getEthersContractFromProvider(signer.provider);
   // Connect V5 contract by default
-  let tradeTrustTokenContract: v5Contracts.TradeTrustToken | v4Contracts.TradeTrustToken;
+  let tradeTrustTokenContract: ContractV5 | ContractV6;
   if (isV5TT) {
-    tradeTrustTokenContract = v5Contracts.TradeTrustToken__factory.connect(
+    tradeTrustTokenContract = new Contract(
       tokenRegistryAddress,
-      signer,
+      v5Contracts.TradeTrustToken__factory.abi,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      signer as any,
     );
   } else if (isV4TT) {
-    tradeTrustTokenContract = v4Contracts.TradeTrustToken__factory.connect(
+    tradeTrustTokenContract = new Contract(
       tokenRegistryAddress,
-      signer as Signer,
+      v4Contracts.TradeTrustToken__factory.abi,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      signer as any,
     );
   }
 
   const encryptedRemarks = remarks && isV5TT ? `0x${encrypt(remarks, options.id!)}` : '0x';
   // Check callStatic (dry run)
   try {
-    if (isV5TT) {
-      await (tradeTrustTokenContract as v5Contracts.TradeTrustToken).callStatic.restore(
-        tokenId,
-        encryptedRemarks,
-      );
-    } else if (isV4TT) {
-      await (tradeTrustTokenContract as v4Contracts.TradeTrustToken).callStatic.restore(tokenId);
+    const isV6 = isV6EthersProvider(signer.provider);
+    const args = isV5TT ? [tokenId, encryptedRemarks] : [tokenId];
+
+    if (isV6) {
+      await (tradeTrustTokenContract as ContractV6).restore.staticCall(...args);
+    } else {
+      await (tradeTrustTokenContract as ContractV5).callStatic.restore(...args);
     }
   } catch (e) {
     console.error('callStatic failed:', e);
@@ -198,16 +215,9 @@ const rejectReturned = async (
   // Send the actual transaction
 
   if (isV5TT) {
-    return await (tradeTrustTokenContract as v5Contracts.TradeTrustToken).restore(
-      tokenId,
-      encryptedRemarks,
-      txOptions,
-    );
+    return await tradeTrustTokenContract.restore(tokenId, encryptedRemarks, txOptions);
   } else if (isV4TT) {
-    return await (tradeTrustTokenContract as v4Contracts.TradeTrustToken).restore(
-      tokenId,
-      txOptions,
-    );
+    return await tradeTrustTokenContract.restore(tokenId, txOptions);
   }
 };
 /**
@@ -257,17 +267,22 @@ const acceptReturned = async (
   if (!isV4TT && !isV5TT) {
     throw new Error('Only Token Registry V4/V5 is supported');
   }
+  const Contract = getEthersContractFromProvider(signer.provider);
   // Connect V5 contract by default
-  let tradeTrustTokenContract: v5Contracts.TradeTrustToken | v4Contracts.TradeTrustToken;
+  let tradeTrustTokenContract: ContractV5 | ContractV6;
   if (isV5TT) {
-    tradeTrustTokenContract = v5Contracts.TradeTrustToken__factory.connect(
+    tradeTrustTokenContract = new Contract(
       tokenRegistryAddress,
-      signer,
+      v5Contracts.TradeTrustToken__factory.abi,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      signer as any,
     );
   } else if (isV4TT) {
-    tradeTrustTokenContract = v4Contracts.TradeTrustToken__factory.connect(
+    tradeTrustTokenContract = new Contract(
       tokenRegistryAddress,
-      signer as Signer,
+      v4Contracts.TradeTrustToken__factory.abi,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      signer as any,
     );
   }
 
@@ -275,13 +290,13 @@ const acceptReturned = async (
 
   // Check callStatic (dry run)
   try {
-    if (isV5TT) {
-      await (tradeTrustTokenContract as v5Contracts.TradeTrustToken).callStatic.burn(
-        tokenId,
-        encryptedRemarks,
-      );
-    } else if (isV4TT) {
-      await (tradeTrustTokenContract as v4Contracts.TradeTrustToken).callStatic.burn(tokenId);
+    const isV6 = isV6EthersProvider(signer.provider);
+    const args = isV5TT ? [encryptedRemarks] : [];
+
+    if (isV6) {
+      await (tradeTrustTokenContract as ContractV6).burn.staticCall(...args);
+    } else {
+      await (tradeTrustTokenContract as ContractV5).callStatic.burn(...args);
     }
   } catch (e) {
     console.error('callStatic failed:', e);
@@ -293,13 +308,9 @@ const acceptReturned = async (
   // Send the actual transaction
 
   if (isV5TT) {
-    return await (tradeTrustTokenContract as v5Contracts.TradeTrustToken).burn(
-      tokenId,
-      encryptedRemarks,
-      txOptions,
-    );
+    return await tradeTrustTokenContract.burn(tokenId, encryptedRemarks, txOptions);
   } else if (isV4TT) {
-    return await (tradeTrustTokenContract as v4Contracts.TradeTrustToken).burn(tokenId, txOptions);
+    return await tradeTrustTokenContract.burn(tokenId, txOptions);
   }
 };
 
