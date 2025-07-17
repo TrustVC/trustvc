@@ -1,40 +1,58 @@
 import './fixtures.js';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { vi, describe, beforeAll, it, expect } from 'vitest';
 import { ethers as ethersV5, Wallet as WalletV5 } from 'ethers';
 import { ethers as ethersV6, Network, Wallet as WalletV6 } from 'ethersV6';
 import * as coreModule from '../../core';
 import { encrypt } from '../../core';
 import { CHAIN_ID } from '@tradetrust-tt/tradetrust-utils';
 import {
+  nominate,
   transferBeneficiary,
   transferHolder,
   transferOwners,
-  nominate,
 } from '../../token-registry-functions';
-import { ProviderInfo } from '../../token-registry-functions/types';
+
 import {
   mockV4TitleEscrowContract,
   mockV5TitleEscrowContract,
   PRIVATE_KEY,
   providerV5,
   providerV6,
-} from './fixtures';
+} from './fixtures.js';
+import { getEthersContractFromProvider } from '../../utils/ethers/index.js';
 
-const providers: ProviderInfo[] = [
+// Mock core module
+vi.mock('../../core', () => ({
+  __esModule: true,
+  ...vi.importActual('../../core'),
+  encrypt: vi.fn(() => 'encrypted_remarks'),
+}));
+
+// Mock gas station
+vi.mock('../../core/gas-station', () => ({
+  getGasStation: vi.fn(),
+}));
+
+// Mock gas station options
+vi.mock('../../core/gas-station/mock', () => ({
+  getGasOptions: vi.fn(),
+}));
+
+const providers: any[] = [
   {
     Provider: providerV5,
     ethersVersion: 'v5',
+    titleEscrowVersion: 'v5',
+  },
+  {
+    Provider: providerV6,
+    ethersVersion: 'v6',
     titleEscrowVersion: 'v5',
   },
   {
     Provider: providerV5,
     ethersVersion: 'v5',
     titleEscrowVersion: 'v4',
-  },
-  {
-    Provider: providerV6,
-    ethersVersion: 'v6',
-    titleEscrowVersion: 'v5',
   },
   {
     Provider: providerV6,
@@ -43,30 +61,31 @@ const providers: ProviderInfo[] = [
   },
 ];
 describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEscrowVersion }) => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
   let wallet: ethersV5.Wallet | ethersV6.Wallet;
   if (ethersVersion === 'v5') {
     wallet = new WalletV5(PRIVATE_KEY, Provider as any) as ethersV5.Wallet;
-    //   wallet = {
-    //     ...wallet,
-    //     address: '0xcurrent_holder',
-    //     getChainId: vi.fn().mockResolvedValue(CHAIN_ID.mainnet as unknown as number),
-    //   } as any;
     vi.spyOn(wallet, 'getChainId').mockResolvedValue(CHAIN_ID.mainnet as unknown as number);
   } else {
     wallet = new WalletV6(PRIVATE_KEY, Provider as any);
     vi.spyOn(Provider, 'getNetwork').mockResolvedValue({
       chainId: CHAIN_ID.mainnet,
     } as unknown as Network);
-    //   vi.spyOn(wallet, 'getAddress').mockResolvedValue('0xcurrent_holder');
   }
   const isV5TT = titleEscrowVersion === 'v5';
   const mockTitleEscrowContract = isV5TT ? mockV5TitleEscrowContract : mockV4TitleEscrowContract;
   const titleEscrowAddress = isV5TT ? '0xv5contract' : '0xv4contract';
 
-  describe(`transfer holder with TR Version $titleEscrowVersion and ethers version $ethersVersion`, () => {
+  // Handle both v5 and v6 contract constructors
+  beforeAll(() => {
+    // Clear any existing mocks first
+    vi.clearAllMocks();
+    const mockContractConstructor = (mockContract: any) => vi.fn(() => mockContract);
+    // Only set up the mock if it hasn't been set up yet
+    vi.mocked(getEthersContractFromProvider).mockReturnValue(
+      mockContractConstructor(mockTitleEscrowContract),
+    );
+  });
+  describe(`transfer holder with TR Version ${titleEscrowVersion} and ethers version ${ethersVersion}`, () => {
     const params = isV5TT
       ? {
           holderAddress: '0xholder',
@@ -111,9 +130,7 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
       );
       if (isV5TT) expect(encrypt).toHaveBeenCalledWith('0xencrypted_remarks', 'doc-id');
 
-      const resultOptions = isV5TT
-        ? ['0xholder', '0xencrypted_remarks', undefined]
-        : ['0xholder', undefined];
+      const resultOptions = isV5TT ? ['0xholder', '0xencrypted_remarks', {}] : ['0xholder', {}];
 
       expect(mockTitleEscrowContract.transferHolder).toHaveBeenCalledWith(...resultOptions);
       expect(tx).toBe(txHash);
@@ -193,6 +210,9 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
       mockTitleEscrowContract.callStatic.transferHolder.mockRejectedValue(
         new Error('Simulated failure'),
       );
+      mockTitleEscrowContract.transferHolder.staticCall.mockRejectedValue(
+        new Error('Simulated failure'),
+      );
 
       await expect(
         transferHolder(
@@ -204,9 +224,10 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
           { id: 'doc-id', titleEscrowVersion },
         ),
       ).rejects.toThrow('Pre-check (callStatic) for transferHolder failed');
+      mockTitleEscrowContract.transferHolder.staticCall.mockResolvedValue(true);
     });
 
-    it('handles both v5 and v4 contracts when tokenId and tokenregistry is provided', async () => {
+    it('handles both v5 and v4 contracts when tokenId and tokenRegistry is provided', async () => {
       vi.spyOn(coreModule, 'isTitleEscrowVersion').mockImplementation(
         async ({ versionInterface }) =>
           versionInterface === (isV5TT ? '0xTitleEscrowIdV5' : '0xTitleEscrowIdV4'),
@@ -228,15 +249,28 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
       if (isV5TT) expect(encrypt).toHaveBeenCalledWith('0xencrypted_remarks', 'doc-id');
 
       const resultOptions = isV5TT
-        ? ['0xholder', '0xencrypted_remarks', undefined]
-        : ['0xholder', undefined];
+        ? [
+            '0xholder',
+            '0xencrypted_remarks',
+            {
+              maxFeePerGas: 100,
+              maxPriorityFeePerGas: 50,
+            },
+          ]
+        : [
+            '0xholder',
+            {
+              maxFeePerGas: 100,
+              maxPriorityFeePerGas: 50,
+            },
+          ];
 
       expect(mockTitleEscrowContract.transferHolder).toHaveBeenCalledWith(...resultOptions);
       expect(tx).toBe(txHash);
     });
   });
 
-  describe(`transfer beneficiary with TR Version $titleEscrowVersion and ethers version $ethersVersion`, () => {
+  describe(`transfer beneficiary with TR Version ${titleEscrowVersion} and ethers version ${ethersVersion}`, () => {
     const params = isV5TT
       ? { newBeneficiaryAddress: '0xbeneficiary', remarks: '0xencrypted_remarks', tokenId: 1 }
       : { newBeneficiaryAddress: '0xbeneficiary', tokenId: 1 };
@@ -276,8 +310,8 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
       if (isV5TT) expect(encrypt).toHaveBeenCalledWith('0xencrypted_remarks', 'doc-id');
 
       const resultOptions = isV5TT
-        ? ['0xbeneficiary', '0xencrypted_remarks', undefined]
-        : ['0xbeneficiary', undefined];
+        ? ['0xbeneficiary', '0xencrypted_remarks', {}]
+        : ['0xbeneficiary', {}];
 
       expect(mockTitleEscrowContract.transferBeneficiary).toHaveBeenCalledWith(...resultOptions);
       expect(tx).toBe(txHash);
@@ -365,6 +399,9 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
       mockTitleEscrowContract.callStatic.transferBeneficiary.mockRejectedValue(
         new Error('Simulated failure'),
       );
+      mockTitleEscrowContract.transferBeneficiary.staticCall.mockRejectedValue(
+        new Error('Simulated failure'),
+      );
 
       await expect(
         transferBeneficiary(
@@ -376,6 +413,7 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
           { id: 'doc-id', titleEscrowVersion },
         ),
       ).rejects.toThrow('Pre-check (callStatic) for transferBeneficiary failed');
+      mockTitleEscrowContract.transferBeneficiary.staticCall.mockResolvedValue(true);
     });
 
     it('handles both v5 and v4 contracts when tokenId and tokenregistry is provided', async () => {
@@ -400,15 +438,15 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
       if (isV5TT) expect(encrypt).toHaveBeenCalledWith('0xencrypted_remarks', 'doc-id');
 
       const resultOptions = isV5TT
-        ? ['0xbeneficiary', '0xencrypted_remarks', undefined]
-        : ['0xbeneficiary', undefined];
+        ? ['0xbeneficiary', '0xencrypted_remarks', {}]
+        : ['0xbeneficiary', {}];
 
       expect(mockTitleEscrowContract.transferBeneficiary).toHaveBeenCalledWith(...resultOptions);
       expect(tx).toBe(txHash);
     });
   });
 
-  describe(`transfer owners with TR Version $titleEscrowVersion and ethers version $ethersVersion`, () => {
+  describe(`transfer owners with TR Version ${titleEscrowVersion} and ethers version ${ethersVersion}`, () => {
     const params = isV5TT
       ? {
           newBeneficiaryAddress: '0xbeneficiary',
@@ -454,8 +492,8 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
       if (isV5TT) expect(encrypt).toHaveBeenCalledWith('0xencrypted_remarks', 'doc-id');
 
       const resultOptions = isV5TT
-        ? ['0xbeneficiary', '0xholder', '0xencrypted_remarks', undefined]
-        : ['0xbeneficiary', '0xholder', undefined];
+        ? ['0xbeneficiary', '0xholder', '0xencrypted_remarks', {}]
+        : ['0xbeneficiary', '0xholder', {}];
 
       expect(mockTitleEscrowContract.transferOwners).toHaveBeenCalledWith(...resultOptions);
       expect(tx).toBe(txHash);
@@ -545,6 +583,9 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
       mockTitleEscrowContract.callStatic.transferOwners.mockRejectedValue(
         new Error('Simulated failure'),
       );
+      mockTitleEscrowContract.transferOwners.staticCall.mockRejectedValue(
+        new Error('Simulated failure'),
+      );
 
       await expect(
         transferOwners(
@@ -556,6 +597,7 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
           { id: 'doc-id', titleEscrowVersion },
         ),
       ).rejects.toThrow('Pre-check (callStatic) for transferOwners failed');
+      mockTitleEscrowContract.transferOwners.staticCall.mockResolvedValue(true);
     });
 
     it('handles both v5 and v4 contracts when tokenId and tokenregistry is provided', async () => {
@@ -580,15 +622,15 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
       if (isV5TT) expect(encrypt).toHaveBeenCalledWith('0xencrypted_remarks', 'doc-id');
 
       const resultOptions = isV5TT
-        ? ['0xbeneficiary', '0xholder', '0xencrypted_remarks', undefined]
-        : ['0xbeneficiary', '0xholder', undefined];
+        ? ['0xbeneficiary', '0xholder', '0xencrypted_remarks', {}]
+        : ['0xbeneficiary', '0xholder', {}];
 
       expect(mockTitleEscrowContract.transferOwners).toHaveBeenCalledWith(...resultOptions);
       expect(tx).toBe(txHash);
     });
   });
 
-  describe(`nominate with TR Version $titleEscrowVersion and ethers version $ethersVersion`, () => {
+  describe(`nominate with TR Version ${titleEscrowVersion} and ethers version ${ethersVersion}`, () => {
     const params = isV5TT
       ? { newBeneficiaryAddress: '0xbeneficiary', remarks: '0xencrypted_remarks', tokenId: 1 }
       : { newBeneficiaryAddress: '0xbeneficiary', tokenId: 1 };
@@ -628,8 +670,8 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
       if (isV5TT) expect(encrypt).toHaveBeenCalledWith('0xencrypted_remarks', 'doc-id');
 
       const resultOptions = isV5TT
-        ? ['0xbeneficiary', '0xencrypted_remarks', undefined]
-        : ['0xbeneficiary', undefined];
+        ? ['0xbeneficiary', '0xencrypted_remarks', {}]
+        : ['0xbeneficiary', {}];
 
       expect(mockTitleEscrowContract.nominate).toHaveBeenCalledWith(...resultOptions);
       expect(tx).toBe(txHash);
@@ -715,6 +757,7 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
           versionInterface === (isV5TT ? '0xTitleEscrowIdV5' : '0xTitleEscrowIdV4'),
       );
       mockTitleEscrowContract.callStatic.nominate.mockRejectedValue(new Error('Simulated failure'));
+      mockTitleEscrowContract.nominate.staticCall.mockRejectedValue(new Error('Simulated failure'));
 
       await expect(
         nominate(
@@ -726,6 +769,7 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
           { id: 'doc-id', titleEscrowVersion },
         ),
       ).rejects.toThrow('Pre-check (callStatic) for nominate failed');
+      mockTitleEscrowContract.nominate.staticCall.mockResolvedValue(true);
     });
 
     it('handles both v5 and v4 contracts when tokenId and tokenregistry is provided', async () => {
@@ -750,8 +794,8 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
       if (isV5TT) expect(encrypt).toHaveBeenCalledWith('0xencrypted_remarks', 'doc-id');
 
       const resultOptions = isV5TT
-        ? ['0xbeneficiary', '0xencrypted_remarks', undefined]
-        : ['0xbeneficiary', undefined];
+        ? ['0xbeneficiary', '0xencrypted_remarks', {}]
+        : ['0xbeneficiary', {}];
 
       expect(mockTitleEscrowContract.nominate).toHaveBeenCalledWith(...resultOptions);
       expect(tx).toBe(txHash);

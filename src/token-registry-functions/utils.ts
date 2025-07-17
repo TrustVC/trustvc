@@ -21,7 +21,7 @@ const getTxOptions = async (
       maxPriorityFeePerGas = gasFees?.maxPriorityFeePerGas ?? 0;
     }
   }
-  return maxFeePerGas && maxPriorityFeePerGas ? { maxFeePerGas, maxPriorityFeePerGas } : undefined;
+  return maxFeePerGas && maxPriorityFeePerGas ? { maxFeePerGas, maxPriorityFeePerGas } : {};
 };
 
 // 🔍 Handles both Ethers v5 and v6 signer types
