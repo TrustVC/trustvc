@@ -11,7 +11,7 @@ import {
 } from '../../token-registry-functions/rejectTransfers';
 import { mockV5TitleEscrowContract, PRIVATE_KEY, providerV5, providerV6 } from './fixtures';
 import { ProviderInfo } from '../../token-registry-functions/types.js';
-import { getEthersContractFromProvider } from 'src/utils/ethers/index.js';
+import { getEthersContractFromProvider } from '../../utils/ethers';
 
 const providers: ProviderInfo[] = [
   {
