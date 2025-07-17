@@ -1,10 +1,11 @@
 import { checkSupportsInterface, encrypt } from '../core';
 import { v5Contracts, v5SupportInterfaceIds } from '../token-registry-v5';
 import { v4Contracts, v4SupportInterfaceIds } from '../token-registry-v4';
-import { Signer as SignerV6 } from 'ethersV6';
-import { ContractTransaction, Signer } from 'ethers';
+import { Signer as SignerV6, Contract as ContractV6 } from 'ethersV6';
+import { Contract as ContractV5, ContractTransaction, Signer } from 'ethers';
 import { getTxOptions } from './utils';
 import { MintTokenOptions, MintTokenParams, TransactionOptions } from './types';
+import { getEthersContractFromProvider, isV6EthersProvider } from '../utils/ethers';
 
 /**
  * Mints a new token into the TradeTrustToken registry with the specified beneficiary and holder.
@@ -53,48 +54,54 @@ const mint = async (
   if (!isV4TT && !isV5TT) {
     throw new Error('Only Token Registry V4/V5 is supported');
   }
+  const Contract = getEthersContractFromProvider(signer.provider);
   // Connect V5 contract by default
-  let tradeTrustTokenContract: v5Contracts.TradeTrustToken | v4Contracts.TradeTrustToken;
+  let tradeTrustTokenContract: ContractV5 | ContractV6;
   if (isV5TT) {
-    tradeTrustTokenContract = v5Contracts.TradeTrustToken__factory.connect(
+    tradeTrustTokenContract = new Contract(
       tokenRegistryAddress,
-      signer,
+      v5Contracts.TradeTrustToken__factory.abi,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      signer as any,
     );
   } else if (isV4TT) {
-    tradeTrustTokenContract = v4Contracts.TradeTrustToken__factory.connect(
+    tradeTrustTokenContract = new Contract(
       tokenRegistryAddress,
-      signer as Signer,
+      v4Contracts.TradeTrustToken__factory.abi,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      signer as any,
     );
   }
 
-  const encryptedRemarks = remarks && isV5TT ? `0x${encrypt(remarks, options.id!)}` : '0x';
+  const encryptedRemarks = remarks && isV5TT ? `0x${encrypt(remarks, options.id ?? '')}` : '0x';
   // Check callStatic (dry run)
   try {
-    if (isV5TT) {
-      await (tradeTrustTokenContract as v5Contracts.TradeTrustToken).callStatic.mint(
-        beneficiaryAddress,
-        holderAddress,
-        tokenId,
-        encryptedRemarks,
-      );
-    } else if (isV4TT) {
-      await (tradeTrustTokenContract as v4Contracts.TradeTrustToken).callStatic.mint(
-        beneficiaryAddress,
-        holderAddress,
-        tokenId,
-      );
+    const isV6 = isV6EthersProvider(signer.provider);
+    const args = isV5TT
+      ? [beneficiaryAddress, holderAddress, tokenId, encryptedRemarks]
+      : [beneficiaryAddress, holderAddress, tokenId];
+
+    if (isV6) {
+      await (tradeTrustTokenContract as ContractV6).mint.staticCall(...args);
+    } else {
+      await (tradeTrustTokenContract as ContractV5).callStatic.mint(...args);
     }
   } catch (e) {
     console.error('callStatic failed:', e);
     throw new Error('Pre-check (callStatic) for mint failed');
   }
 
-  const txOptions = await getTxOptions(signer, chainId, maxFeePerGas, maxPriorityFeePerGas);
+  const txOptions: TransactionOptions = await getTxOptions(
+    signer,
+    chainId,
+    maxFeePerGas,
+    maxPriorityFeePerGas,
+  );
 
   // Send the actual transaction
 
   if (isV5TT) {
-    return await (tradeTrustTokenContract as v5Contracts.TradeTrustToken).mint(
+    return await tradeTrustTokenContract.mint(
       beneficiaryAddress,
       holderAddress,
       tokenId,
@@ -102,7 +109,7 @@ const mint = async (
       txOptions,
     );
   } else if (isV4TT) {
-    return await (tradeTrustTokenContract as v4Contracts.TradeTrustToken).mint(
+    return await tradeTrustTokenContract.mint(
       beneficiaryAddress,
       holderAddress,
       tokenId,

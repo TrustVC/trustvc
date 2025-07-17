@@ -1,16 +1,26 @@
 import { vi } from 'vitest';
 import { ethers as ethersV5 } from 'ethers';
 import { JsonRpcProvider as JsonRpcProviderV6 } from 'ethersV6';
+import * as originalModule from '../../utils/ethers';
+
 export const MOCK_V5_ADDRESS = '0xV5TokenRegistryContract';
 export const MOCK_V4_ADDRESS = '0xV4TokenRegistryContract';
 export const MOCK_OWNER_ADDRESS = '0xowner';
+
+vi.mock('../../utils/ethers', async (importOriginal) => {
+  const original = (await importOriginal()) as typeof originalModule;
+
+  return {
+    ...original, // Keep all original exports
+    getEthersContractFromProvider: vi.fn(() => vi.fn()), // Only mock this function
+  };
+});
 
 vi.mock('../../core', () => ({
   encrypt: vi.fn(() => 'encrypted_remarks'),
   getTitleEscrowAddress: vi.fn(),
   isTitleEscrowVersion: vi.fn(() => Promise.resolve(true)),
   checkSupportsInterface: vi.fn(),
-
   TitleEscrowInterface: {
     V4: '0xTitleEscrowIdV4',
     V5: '0xTitleEscrowIdV5',
@@ -22,12 +32,15 @@ vi.mock('../../token-registry-v5', () => {
     v5Contracts: {
       TitleEscrow__factory: {
         connect: vi.fn(() => mockV5TitleEscrowContract),
+        abi: 'TitleEscrow',
       },
       TradeTrustToken__factory: {
         connect: vi.fn(() => mockV5TradeTrustTokenContract),
+        abi: 'TradeTrustToken',
       },
       TitleEscrowFactory__factory: {
         connect: vi.fn(() => mockV5TitleEscrowFactoryContract),
+        abi: 'TitleEscrowFactory',
       },
     },
     v5SupportInterfaceIds: {
@@ -45,12 +58,15 @@ vi.mock('../../token-registry-v4', () => {
     v4Contracts: {
       TitleEscrow__factory: {
         connect: vi.fn(() => mockV4TitleEscrowContract),
+        abi: 'TitleEscrow',
       },
       TradeTrustToken__factory: {
         connect: vi.fn(() => mockV4TradeTrustTokenContract),
+        abi: 'TradeTrustToken',
       },
       TitleEscrowFactory__factory: {
         connect: vi.fn(() => mockV4TitleEscrowFactoryContract),
+        abi: 'TitleEscrowFactory',
       },
     },
     v4SupportInterfaceIds: {
@@ -78,9 +94,30 @@ export const mockV5TradeTrustTokenContract = {
   },
   supportsInterface: vi.fn(),
   titleEscrowFactory: vi.fn(() => Promise.resolve('0xV5titleescrowfactory')),
-  burn: vi.fn(() => Promise.resolve('v5_burn_tx_hash')),
-  restore: vi.fn(() => Promise.resolve('v5_restore_tx_hash')),
-  mint: vi.fn(() => Promise.resolve('v5_mint_tx_hash')),
+  burn: Object.assign(
+    // Direct call returns hash string
+    vi.fn(() => Promise.resolve('v5_burn_tx_hash')),
+    {
+      // Static call returns boolean
+      staticCall: vi.fn(() => Promise.resolve(true)),
+    },
+  ),
+  restore: Object.assign(
+    // Direct call returns hash string
+    vi.fn(() => Promise.resolve('v5_restore_tx_hash')),
+    {
+      // Static call returns boolean
+      staticCall: vi.fn(() => Promise.resolve(true)),
+    },
+  ),
+  mint: Object.assign(
+    // Direct call returns hash string
+    vi.fn(() => Promise.resolve('v5_mint_tx_hash')),
+    {
+      // Static call returns boolean
+      staticCall: vi.fn(() => Promise.resolve(true)),
+    },
+  ),
   ownerOf: vi.fn(() => Promise.resolve(MOCK_OWNER_ADDRESS)),
 };
 
@@ -96,16 +133,72 @@ export const mockV5TitleEscrowContract = {
     rejectTransferOwners: vi.fn(),
     returnToIssuer: vi.fn(),
   },
-  transferHolder: vi.fn(() => Promise.resolve('v5_transfer_holder_tx_hash')),
-  transferBeneficiary: vi.fn(() => Promise.resolve('v5_transfer_beneficiary_tx_hash')),
-  transferOwners: vi.fn(() => Promise.resolve('v5_transfer_owners_tx_hash')),
-  nominate: vi.fn(() => Promise.resolve('v5_nominate_tx_hash')),
+  transferHolder: Object.assign(
+    // Direct call returns hash string
+    vi.fn(() => Promise.resolve('v5_transfer_holder_tx_hash')),
+    {
+      // Static call returns boolean
+      staticCall: vi.fn(() => Promise.resolve(true)),
+    },
+  ),
+  transferBeneficiary: Object.assign(
+    // Direct call returns hash string
+    vi.fn(() => Promise.resolve('v5_transfer_beneficiary_tx_hash')),
+    {
+      // Static call returns boolean
+      staticCall: vi.fn(() => Promise.resolve(true)),
+    },
+  ),
+  transferOwners: Object.assign(
+    // Direct call returns hash string
+    vi.fn(() => Promise.resolve('v5_transfer_owners_tx_hash')),
+    {
+      // Static call returns boolean
+      staticCall: vi.fn(() => Promise.resolve(true)),
+    },
+  ),
+  nominate: Object.assign(
+    // Direct call returns hash string
+    vi.fn(() => Promise.resolve('v5_nominate_tx_hash')),
+    {
+      // Static call returns boolean
+      staticCall: vi.fn(() => Promise.resolve(true)),
+    },
+  ),
   holder: vi.fn(() => Promise.resolve('0xcurrent_holder')),
   beneficiary: vi.fn(() => Promise.resolve('0xcurrent_beneficiary')),
-  rejectTransferHolder: vi.fn(() => Promise.resolve('v5_reject_transfer_holder_tx_hash')),
-  rejectTransferBeneficiary: vi.fn(() => Promise.resolve('v5_reject_transfer_beneficiary_tx_hash')),
-  rejectTransferOwners: vi.fn(() => Promise.resolve('v5_reject_transfer_owners_tx_hash')),
-  returnToIssuer: vi.fn(() => Promise.resolve('v5_return_to_issuer_tx_hash')),
+  rejectTransferHolder: Object.assign(
+    // Direct call returns hash string
+    vi.fn(() => Promise.resolve('v5_reject_transfer_holder_tx_hash')),
+    {
+      // Static call returns boolean
+      staticCall: vi.fn(() => Promise.resolve(true)),
+    },
+  ),
+  rejectTransferBeneficiary: Object.assign(
+    // Direct call returns hash string
+    vi.fn(() => Promise.resolve('v5_reject_transfer_beneficiary_tx_hash')),
+    {
+      // Static call returns boolean
+      staticCall: vi.fn(() => Promise.resolve(true)),
+    },
+  ),
+  rejectTransferOwners: Object.assign(
+    // Direct call returns hash string
+    vi.fn(() => Promise.resolve('v5_reject_transfer_owners_tx_hash')),
+    {
+      // Static call returns boolean
+      staticCall: vi.fn(() => Promise.resolve(true)),
+    },
+  ),
+  returnToIssuer: Object.assign(
+    // Direct call returns hash string
+    vi.fn(() => Promise.resolve('v5_return_to_issuer_tx_hash')),
+    {
+      // Static call returns boolean
+      staticCall: vi.fn(() => Promise.resolve(true)),
+    },
+  ),
 };
 
 export const mockV4TitleEscrowContract = {
@@ -117,10 +210,38 @@ export const mockV4TitleEscrowContract = {
     nominate: vi.fn(),
     surrender: vi.fn(),
   },
-  transferHolder: vi.fn(() => Promise.resolve('v4_transfer_holder_tx_hash')),
-  transferBeneficiary: vi.fn(() => Promise.resolve('v4_transfer_beneficiary_tx_hash')),
-  transferOwners: vi.fn(() => Promise.resolve('v4_transfer_owners_tx_hash')),
-  nominate: vi.fn(() => Promise.resolve('v4_nominate_tx_hash')),
+  transferHolder: Object.assign(
+    // Direct call returns hash string
+    vi.fn(() => Promise.resolve('v4_transfer_holder_tx_hash')),
+    {
+      // Static call returns boolean
+      staticCall: vi.fn(() => Promise.resolve(true)),
+    },
+  ),
+  transferBeneficiary: Object.assign(
+    // Direct call returns hash string
+    vi.fn(() => Promise.resolve('v4_transfer_beneficiary_tx_hash')),
+    {
+      // Static call returns boolean
+      staticCall: vi.fn(() => Promise.resolve(true)),
+    },
+  ),
+  transferOwners: Object.assign(
+    // Direct call returns hash string
+    vi.fn(() => Promise.resolve('v4_transfer_owners_tx_hash')),
+    {
+      // Static call returns boolean
+      staticCall: vi.fn(() => Promise.resolve(true)),
+    },
+  ),
+  nominate: Object.assign(
+    // Direct call returns hash string
+    vi.fn(() => Promise.resolve('v4_nominate_tx_hash')),
+    {
+      // Static call returns boolean
+      staticCall: vi.fn(() => Promise.resolve(true)),
+    },
+  ),
   holder: vi.fn(() => Promise.resolve('0xcurrent_holder')),
   beneficiary: vi.fn(() => Promise.resolve('0xcurrent_beneficiary')),
   surrender: vi.fn(() => Promise.resolve('v4_surrender_tx_hash')),
@@ -140,9 +261,30 @@ export const mockV4TradeTrustTokenContract = {
   },
   titleEscrowFactory: vi.fn(() => Promise.resolve('0xV4titleescrowfactory')),
   supportsInterface: vi.fn(),
-  burn: vi.fn(() => Promise.resolve('v4_burn_tx_hash')),
-  restore: vi.fn(() => Promise.resolve('v4_restore_tx_hash')),
-  mint: vi.fn(() => Promise.resolve('v4_mint_tx_hash')),
+  burn: Object.assign(
+    // Direct call returns hash string
+    vi.fn(() => Promise.resolve('v4_burn_tx_hash')),
+    {
+      // Static call returns boolean
+      staticCall: vi.fn(() => Promise.resolve(true)),
+    },
+  ),
+  restore: Object.assign(
+    // Direct call returns hash string
+    vi.fn(() => Promise.resolve('v4_restore_tx_hash')),
+    {
+      // Static call returns boolean
+      staticCall: vi.fn(() => Promise.resolve(true)),
+    },
+  ),
+  mint: Object.assign(
+    // Direct call returns hash string
+    vi.fn(() => Promise.resolve('v4_mint_tx_hash')),
+    {
+      // Static call returns boolean
+      staticCall: vi.fn(() => Promise.resolve(true)),
+    },
+  ),
   ownerOf: vi.fn(() => Promise.resolve(MOCK_OWNER_ADDRESS)),
 };
 

@@ -5,9 +5,12 @@
     "moduleResolution": "nodenext",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
+    "types": ["vitest/globals", "mocha"],
     "baseUrl": ".",
     "rootDir": ".",
-    "paths": {},
+    "paths": {
+      "src/*": ["./src/*"]
+    },
     "resolveJsonModule": true,
     "allowJs": true,
     "checkJs": true,
