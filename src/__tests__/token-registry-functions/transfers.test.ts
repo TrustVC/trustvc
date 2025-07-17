@@ -22,26 +22,19 @@ import {
 import { getEthersContractFromProvider } from '../../utils/ethers/index.js';
 
 // Mock core module
-vi.mock('src/core', () => ({
+vi.mock('../../core', () => ({
   __esModule: true,
-  ...vi.importActual('src/core'),
+  ...vi.importActual('../../core'),
   encrypt: vi.fn(() => 'encrypted_remarks'),
 }));
 
-// Mock contract classes
-vi.mock('src/contracts/TitleEscrowFactory');
-vi.mock('src/contracts/TitleEscrowFactoryV4');
-vi.mock('src/contracts/TitleEscrowV4');
-vi.mock('src/contracts/TradeTrustToken');
-vi.mock('src/contracts/TradeTrustTokenV4');
-
 // Mock gas station
-vi.mock('src/core/gas-station', () => ({
+vi.mock('../../core/gas-station', () => ({
   getGasStation: vi.fn(),
 }));
 
 // Mock gas station options
-vi.mock('src/core/gas-station/mock', () => ({
+vi.mock('../../core/gas-station/mock', () => ({
   getGasOptions: vi.fn(),
 }));
 
