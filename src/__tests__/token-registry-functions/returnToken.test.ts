@@ -7,11 +7,7 @@ import * as coreModule from '../../core';
 import { CHAIN_ID } from '@tradetrust-tt/tradetrust-utils';
 import { v5Contracts } from '../../token-registry-v5';
 import { v4Contracts } from '../../token-registry-v4';
-import {
-  acceptReturned,
-  rejectReturned,
-  returnToIssuer,
-} from '../../token-registry-functions/returnToken';
+import { acceptReturned, rejectReturned, returnToIssuer } from '../../token-registry-functions';
 import {
   MOCK_V4_ADDRESS,
   MOCK_V5_ADDRESS,
@@ -24,7 +20,6 @@ import {
   providerV6,
 } from './fixtures.js';
 import { ProviderInfo } from '../../token-registry-functions/types.js';
-import { getEthersContractFromProvider } from '../../utils/ethers/index.js';
 
 const providers: ProviderInfo[] = [
   {
@@ -71,21 +66,7 @@ describe('Return Token', () => {
         } as unknown as Network);
       }
       const isV5TT = titleEscrowVersion === 'v5';
-      const mockTitleEscrowContract = isV5TT
-        ? mockV5TitleEscrowContract
-        : mockV4TitleEscrowContract;
       const titleEscrowAddress = isV5TT ? '0xv5contract' : '0xv4contract';
-
-      // Handle both v5 and v6 contract constructors
-      beforeAll(() => {
-        // Clear any existing mocks first
-        vi.clearAllMocks();
-        const mockContractConstructor = (mockContract: any) => vi.fn(() => mockContract);
-        // Only set up the mock if it hasn't been set up yet
-        vi.mocked(getEthersContractFromProvider).mockReturnValue(
-          mockContractConstructor(mockTitleEscrowContract),
-        );
-      });
 
       beforeEach(() => {
         vi.clearAllMocks();
@@ -98,6 +79,8 @@ describe('Return Token', () => {
         );
         mockV5TitleEscrowContract.callStatic.returnToIssuer.mockResolvedValue(true);
         mockV4TitleEscrowContract.callStatic.surrender.mockResolvedValue(true);
+        mockV5TitleEscrowContract.returnToIssuer.staticCall.mockResolvedValue(true);
+        mockV4TitleEscrowContract.surrender.staticCall.mockResolvedValue(true);
       });
 
       it('should return to issuer with signer and remarks', async () => {
@@ -130,14 +113,13 @@ describe('Return Token', () => {
       });
 
       it('should throw when callStatic fails', async () => {
+        const mockError = new Error('Simulated failure');
         if (isV5TT) {
-          mockV5TitleEscrowContract.callStatic.returnToIssuer.mockRejectedValue(
-            new Error('Simulated failure'),
-          );
+          mockV5TitleEscrowContract.callStatic.returnToIssuer.mockRejectedValue(mockError);
+          mockV5TitleEscrowContract.returnToIssuer.staticCall.mockRejectedValue(mockError);
         } else {
-          mockV4TitleEscrowContract.callStatic.surrender.mockRejectedValue(
-            new Error('Simulated failure'),
-          );
+          mockV4TitleEscrowContract.callStatic.surrender.mockRejectedValue(mockError);
+          mockV4TitleEscrowContract.surrender.staticCall.mockRejectedValue(mockError);
         }
 
         await expect(
@@ -259,11 +241,13 @@ describe('Return Token', () => {
       });
 
       it('should throw when callStatic fails', async () => {
-        const mockError = new Error('callStatic error');
+        const mockError = new Error('Simulated failure');
         if (isV5TT) {
           mockV5TradeTrustTokenContract.callStatic.restore.mockRejectedValue(mockError);
+          mockV5TradeTrustTokenContract.restore.staticCall.mockRejectedValue(mockError);
         } else {
           mockV4TradeTrustTokenContract.callStatic.restore.mockRejectedValue(mockError);
+          mockV4TradeTrustTokenContract.restore.staticCall.mockRejectedValue(mockError);
         }
         await expect(
           rejectReturned(
@@ -393,11 +377,13 @@ describe('Return Token', () => {
       });
 
       it('should throw when callStatic fails', async () => {
-        const mockError = new Error('callStatic error');
+        const mockError = new Error('Simulated failure');
         if (isV5TT) {
           mockV5TradeTrustTokenContract.callStatic.burn.mockRejectedValue(mockError);
+          mockV5TradeTrustTokenContract.burn.staticCall.mockRejectedValue(mockError);
         } else {
           mockV4TradeTrustTokenContract.callStatic.burn.mockRejectedValue(mockError);
+          mockV4TradeTrustTokenContract.burn.staticCall.mockRejectedValue(mockError);
         }
         await expect(
           acceptReturned(
