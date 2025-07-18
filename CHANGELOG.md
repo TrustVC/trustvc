@@ -1,3 +1,16 @@
+## [1.6.0-alpha.3](https://github.com/TrustVC/trustvc/compare/v1.6.0-alpha.2...v1.6.0-alpha.3) (2025-07-18)
+
+
+### Bug Fixes
+
+* e2e return token tests ([#84](https://github.com/TrustVC/trustvc/issues/84)) ([703be01](https://github.com/TrustVC/trustvc/commit/703be01a0c15d122e4f56af938d40da0901ac30f))
+
+
+### Miscellaneous Chores
+
+* e2e tests reject transfer ([#83](https://github.com/TrustVC/trustvc/issues/83)) ([58a8da2](https://github.com/TrustVC/trustvc/commit/58a8da209e68cc7aa1928cd507cdee66a3031203))
+* e2e transfers tests ([#82](https://github.com/TrustVC/trustvc/issues/82)) ([145e763](https://github.com/TrustVC/trustvc/commit/145e7630a53cac9ed26fd335aee89c2b3677ae95))
+
 ## [1.6.0-alpha.2](https://github.com/TrustVC/trustvc/compare/v1.6.0-alpha.1...v1.6.0-alpha.2) (2025-07-15)
 
 
