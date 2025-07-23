@@ -1,3 +1,15 @@
+## [1.6.0-alpha.4](https://github.com/TrustVC/trustvc/compare/v1.6.0-alpha.3...v1.6.0-alpha.4) (2025-07-23)
+
+
+### Bug Fixes
+
+* trigger release ([#86](https://github.com/TrustVC/trustvc/issues/86)) ([d2fb6fb](https://github.com/TrustVC/trustvc/commit/d2fb6fb723cec3005a99e7b89e22a4bdd38d7d2e))
+
+
+### Miscellaneous Chores
+
+* merge main into v1  ([#85](https://github.com/TrustVC/trustvc/issues/85)) ([b81b422](https://github.com/TrustVC/trustvc/commit/b81b4221bae8f133aef91130c652a585d0855249)), closes [#72](https://github.com/TrustVC/trustvc/issues/72) [#72](https://github.com/TrustVC/trustvc/issues/72) [#73](https://github.com/TrustVC/trustvc/issues/73) [#73](https://github.com/TrustVC/trustvc/issues/73) [#80](https://github.com/TrustVC/trustvc/issues/80) [#80](https://github.com/TrustVC/trustvc/issues/80) [#81](https://github.com/TrustVC/trustvc/issues/81) [#81](https://github.com/TrustVC/trustvc/issues/81)
+
 ## [1.6.0-alpha.3](https://github.com/TrustVC/trustvc/compare/v1.6.0-alpha.2...v1.6.0-alpha.3) (2025-07-18)
 
 
