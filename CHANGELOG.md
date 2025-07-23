@@ -12,6 +12,7 @@
 * e2e transfers tests ([#82](https://github.com/TrustVC/trustvc/issues/82)) ([145e763](https://github.com/TrustVC/trustvc/commit/145e7630a53cac9ed26fd335aee89c2b3677ae95))
 
 ## [1.6.0-alpha.2](https://github.com/TrustVC/trustvc/compare/v1.6.0-alpha.1...v1.6.0-alpha.2) (2025-07-15)
+## [1.7.0](https://github.com/TrustVC/trustvc/compare/v1.6.0...v1.7.0) (2025-07-15)
 
 
 ### Features
@@ -20,6 +21,9 @@
 * owner of function ([#79](https://github.com/TrustVC/trustvc/issues/79)) ([81d0e36](https://github.com/TrustVC/trustvc/commit/81d0e3633c1b011bd2b431dbb21854ade2082312))
 
 ## [1.6.0-alpha.1](https://github.com/TrustVC/trustvc/compare/v1.5.3...v1.6.0-alpha.1) (2025-06-30)
+* add astron v5 ([#81](https://github.com/TrustVC/trustvc/issues/81)) ([0bebeae](https://github.com/TrustVC/trustvc/commit/0bebeae60b0b8bc17f892254639465e4f86319b0))
+
+## [1.6.0](https://github.com/TrustVC/trustvc/compare/v1.5.5...v1.6.0) (2025-07-14)
 
 
 ### Features
@@ -30,6 +34,7 @@
 ### Miscellaneous Chores
 
 * back merge ([#75](https://github.com/TrustVC/trustvc/issues/75)) ([7cc1891](https://github.com/TrustVC/trustvc/commit/7cc1891ffebceb4eebf1421d3bc348926efa3f10)), closes [#72](https://github.com/TrustVC/trustvc/issues/72) [#72](https://github.com/TrustVC/trustvc/issues/72) [#73](https://github.com/TrustVC/trustvc/issues/73) [#73](https://github.com/TrustVC/trustvc/issues/73)
+* support passing titleEscrowAddress to fetchEndorsementChain ([#80](https://github.com/TrustVC/trustvc/issues/80)) ([aa7b4f0](https://github.com/TrustVC/trustvc/commit/aa7b4f0e355b1ec97c0dca8c5740a479d59aaeb2))
 
 ## [1.5.5](https://github.com/TrustVC/trustvc/compare/v1.5.4...v1.5.5) (2025-06-18)
 
