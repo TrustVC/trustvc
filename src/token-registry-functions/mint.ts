@@ -19,6 +19,7 @@ import { getEthersContractFromProvider, isV6EthersProvider } from '../utils/ethe
  * @throws {Error} If neither V4 nor V5 interfaces are supported.
  * @throws {Error} If the `callStatic.mint` fails as a pre-check.
  */
+
 const mint = async (
   contractOptions: MintTokenOptions,
   signer: Signer | SignerV6,
