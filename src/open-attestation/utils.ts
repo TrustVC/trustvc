@@ -18,11 +18,11 @@ const {
   isSignedWrappedV3Document,
   isRawV2Document,
   isRawV3Document,
+  isObfuscated,
   getDocumentData,
   getIssuerAddress,
   diagnose,
   getTemplateURL,
-  isObfuscated,
 } = utils;
 
 export {
