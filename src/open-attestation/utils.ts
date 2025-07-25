@@ -7,6 +7,13 @@ import {
   utils,
   validateSchema,
 } from '@tradetrust-tt/tradetrust';
+import { SignedVerifiableCredential } from '@trustvc/w3c-vc';
+import { WrappedOrSignedOpenAttestationDocument } from '../utils';
+
+// Define explicit type for the isObfuscated function to fix portability issue
+type IsObfuscatedFn = (
+  document: WrappedOrSignedOpenAttestationDocument | SignedVerifiableCredential,
+) => boolean;
 
 const {
   isTransferableAsset,
@@ -18,12 +25,14 @@ const {
   isSignedWrappedV3Document,
   isRawV2Document,
   isRawV3Document,
-  isObfuscated,
   getDocumentData,
   getIssuerAddress,
   diagnose,
   getTemplateURL,
 } = utils;
+
+// Use the original function with explicit type annotation
+const isObfuscated: IsObfuscatedFn = utils.isObfuscated;
 
 export {
   getDataV2,
