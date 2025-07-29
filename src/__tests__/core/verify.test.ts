@@ -8,7 +8,7 @@ import {
   WRAPPED_DOCUMENT_DID_TOKEN_REGISTRY_V3,
   WRAPPED_DOCUMENT_DNS_TXT_V2,
 } from '../fixtures/fixtures';
-import { W3CCredentialStatusCode } from 'src/verify/fragments/document-status/w3cCredentialStatus';
+import { W3CCredentialStatusCode } from '../../verify/fragments/document-status/w3cCredentialStatus';
 
 const providerUrl = 'https://rpc-amoy.polygon.technology';
 
