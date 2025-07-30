@@ -1,38 +1,36 @@
-## [1.6.0-alpha.4](https://github.com/TrustVC/trustvc/compare/v1.6.0-alpha.3...v1.6.0-alpha.4) (2025-07-23)
+## [1.7.4](https://github.com/TrustVC/trustvc/compare/v1.7.3...v1.7.4) (2025-07-29)
 
 
 ### Bug Fixes
 
-* trigger release ([#86](https://github.com/TrustVC/trustvc/issues/86)) ([d2fb6fb](https://github.com/TrustVC/trustvc/commit/d2fb6fb723cec3005a99e7b89e22a4bdd38d7d2e))
+* upgrade packages ([#90](https://github.com/TrustVC/trustvc/issues/90)) ([758651d](https://github.com/TrustVC/trustvc/commit/758651d30a358a614192bcd26ce7df33bd5874b0))
 
-
-### Miscellaneous Chores
-
-* merge main into v1  ([#85](https://github.com/TrustVC/trustvc/issues/85)) ([b81b422](https://github.com/TrustVC/trustvc/commit/b81b4221bae8f133aef91130c652a585d0855249)), closes [#72](https://github.com/TrustVC/trustvc/issues/72) [#72](https://github.com/TrustVC/trustvc/issues/72) [#73](https://github.com/TrustVC/trustvc/issues/73) [#73](https://github.com/TrustVC/trustvc/issues/73) [#80](https://github.com/TrustVC/trustvc/issues/80) [#80](https://github.com/TrustVC/trustvc/issues/80) [#81](https://github.com/TrustVC/trustvc/issues/81) [#81](https://github.com/TrustVC/trustvc/issues/81)
-
-## [1.6.0-alpha.3](https://github.com/TrustVC/trustvc/compare/v1.6.0-alpha.2...v1.6.0-alpha.3) (2025-07-18)
+## [1.7.3](https://github.com/TrustVC/trustvc/compare/v1.7.2...v1.7.3) (2025-07-28)
 
 
 ### Bug Fixes
 
-* e2e return token tests ([#84](https://github.com/TrustVC/trustvc/issues/84)) ([703be01](https://github.com/TrustVC/trustvc/commit/703be01a0c15d122e4f56af938d40da0901ac30f))
+* error message types ([#89](https://github.com/TrustVC/trustvc/issues/89)) ([d83bada](https://github.com/TrustVC/trustvc/commit/d83bada0a7b73c86370b7fef8e5d0bdb025449ff))
+
+## [1.7.2](https://github.com/TrustVC/trustvc/compare/v1.7.1...v1.7.2) (2025-07-28)
 
 
-### Miscellaneous Chores
+### Bug Fixes
 
-* e2e tests reject transfer ([#83](https://github.com/TrustVC/trustvc/issues/83)) ([58a8da2](https://github.com/TrustVC/trustvc/commit/58a8da209e68cc7aa1928cd507cdee66a3031203))
-* e2e transfers tests ([#82](https://github.com/TrustVC/trustvc/issues/82)) ([145e763](https://github.com/TrustVC/trustvc/commit/145e7630a53cac9ed26fd335aee89c2b3677ae95))
+* upgrade packages ([#88](https://github.com/TrustVC/trustvc/issues/88)) ([0cc314e](https://github.com/TrustVC/trustvc/commit/0cc314e3043525e5fcd7edaed029d9ba22d6d66b))
 
-## [1.6.0-alpha.2](https://github.com/TrustVC/trustvc/compare/v1.6.0-alpha.1...v1.6.0-alpha.2) (2025-07-15)
+## [1.7.1](https://github.com/TrustVC/trustvc/compare/v1.7.0...v1.7.1) (2025-07-25)
+
+
+### Bug Fixes
+
+* update tradetrust-tt/tradetrust package ([#87](https://github.com/TrustVC/trustvc/issues/87)) ([e4f75a4](https://github.com/TrustVC/trustvc/commit/e4f75a472cc046c68203241c977262572c50be13))
+
 ## [1.7.0](https://github.com/TrustVC/trustvc/compare/v1.6.0...v1.7.0) (2025-07-15)
 
 
 ### Features
 
-* mint function ([#78](https://github.com/TrustVC/trustvc/issues/78)) ([2ea52ce](https://github.com/TrustVC/trustvc/commit/2ea52ce2ed010ba2da095d6444f135f014dbb442)), closes [#72](https://github.com/TrustVC/trustvc/issues/72) [#72](https://github.com/TrustVC/trustvc/issues/72) [#73](https://github.com/TrustVC/trustvc/issues/73) [#73](https://github.com/TrustVC/trustvc/issues/73) [#72](https://github.com/TrustVC/trustvc/issues/72)
-* owner of function ([#79](https://github.com/TrustVC/trustvc/issues/79)) ([81d0e36](https://github.com/TrustVC/trustvc/commit/81d0e3633c1b011bd2b431dbb21854ade2082312))
-
-## [1.6.0-alpha.1](https://github.com/TrustVC/trustvc/compare/v1.5.3...v1.6.0-alpha.1) (2025-06-30)
 * add astron v5 ([#81](https://github.com/TrustVC/trustvc/issues/81)) ([0bebeae](https://github.com/TrustVC/trustvc/commit/0bebeae60b0b8bc17f892254639465e4f86319b0))
 
 ## [1.6.0](https://github.com/TrustVC/trustvc/compare/v1.5.5...v1.6.0) (2025-07-14)
@@ -40,12 +38,6 @@
 
 ### Features
 
-* token registry functions ([#74](https://github.com/TrustVC/trustvc/issues/74)) ([5690fcd](https://github.com/TrustVC/trustvc/commit/5690fcda798192609b0060fab0a3f3f77dca8012))
-
-
-### Miscellaneous Chores
-
-* back merge ([#75](https://github.com/TrustVC/trustvc/issues/75)) ([7cc1891](https://github.com/TrustVC/trustvc/commit/7cc1891ffebceb4eebf1421d3bc348926efa3f10)), closes [#72](https://github.com/TrustVC/trustvc/issues/72) [#72](https://github.com/TrustVC/trustvc/issues/72) [#73](https://github.com/TrustVC/trustvc/issues/73) [#73](https://github.com/TrustVC/trustvc/issues/73)
 * support passing titleEscrowAddress to fetchEndorsementChain ([#80](https://github.com/TrustVC/trustvc/issues/80)) ([aa7b4f0](https://github.com/TrustVC/trustvc/commit/aa7b4f0e355b1ec97c0dca8c5740a479d59aaeb2))
 
 ## [1.5.5](https://github.com/TrustVC/trustvc/compare/v1.5.4...v1.5.5) (2025-06-18)

@@ -12,7 +12,7 @@ import { constants as constantsV4 } from '@tradetrust-tt/token-registry-v4';
 import { constants as constantsV5 } from '@tradetrust-tt/token-registry-v5';
 import { v4Contracts } from '../token-registry-v4';
 import { v5Contracts } from '../token-registry-v5';
-import { SUPPORTED_CHAINS } from '@tradetrust-tt/tradetrust-utils';
+import { SUPPORTED_CHAINS } from '../utils';
 
 /**
  * Configuration for a W3C Verifiable Document using a Bitstring Status List.
