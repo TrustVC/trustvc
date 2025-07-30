@@ -1,3 +1,10 @@
+## [1.8.0](https://github.com/TrustVC/trustvc/compare/v1.7.4...v1.8.0) (2025-07-30)
+
+
+### Features
+
+* token registry functions ([#96](https://github.com/TrustVC/trustvc/issues/96)) ([6c379e9](https://github.com/TrustVC/trustvc/commit/6c379e9f6f0417c1d55e4fadbb675d7cc07b7bdf))
+
 ## [1.7.4](https://github.com/TrustVC/trustvc/compare/v1.7.3...v1.7.4) (2025-07-29)
 
 
