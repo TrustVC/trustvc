@@ -1,3 +1,10 @@
+## [1.8.1](https://github.com/TrustVC/trustvc/compare/v1.8.0...v1.8.1) (2025-08-07)
+
+
+### Bug Fixes
+
+* accept return function ([#97](https://github.com/TrustVC/trustvc/issues/97)) ([6398017](https://github.com/TrustVC/trustvc/commit/6398017211f0951b01a9eac3e0a0869da7f62a8d))
+
 ## [1.8.0](https://github.com/TrustVC/trustvc/compare/v1.7.4...v1.8.0) (2025-07-30)
 
 
