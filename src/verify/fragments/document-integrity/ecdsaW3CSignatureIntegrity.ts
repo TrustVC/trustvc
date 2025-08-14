@@ -54,7 +54,7 @@ export const ecdsaW3CSignatureIntegrity: Verifier<VerificationFragment> = {
         verificationResult = await verifyW3CSignature(derivedCredential.derived, verifierOptions);
         isDerived = false;
       }
-
+      console.log('verificationResult', isDerived, verificationResult);
       if (verificationResult.verified) {
         return {
           type: 'DOCUMENT_INTEGRITY',
@@ -79,6 +79,7 @@ export const ecdsaW3CSignatureIntegrity: Verifier<VerificationFragment> = {
         };
       }
     } catch (error) {
+      console.log('error', error);
       return {
         type: 'DOCUMENT_INTEGRITY',
         name: 'EcdsaW3CSignatureIntegrity',

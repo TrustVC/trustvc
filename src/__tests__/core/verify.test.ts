@@ -489,6 +489,7 @@ describe.each(ecdsaTestScenarios)(
     });
 
     it('should handle ECDSA W3C non-derived document verification', async ({ expect }) => {
+      if (version === 'v2.0') console.log('version', version, signedCredential);
       const result = await verifyDocument(signedCredential);
 
       // Check that our ECDSA verifier ran
