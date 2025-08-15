@@ -1,6 +1,61 @@
 ## [1.7.4](https://github.com/TrustVC/trustvc/compare/v1.7.3...v1.7.4) (2025-07-29)
 
+
 ### Bug Fixes
+
+* upgrade packages ([#90](https://github.com/TrustVC/trustvc/issues/90)) ([758651d](https://github.com/TrustVC/trustvc/commit/758651d30a358a614192bcd26ce7df33bd5874b0))
+
+## [1.7.3](https://github.com/TrustVC/trustvc/compare/v1.7.2...v1.7.3) (2025-07-28)
+
+
+### Bug Fixes
+
+* error message types ([#89](https://github.com/TrustVC/trustvc/issues/89)) ([d83bada](https://github.com/TrustVC/trustvc/commit/d83bada0a7b73c86370b7fef8e5d0bdb025449ff))
+
+## [1.7.2](https://github.com/TrustVC/trustvc/compare/v1.7.1...v1.7.2) (2025-07-28)
+
+
+### Bug Fixes
+
+* upgrade packages ([#88](https://github.com/TrustVC/trustvc/issues/88)) ([0cc314e](https://github.com/TrustVC/trustvc/commit/0cc314e3043525e5fcd7edaed029d9ba22d6d66b))
+
+## [1.7.1](https://github.com/TrustVC/trustvc/compare/v1.7.0...v1.7.1) (2025-07-25)
+
+
+### Bug Fixes
+
+* update tradetrust-tt/tradetrust package ([#87](https://github.com/TrustVC/trustvc/issues/87)) ([e4f75a4](https://github.com/TrustVC/trustvc/commit/e4f75a472cc046c68203241c977262572c50be13))
+
+## [1.7.0](https://github.com/TrustVC/trustvc/compare/v1.6.0...v1.7.0) (2025-07-15)
+
+
+### Features
+
+* add astron v5 ([#81](https://github.com/TrustVC/trustvc/issues/81)) ([0bebeae](https://github.com/TrustVC/trustvc/commit/0bebeae60b0b8bc17f892254639465e4f86319b0))
+
+## [1.6.0](https://github.com/TrustVC/trustvc/compare/v1.5.5...v1.6.0) (2025-07-14)
+
+
+### Features
+
+* support passing titleEscrowAddress to fetchEndorsementChain ([#80](https://github.com/TrustVC/trustvc/issues/80)) ([aa7b4f0](https://github.com/TrustVC/trustvc/commit/aa7b4f0e355b1ec97c0dca8c5740a479d59aaeb2))
+
+## [1.5.5](https://github.com/TrustVC/trustvc/compare/v1.5.4...v1.5.5) (2025-06-18)
+
+
+### Bug Fixes
+
+* upgrade package ([#73](https://github.com/TrustVC/trustvc/issues/73)) ([3c6c9c7](https://github.com/TrustVC/trustvc/commit/3c6c9c73675ec43e0514d9afe5df4444f6e4400b))
+
+## [1.5.4](https://github.com/TrustVC/trustvc/compare/v1.5.3...v1.5.4) (2025-06-17)
+
+
+### Bug Fixes
+
+* add w3c credential status check ([#72](https://github.com/TrustVC/trustvc/issues/72)) ([0111cb3](https://github.com/TrustVC/trustvc/commit/0111cb3e48ac86f0cea715ceb5277d199f139763))
+
+## [1.5.3](https://github.com/TrustVC/trustvc/compare/v1.5.2...v1.5.3) (2025-06-13)
+
 
 - upgrade packages ([#90](https://github.com/TrustVC/trustvc/issues/90)) ([758651d](https://github.com/TrustVC/trustvc/commit/758651d30a358a614192bcd26ce7df33bd5874b0))
 
