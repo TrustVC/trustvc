@@ -467,7 +467,7 @@ describe.each(ecdsaTestScenarios)(
     it(`should verify a derived ECDSA ${version} W3C document and return all valid fragments`, async ({
       expect,
     }) => {
-      expect(await verifyDocument(derivedCredential)).toEqual(
+      expect(await verifyDocument(derivedCredential as any)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             data: true,
@@ -489,7 +489,7 @@ describe.each(ecdsaTestScenarios)(
     });
 
     it('should handle ECDSA W3C non-derived document verification', async ({ expect }) => {
-      const result = await verifyDocument(signedCredential);
+      const result = await verifyDocument(signedCredential as any);
 
       // Check that our ECDSA verifier ran
       expect(result).toEqual(
