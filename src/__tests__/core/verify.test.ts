@@ -32,7 +32,7 @@ describe.concurrent('W3C verify', () => {
             "reason": {
               "code": 0,
               "codeString": "SKIPPED",
-              "message": "Document either has no proof or proof.type is not 'DataIntegrityProof' or proof.cryptosuite is not 'ecdsa-sd-2023'.",
+              "message": "Document either has no proof or proof type is not 'DataIntegrityProof' or proof cryptosuite is not 'ecdsa-sd-2023'.",
             },
             "status": "SKIPPED",
             "type": "DOCUMENT_INTEGRITY",
@@ -294,7 +294,7 @@ describe.concurrent('W3C verify', () => {
               "reason": {
                 "code": 0,
                 "codeString": "SKIPPED",
-                "message": "Document either has no proof or proof.type is not 'DataIntegrityProof' or proof.cryptosuite is not 'ecdsa-sd-2023'.",
+                "message": "Document either has no proof or proof type is not 'DataIntegrityProof' or proof cryptosuite is not 'ecdsa-sd-2023'.",
               },
               "status": "SKIPPED",
               "type": "DOCUMENT_INTEGRITY",
