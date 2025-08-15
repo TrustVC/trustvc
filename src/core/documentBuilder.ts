@@ -3,6 +3,7 @@ import { signW3C, verifyW3CSignature } from '../w3c';
 import { assertCredentialStatus, assertTransferableRecords } from '@trustvc/w3c-credential-status';
 import {
   CredentialStatus,
+  CryptoSuiteName,
   SignedVerifiableCredential,
   VerifiableCredential,
   verifyCredentialStatus,
@@ -155,7 +156,7 @@ export class DocumentBuilder {
   }
 
   // Sign the document using the provided private key and an optional cryptographic suite.
-  async sign(privateKey: PrivateKeyPair, cryptoSuite?: string) {
+  async sign(privateKey: PrivateKeyPair, cryptoSuite?: CryptoSuiteName) {
     if (this.isSigned) throw new Error('Configuration Error: Document is already signed.');
 
     if (this.selectedStatusType) {

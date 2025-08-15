@@ -2,11 +2,14 @@ import {
   getData as getDataV2,
   isSchemaValidationError,
   obfuscateDocument,
+  OpenAttestationDocument,
   SchemaId,
   SUPPORTED_SIGNING_ALGORITHM,
   utils,
   validateSchema,
+  WrappedDocument,
 } from '@tradetrust-tt/tradetrust';
+import { SignedVerifiableCredential } from '@trustvc/w3c-vc';
 
 const {
   isTransferableAsset,
@@ -18,11 +21,19 @@ const {
   isSignedWrappedV3Document,
   isRawV2Document,
   isRawV3Document,
-  isObfuscated,
+  // isObfuscated,
   getDocumentData,
   getIssuerAddress,
   diagnose,
   getTemplateURL,
+} = utils;
+
+const {
+  isObfuscated,
+}: {
+  isObfuscated: (
+    document: WrappedDocument<OpenAttestationDocument> | SignedVerifiableCredential,
+  ) => boolean;
 } = utils;
 
 export {

@@ -291,7 +291,7 @@ const acceptReturned = async (
   // Check callStatic (dry run)
   try {
     const isV6 = isV6EthersProvider(signer.provider);
-    const args = isV5TT ? [encryptedRemarks] : [];
+    const args = isV5TT ? [tokenId, encryptedRemarks] : [tokenId];
 
     if (isV6) {
       await (tradeTrustTokenContract as ContractV6).burn.staticCall(...args);

@@ -3,6 +3,10 @@ import { verifyDocument } from '../..';
 import * as transferableRecordsUtils from '../../verify/fragments/document-status/transferableRecords/utils';
 import {
   SIGNED_WRAPPED_DOCUMENT_DNS_DID_V3,
+  ECDSA_W3C_VERIFIABLE_DOCUMENT_V1_1,
+  ECDSA_W3C_VERIFIABLE_DOCUMENT_V2_0,
+  ECDSA_W3C_DERIVED_DOCUMENT_V1_1,
+  ECDSA_W3C_DERIVED_DOCUMENT_V2_0,
   W3C_TRANSFERABLE_RECORD,
   W3C_VERIFIABLE_DOCUMENT,
   WRAPPED_DOCUMENT_DID_TOKEN_REGISTRY_V3,
@@ -21,6 +25,16 @@ describe.concurrent('W3C verify', () => {
             "data": true,
             "name": "W3CSignatureIntegrity",
             "status": "VALID",
+            "type": "DOCUMENT_INTEGRITY",
+          },
+          {
+            "name": "EcdsaW3CSignatureIntegrity",
+            "reason": {
+              "code": 0,
+              "codeString": "SKIPPED",
+              "message": "Document either has no proof or proof type is not 'DataIntegrityProof' or proof cryptosuite is not 'ecdsa-sd-2023'.",
+            },
+            "status": "SKIPPED",
             "type": "DOCUMENT_INTEGRITY",
           },
           {
@@ -268,49 +282,59 @@ describe.concurrent('W3C verify', () => {
         expect(
           await verifyDocument(W3C_TRANSFERABLE_RECORD as any, { rpcProviderUrl: providerUrl }),
         ).toMatchInlineSnapshot(`
-            [
-              {
-                "data": true,
-                "name": "W3CSignatureIntegrity",
-                "status": "VALID",
-                "type": "DOCUMENT_INTEGRITY",
+          [
+            {
+              "data": true,
+              "name": "W3CSignatureIntegrity",
+              "status": "VALID",
+              "type": "DOCUMENT_INTEGRITY",
+            },
+            {
+              "name": "EcdsaW3CSignatureIntegrity",
+              "reason": {
+                "code": 0,
+                "codeString": "SKIPPED",
+                "message": "Document either has no proof or proof type is not 'DataIntegrityProof' or proof cryptosuite is not 'ecdsa-sd-2023'.",
               },
-              {
-                "name": "W3CCredentialStatus",
-                "reason": {
-                  "code": 0,
-                  "codeString": "SKIPPED",
-                  "message": "Document does not have a valid credentialStatus or type.",
-                },
-                "status": "SKIPPED",
-                "type": "DOCUMENT_STATUS",
+              "status": "SKIPPED",
+              "type": "DOCUMENT_INTEGRITY",
+            },
+            {
+              "name": "W3CCredentialStatus",
+              "reason": {
+                "code": 0,
+                "codeString": "SKIPPED",
+                "message": "Document does not have a valid credentialStatus or type.",
               },
-              {
-                "data": {
-                  "tokenRegistry": "0x6c2a002A5833a100f38458c50F11E71Aa1A342c6",
-                },
-                "name": "TransferableRecords",
-                "status": "VALID",
-                "type": "DOCUMENT_STATUS",
+              "status": "SKIPPED",
+              "type": "DOCUMENT_STATUS",
+            },
+            {
+              "data": {
+                "tokenRegistry": "0x6c2a002A5833a100f38458c50F11E71Aa1A342c6",
               },
-              {
-                "name": "W3CEmptyCredentialStatus",
-                "reason": {
-                  "code": 0,
-                  "codeString": "SKIPPED",
-                  "message": "Document contains a credentialStatus.",
-                },
-                "status": "SKIPPED",
-                "type": "DOCUMENT_STATUS",
+              "name": "TransferableRecords",
+              "status": "VALID",
+              "type": "DOCUMENT_STATUS",
+            },
+            {
+              "name": "W3CEmptyCredentialStatus",
+              "reason": {
+                "code": 0,
+                "codeString": "SKIPPED",
+                "message": "Document contains a credentialStatus.",
               },
-              {
-                "data": true,
-                "name": "W3CIssuerIdentity",
-                "status": "VALID",
-                "type": "ISSUER_IDENTITY",
-              },
-            ]
-          `);
+              "status": "SKIPPED",
+              "type": "DOCUMENT_STATUS",
+            },
+            {
+              "data": true,
+              "name": "W3CIssuerIdentity",
+              "status": "VALID",
+              "type": "ISSUER_IDENTITY",
+            },
+          ]
+        `);
       },
     );
 
@@ -423,6 +447,169 @@ describe.concurrent('W3C verify', () => {
     });
   });
 });
+
+const ecdsaTestScenarios = [
+  {
+    version: 'v1.1',
+    signedCredential: ECDSA_W3C_VERIFIABLE_DOCUMENT_V1_1,
+    derivedCredential: ECDSA_W3C_DERIVED_DOCUMENT_V1_1,
+  },
+  {
+    version: 'v2.0',
+    signedCredential: ECDSA_W3C_VERIFIABLE_DOCUMENT_V2_0,
+    derivedCredential: ECDSA_W3C_DERIVED_DOCUMENT_V2_0,
+  },
+];
+
+describe.each(ecdsaTestScenarios)(
+  'W3C ECDSA $version Verify',
+  ({ version, signedCredential, derivedCredential }) => {
+    it(`should verify a derived ECDSA ${version} W3C document and return all valid fragments`, async ({
+      expect,
+    }) => {
+      expect(await verifyDocument(derivedCredential as any)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            data: true,
+            name: 'EcdsaW3CSignatureIntegrity',
+            reason: {
+              message: 'Document verified successfully',
+            },
+            status: 'VALID',
+            type: 'DOCUMENT_INTEGRITY',
+          }),
+          expect.objectContaining({
+            data: true,
+            name: 'W3CIssuerIdentity',
+            status: 'VALID',
+            type: 'ISSUER_IDENTITY',
+          }),
+        ]),
+      );
+    });
+
+    it('should handle ECDSA W3C non-derived document verification', async ({ expect }) => {
+      const result = await verifyDocument(signedCredential as any);
+
+      // Check that our ECDSA verifier ran
+      expect(result).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            data: true,
+            name: 'EcdsaW3CSignatureIntegrity',
+            reason: {
+              message: 'Document verified after derivation',
+            },
+            status: 'VALID',
+            type: 'DOCUMENT_INTEGRITY',
+          }),
+          expect.objectContaining({
+            data: true,
+            name: 'W3CIssuerIdentity',
+            status: 'VALID',
+            type: 'ISSUER_IDENTITY',
+          }),
+        ]),
+      );
+    });
+
+    it('should return INVALID status for DOCUMENT_INTEGRITY when signature is tampered', async ({
+      expect,
+    }) => {
+      const tampered: any = { ...derivedCredential, id: 'urn:uuid:tampered-id' };
+      expect(await verifyDocument(tampered)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            data: false,
+            name: 'EcdsaW3CSignatureIntegrity',
+            reason: {
+              message: 'Invalid signature.',
+            },
+            status: 'INVALID',
+            type: 'DOCUMENT_INTEGRITY',
+          }),
+        ]),
+      );
+    });
+
+    it('should skip DOCUMENT_INTEGRITY verification for unsupported cryptosuite', async ({
+      expect,
+    }) => {
+      const unsupportedCryptosuite: any = {
+        ...derivedCredential,
+        proof: {
+          ...derivedCredential.proof,
+          cryptosuite: 'eddsa-2022',
+        },
+      };
+
+      expect(await verifyDocument(unsupportedCryptosuite)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            name: 'EcdsaW3CSignatureIntegrity',
+            reason: {
+              code: W3CCredentialStatusCode.SKIPPED,
+              codeString: 'SKIPPED',
+              message:
+                "Document either has no proof or proof type is not 'DataIntegrityProof' or proof cryptosuite is not 'ecdsa-sd-2023'.",
+            },
+            status: 'SKIPPED',
+            type: 'DOCUMENT_INTEGRITY',
+          }),
+        ]),
+      );
+    });
+
+    it('should skip DOCUMENT_INTEGRITY verification for unsupported proof type', async ({
+      expect,
+    }) => {
+      const unsupportedProofType: any = {
+        ...derivedCredential,
+        proof: {
+          ...derivedCredential.proof,
+          type: 'Ed25519Signature2020',
+        },
+      };
+
+      expect(await verifyDocument(unsupportedProofType)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            name: 'EcdsaW3CSignatureIntegrity',
+            reason: {
+              code: W3CCredentialStatusCode.SKIPPED,
+              codeString: 'SKIPPED',
+              message:
+                "Document either has no proof or proof type is not 'DataIntegrityProof' or proof cryptosuite is not 'ecdsa-sd-2023'.",
+            },
+            status: 'SKIPPED',
+            type: 'DOCUMENT_INTEGRITY',
+          }),
+        ]),
+      );
+    });
+
+    it('should skip DOCUMENT_INTEGRITY verification when proof is missing', async ({ expect }) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { proof, ...documentWithoutProof } = derivedCredential;
+
+      expect(await verifyDocument(documentWithoutProof as any)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            name: 'EcdsaW3CSignatureIntegrity',
+            reason: {
+              code: W3CCredentialStatusCode.SKIPPED,
+              codeString: 'SKIPPED',
+              message:
+                "Document either has no proof or proof type is not 'DataIntegrityProof' or proof cryptosuite is not 'ecdsa-sd-2023'.",
+            },
+            status: 'SKIPPED',
+            type: 'DOCUMENT_INTEGRITY',
+          }),
+        ]),
+      );
+    });
+  },
+);
 
 describe.concurrent('V3 verify', () => {
   it('should verify a DND_DID document and return fragments', async ({ expect }) => {
