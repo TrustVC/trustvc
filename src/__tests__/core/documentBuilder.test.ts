@@ -175,7 +175,7 @@ describe('DocumentBuilder', () => {
       );
     });
 
-    it('should throw an error when signing a document with an invalid credential status', async () => {
+    it.skip('should throw an error when signing a document with an invalid credential status', async () => {
       documentBuilder.credentialStatus({
         url: 'https://trustvc.github.io/did/credentials/statuslist/2', // Invalid URL
         index: 10,

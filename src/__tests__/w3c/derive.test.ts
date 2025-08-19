@@ -6,7 +6,7 @@ import { SignedVerifiableCredential } from '@trustvc/w3c-vc';
 describe('W3C derive', () => {
   it('should derive a W3C v2.0 document using ECDSA-SD-2023 without custom selective pointers', async () => {
     const result = await deriveW3C(
-      ECDSA_W3C_VERIFIABLE_DOCUMENT_V2_0 as unknown as SignedVerifiableCredential,
+      ECDSA_W3C_VERIFIABLE_DOCUMENT_V2_0 as SignedVerifiableCredential,
       [],
     );
     expect(result.derived).toBeDefined();
@@ -19,7 +19,7 @@ describe('W3C derive', () => {
 
   it('should derive a W3C v2.0 document using ECDSA-SD-2023 without custom selective pointers', async () => {
     const result = await deriveW3C(
-      ECDSA_W3C_VERIFIABLE_DOCUMENT_V2_0 as unknown as SignedVerifiableCredential,
+      ECDSA_W3C_VERIFIABLE_DOCUMENT_V2_0 as SignedVerifiableCredential,
       ['/renderMethod', '/qrCode'],
     );
     expect(result.derived).toBeDefined();
