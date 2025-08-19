@@ -1,3 +1,16 @@
+## [1.6.0-alpha.5](https://github.com/TrustVC/trustvc/compare/v1.6.0-alpha.4...v1.6.0-alpha.5) (2025-08-19)
+
+
+### Bug Fixes
+
+* add w3c version detection function ([#103](https://github.com/TrustVC/trustvc/issues/103)) ([3270cc6](https://github.com/TrustVC/trustvc/commit/3270cc622ea8e50505c1c3578f279491306c799e))
+
+
+### Miscellaneous Chores
+
+* ecdsa w3c verify ([#100](https://github.com/TrustVC/trustvc/issues/100)) ([484e1ff](https://github.com/TrustVC/trustvc/commit/484e1ff3db0dce7d0b518d3eca701ceaeec6faa4)), closes [#72](https://github.com/TrustVC/trustvc/issues/72) [#72](https://github.com/TrustVC/trustvc/issues/72) [#73](https://github.com/TrustVC/trustvc/issues/73) [#73](https://github.com/TrustVC/trustvc/issues/73) [#80](https://github.com/TrustVC/trustvc/issues/80) [#80](https://github.com/TrustVC/trustvc/issues/80) [#81](https://github.com/TrustVC/trustvc/issues/81) [#81](https://github.com/TrustVC/trustvc/issues/81) [#87](https://github.com/TrustVC/trustvc/issues/87) [#87](https://github.com/TrustVC/trustvc/issues/87) [#88](https://github.com/TrustVC/trustvc/issues/88) [#88](https://github.com/TrustVC/trustvc/issues/88) [#89](https://github.com/TrustVC/trustvc/issues/89) [#89](https://github.com/TrustVC/trustvc/issues/89) [#90](https://github.com/TrustVC/trustvc/issues/90) [#90](https://github.com/TrustVC/trustvc/issues/90) [#96](https://github.com/TrustVC/trustvc/issues/96) [#96](https://github.com/TrustVC/trustvc/issues/96) [#97](https://github.com/TrustVC/trustvc/issues/97) [#97](https://github.com/TrustVC/trustvc/issues/97) [#74](https://github.com/TrustVC/trustvc/issues/74) [#74](https://github.com/TrustVC/trustvc/issues/74) [#72](https://github.com/TrustVC/trustvc/issues/72) [#72](https://github.com/TrustVC/trustvc/issues/72) [#73](https://github.com/TrustVC/trustvc/issues/73) [#73](https://github.com/TrustVC/trustvc/issues/73) [#78](https://github.com/TrustVC/trustvc/issues/78) [#72](https://github.com/TrustVC/trustvc/issues/72) [#72](https://github.com/TrustVC/trustvc/issues/72) [#73](https://github.com/TrustVC/trustvc/issues/73) [#73](https://github.com/TrustVC/trustvc/issues/73) [#72](https://github.com/TrustVC/trustvc/issues/72)
+* rebase v1 with main ([#95](https://github.com/TrustVC/trustvc/issues/95)) ([b54b146](https://github.com/TrustVC/trustvc/commit/b54b1469b4603295fb02321fd068497b59348d35)), closes [#72](https://github.com/TrustVC/trustvc/issues/72) [#72](https://github.com/TrustVC/trustvc/issues/72) [#73](https://github.com/TrustVC/trustvc/issues/73) [#73](https://github.com/TrustVC/trustvc/issues/73) [#80](https://github.com/TrustVC/trustvc/issues/80) [#80](https://github.com/TrustVC/trustvc/issues/80) [#81](https://github.com/TrustVC/trustvc/issues/81) [#81](https://github.com/TrustVC/trustvc/issues/81) [#87](https://github.com/TrustVC/trustvc/issues/87) [#87](https://github.com/TrustVC/trustvc/issues/87) [#88](https://github.com/TrustVC/trustvc/issues/88) [#88](https://github.com/TrustVC/trustvc/issues/88) [#89](https://github.com/TrustVC/trustvc/issues/89) [#89](https://github.com/TrustVC/trustvc/issues/89) [#90](https://github.com/TrustVC/trustvc/issues/90) [#90](https://github.com/TrustVC/trustvc/issues/90)
+
 ## [1.8.1](https://github.com/TrustVC/trustvc/compare/v1.8.0...v1.8.1) (2025-08-07)
 
 ### Bug Fixes
