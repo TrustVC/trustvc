@@ -5,4 +5,3 @@ export * from './sign';
 export * from './types';
 export * as vc from './vc';
 export * from './verify';
-export * from './w3cVersion';
