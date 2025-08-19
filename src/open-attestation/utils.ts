@@ -9,7 +9,6 @@ import {
   validateSchema,
   WrappedDocument,
 } from '@tradetrust-tt/tradetrust';
-import { SignedVerifiableCredential } from '@trustvc/w3c-vc';
 
 const {
   isTransferableAsset,
@@ -31,9 +30,7 @@ const {
 const {
   isObfuscated,
 }: {
-  isObfuscated: (
-    document: WrappedDocument<OpenAttestationDocument> | SignedVerifiableCredential,
-  ) => boolean;
+  isObfuscated: (document: WrappedDocument<OpenAttestationDocument>) => boolean;
 } = utils;
 
 export {
