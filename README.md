@@ -16,15 +16,16 @@ TrustVC is a comprehensive wrapper library designed to simplify the signing and 
     - [2. **Signing**](#2-signing)
       - [a) OpenAttestation Signing (signOA) v2 v3](#a-openattestation-signing-signoa-v2-v3)
       - [b) TrustVC W3C Signing (signW3C)](#b-trustvc-w3c-signing-signw3c)
-    - [3. **Verifying**](#3-verifying)
-    - [4. **Encryption**](#4-encryption)
-    - [5. **Decryption**](#5-decryption)
-    - [6. **TradeTrust Token Registry**](#6-tradetrust-token-registry)
+    - [3. **Deriving (Selective Disclosure)**](#3-deriving-selective-disclosure)
+    - [4. **Verifying**](#4-verifying)
+    - [5. **Encryption**](#5-encryption)
+    - [6. **Decryption**](#6-decryption)
+    - [7. **TradeTrust Token Registry**](#7-tradetrust-token-registry)
       - [Usage](#usage-2)
       - [TradeTrustToken](#tradetrusttoken)
       - [a) Token Registry v4](#a-token-registry-v4)
       - [b) Token Registry V5](#b-token-registry-v5)
-    - [7. **Document Builder**](#7-document-builder)
+    - [8. **Document Builder**](#8-document-builder)
 
 ## Installation
 
@@ -154,15 +155,17 @@ const signedWrappedDocument = await signOA(wrappedDocument, {
 
 #### b) TrustVC W3C Signing (signW3C)
 
+The `signW3C` function signs W3C Verifiable Credentials using the provided cryptographic suite and key pair. By default, it uses the **ecdsa-sd-2023** crypto suite unless otherwise specified.
+
 ```ts
 import { signW3C, VerificationType } from '@trustvc/trustvc';
 
 const rawDocument = {
   '@context': [
-    'https://www.w3.org/2018/credentials/v1',
-    'https://w3c-ccg.github.io/citizenship-vocab/contexts/citizenship-v1.jsonld',
-    'https://w3id.org/security/bbs/v1',
+    'https://www.w3.org/ns/credentials/v2',
+    'https://w3id.org/security/data-integrity/v2',
     'https://w3id.org/vc/status-list/2021/v1',
+    'https://w3c-ccg.github.io/citizenship-vocab/contexts/citizenship-v2.jsonld',
   ],
   credentialStatus: {
     id: 'https://trustvc.github.io/did/credentials/statuslist/1#1',
@@ -172,29 +175,113 @@ const rawDocument = {
     statusListCredential: 'https://trustvc.github.io/did/credentials/statuslist/1',
   },
   credentialSubject: {
-    name: 'TrustVC',
+    type: ['Person']
+    givenName: 'TrustVC',
     birthDate: '2024-04-01T12:19:52Z',
-    type: ['PermanentResident', 'Person'],
   },
-  expirationDate: '2029-12-03T12:19:52Z',
   issuer: 'did:web:trustvc.github.io:did:1',
   type: ['VerifiableCredential'],
-  issuanceDate: '2024-04-01T12:19:52Z',
+  validFrom: '2024-04-01T12:19:52Z',
+  validUntil: '2029-12-03T12:19:52Z'
 };
 
+// Using default ecdsa-sd-2023 crypto suite
 const signingResult = await signW3C(rawDocument, {
-  id: 'did:web:trustvc.github.io:did:1#keys-1',
+  '@context': 'https://w3id.org/security/multikey/v1',
+  id: 'did:web:trustvc.github.io:did:1#multikey-1',
+  type: VerificationType.Multikey,
   controller: 'did:web:trustvc.github.io:did:1',
-  type: VerificationType.Bls12381G2Key2020,
-  publicKeyBase58:
-    'oRfEeWFresvhRtXCkihZbxyoi2JER7gHTJ5psXhHsdCoU1MttRMi3Yp9b9fpjmKh7bMgfWKLESiK2YovRd8KGzJsGuamoAXfqDDVhckxuc9nmsJ84skCSTijKeU4pfAcxeJ',
-  privateKeyBase58: '<privateKeyBase58>',
+  publicKeyMultibase: 'zDnaemDNwi4G5eTzGfRooFFu5Kns3be6yfyVNtiaMhWkZbwtc',
+  secretKeyMultibase: '<secretKeyMultibase>'
 });
+
+// You can also specify mandatory pointers for selective disclosure with ecdsa-sd-2023
+const signingResultWithPointers = await signW3C(
+  rawDocument,
+  {
+    '@context': 'https://w3id.org/security/multikey/v1',
+    id: 'did:web:trustvc.github.io:did:1#multikey-1',
+    type: VerificationType.Multikey,
+    controller: 'did:web:trustvc.github.io:did:1',
+    publicKeyMultibase: 'zDnaemDNwi4G5eTzGfRooFFu5Kns3be6yfyVNtiaMhWkZbwtc',
+    secretKeyMultibase: '<secretKeyMultibase>'
+  },
+  'ecdsa-sd-2023',
+  {
+    mandatoryPointers: ['/credentialStatus']
+  }
+);
+
+// Alternatively, specify a different crypto suite. Ensure the context is updated to include the crypto suite.
+const signingResultWithBbs = await signW3C(
+  rawDocument,
+  {
+    id: 'did:web:trustvc.github.io:did:1#keys-1',
+    controller: 'did:web:trustvc.github.io:did:1',
+    type: VerificationType.Bls12381G2Key2020,
+    publicKeyBase58: 'oRfEeWFresvhRtXCkihZbxyoi2JER7gHTJ5psXhHsdCoU1MttRMi3Yp9b9fpjmKh7bMgfWKLESiK2YovRd8KGzJsGuamoAXfqDDVhckxuc9nmsJ84skCSTijKeU4pfAcxeJ',
+    privateKeyBase58: '<privateKeyBase58>',
+  },
+  'BbsBlsSignature2020'
+);
+
 ```
 
 ---
 
-### 3. **Verifying**
+### 3. **Deriving (Selective Disclosure)**
+
+> When using ECDSA-SD-2023 crypto suite, we can derive a new credential with selective disclosure. This means you can choose which parts of the credential to reveal while keeping others hidden.
+
+```ts
+import { deriveW3C } from '@trustvc/trustvc';
+
+// This is a signed document using ecdsa-sd-2023
+const signedDocument = {
+  '@context': [
+    'https://www.w3.org/ns/credentials/v2',
+    'https://w3id.org/security/data-integrity/v2',
+    'https://w3id.org/vc/status-list/2021/v1',
+    'https://w3c-ccg.github.io/citizenship-vocab/contexts/citizenship-v2.jsonld'
+  ],
+  credentialStatus: {
+    id: 'https://trustvc.github.io/did/credentials/statuslist/1#1',
+    type: 'StatusList2021Entry',
+    statusPurpose: 'revocation',
+    statusListIndex: '10',
+    statusListCredential: 'https://trustvc.github.io/did/credentials/statuslist/1'
+  },
+  credentialSubject: {
+    type: ['Person'],
+    givenName: 'TrustVC',
+    birthDate: '2024-04-01T12:19:52Z'
+  },
+  issuer: 'did:web:trustvc.github.io:did:1',
+  type: ['VerifiableCredential'],
+  validFrom: '2024-04-01T12:19:52Z',
+  validUntil: '2029-12-03T12:19:52Z',
+  id: 'urn:uuid:0198bd9e-6686-7ccd-9b2a-ce763ae710d7',
+  proof: {
+    type: 'DataIntegrityProof',
+    created: '2025-08-18T14:38:51Z',
+    verificationMethod: 'did:web:trustvc.github.io:did:1#multikey-1',
+    cryptosuite: 'ecdsa-sd-2023',
+    proofPurpose: 'assertionMethod',
+    proofValue: 'u2V0AhVhAxfLFkbv8J_O3zJAQrSWrEY3sgeMwN02b2eaHEgjnJYu1rnCBYORfZUVZwRoRuNIiY1NTGHmQpzlgqtQz7A0R3FgjgCQDzt3_aUvSMrlIZdsyVcB4KPHHjA4BbSv-PZ4Bbm4GpY5YIA1mQ8LYmpjJ7vNvN3DsfIengZrnziTLO9exbZjn1KqFilhA0lp1y6BZ-fhiUdWsojYesLDSzCy6Tq_AICaIvCjYSJMEaY7SomJnCkdpuhM0GQHDTy5kjzb7sSzowACqDDf9OVhAfOC7vg4WQGrI6M3dvLZW3KlBzp1SurRz1PPeHcqOGEDrqybzIlolwNXMhc2T8rcVLl-E04wNsiVjamvqWAQN-lhA4HmVqIxKuR0QvCMEVq3cjUU7G1pQbgMdp9HZDasOT9nh_k5l3JfcXB1_qtRblljXWN0FRKAr9T-DhxzDzGl3-lhA4nNDzd-6xl74rWqr_7U9XZE7LoE-mbgBsyOAOlfHGumMxwddnEZp2iD2uZ7lLXX8Q-nSDXJVvUqKLksy1l2vqVhAm3daNYjH1kVrTW7V-DElcj3K_QfbHEvjd1F2TGVGtBVhF8o01yCxXRX0vzk-AZLZnpDnAUBTSTF5Q8rF-t7L9lhAO7NeIXQtQsdncqtLm2qk1XzFYL2FM5Hx4GZOX39VyT4T0AlFRZQuY9WXYnvMZSvacRvJaSJk5S3cZ6uBminQgVhAExuTEvJQu42-SiaOJ_6M0EjuQfqIgJE-JHirmYs3AAoH_4EKUtPU3y_jRB8XFZxA-wtFDv3KJjqXtNo5aA_6f1hAaokZPSJghFufTaVR8LAwHpXOncGJblKpUZQjKWuA_o2s6tGmx-ja0wgpsqSxvAGMTtkhFTMOI2-tzUuGE05tk1hAzABtV2yEX-RAQFpxkuV0XydAsJDh2dPscrpPHqMfmORsC3xRNL73uDaqqlaL99CvOgq4kJWmChw7TUYO62yaSVhA5-F-snwj-OZtws7_qMwvBgeNK9wvkZTlFLjRV6GDYx6r5TaLkR05GVzyBMv0Qs2z-cXPRZByS7p7_hbeykoYSYJnL2lzc3VlcmovdmFsaWRGcm9t'
+  }
+};
+
+// Derive a new credential with only specific fields disclosed
+const derivationResult = await deriveW3C(signedDocument, {
+  // Only reveal the credential type and givenName, hide birthDate
+  selectivePointers: ['/type', '/credentialSubject/givenName']
+});
+
+```
+
+---
+
+### 4. **Verifying**
 
 > TrustVC simplifies the verification process with a single function that supports both W3C Verifiable Credentials (VCs) and OpenAttestation Verifiable Documents (VDs). Whether you're working with W3C standards or OpenAttestation standards, TrustVC handles the verification seamlessly.
 
@@ -239,7 +326,7 @@ const resultFragments = await verifyDocument(signedDocument);
 
 ---
 
-### 4. **Encryption**
+### 5. **Encryption**
 
 > The `encrypt` function encrypts plaintext messages using the **ChaCha20** encryption algorithm, ensuring the security and integrity of the input data. It supports custom keys and nonces, returning the encrypted message in hexadecimal format.
 
@@ -316,7 +403,7 @@ It also relies on the `ts-chacha20` library for encryption operations.
 
 ---
 
-### 5. **Decryption**
+### 6. **Decryption**
 
 > The `decrypt` function decrypts messages encrypted with the **ChaCha20** algorithm. It converts the input from a hexadecimal format back into plaintext using the provided key and nonce.
 
@@ -399,7 +486,7 @@ It also relies on the `ts-chacha20` library for decryption operations.
 
 ---
 
-### 6. **TradeTrust Token Registry**
+### 7. **TradeTrust Token Registry**
 
 > The Electronic Bill of Lading (eBL) is a digital document that can be used to prove the ownership of goods. It is a standardized document that is accepted by all major shipping lines and customs authorities. The [Token Registry](https://github.com/TradeTrust/token-registry) repository contains both the smart contract (v4 and v5) code for token registry (in `/contracts`) as well as the node package for using this library (in `/src`).
 > The TrustVC library not only simplifies signing and verification but also imports and integrates existing TradeTrust libraries and smart contracts for token registry (V4 and V5), making it a versatile tool for decentralized identity and trust solutions.
@@ -589,7 +676,7 @@ function rejectTransferOwners(bytes calldata _remark) external;
 
 For more information on Token Registry and Title Escrow contracts **version v5**, please visit the readme of [TradeTrust Token Registry V5](https://github.com/TradeTrust/token-registry/blob/master/README.md)
 
-### 7. **Document Builder**
+### 8. **Document Builder**
 > The `DocumentBuilder` class helps build and manage W3C Verifiable Credentials (VCs) with credential status features. It supports creating documents with two types of credential statuses: `transferableRecords` and `verifiableDocument`. It can sign the document using a private key, verify its signature, and serialize the document to a JSON format. Additionally, it allows for configuration of document rendering methods and expiration dates.
 
 #### Usage
