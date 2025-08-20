@@ -105,3 +105,36 @@ export const getChainId = (
     return undefined;
   }
 };
+
+export const isObfuscated = (
+  document: WrappedDocument<OpenAttestationDocument> | SignedVerifiableCredential,
+): boolean => {
+  if (isWrappedV3Document(document)) {
+    return !!document.proof.privacy?.obfuscated?.length;
+  }
+
+  if (isWrappedV2Document(document)) {
+    return !!document.privacy?.obfuscatedData?.length;
+  }
+
+  if (isSignedDocument(document)) {
+    return document.proof?.type === 'BbsBlsSignatureProof2020';
+  }
+
+  throw new Error(
+    'Unsupported document type: Can only check if there are obfuscated data from wrapped OpenAttestation v2, v3 documents and signed verifiable credentials.',
+  );
+};
+export const getObfuscatedData = (document: WrappedDocument<OpenAttestationDocument>): string[] => {
+  if (isWrappedV3Document(document)) {
+    return document.proof.privacy?.obfuscated;
+  }
+
+  if (isWrappedV2Document(document)) {
+    return document.privacy?.obfuscatedData || [];
+  }
+
+  throw new Error(
+    'Unsupported document type: Can only retrieve obfuscated data from wrapped OpenAttestation v2 & v3 documents.',
+  );
+};

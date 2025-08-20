@@ -1,6 +1,6 @@
 {
   "name": "@trustvc/trustvc",
-  "version": "1.8.1",
+  "version": "1.6.0-alpha.5",
   "description": "TrustVC library",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
@@ -124,7 +124,7 @@
     "@trustvc/w3c": "^1.3.0-alpha.6",
     "@trustvc/w3c-context": "^1.3.0-alpha.6",
     "@trustvc/w3c-credential-status": "^1.3.0-alpha.6",
-    "@trustvc/w3c-issuer": "^1.3.0-alpha.4",
+    "@trustvc/w3c-issuer": "^1.3.0-alpha.5",
     "@trustvc/w3c-vc": "^1.3.0-alpha.6",
     "ethers": "^5.8.0",
     "ethersV6": "npm:ethers@^6.14.4",

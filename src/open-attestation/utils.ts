@@ -2,12 +2,10 @@ import {
   getData as getDataV2,
   isSchemaValidationError,
   obfuscateDocument,
-  OpenAttestationDocument,
   SchemaId,
   SUPPORTED_SIGNING_ALGORITHM,
   utils,
   validateSchema,
-  WrappedDocument,
 } from '@tradetrust-tt/tradetrust';
 
 const {
@@ -20,17 +18,10 @@ const {
   isSignedWrappedV3Document,
   isRawV2Document,
   isRawV3Document,
-  // isObfuscated,
   getDocumentData,
   getIssuerAddress,
   diagnose,
   getTemplateURL,
-} = utils;
-
-const {
-  isObfuscated,
-}: {
-  isObfuscated: (document: WrappedDocument<OpenAttestationDocument>) => boolean;
 } = utils;
 
 export {
@@ -49,7 +40,6 @@ export {
   getTemplateURL,
   getDocumentData,
   getIssuerAddress,
-  isObfuscated,
   isRawV2Document,
   isRawV3Document,
   isSignedWrappedV2Document,
