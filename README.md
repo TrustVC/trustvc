@@ -677,7 +677,7 @@ function rejectTransferOwners(bytes calldata _remark) external;
 For more information on Token Registry and Title Escrow contracts **version v5**, please visit the readme of [TradeTrust Token Registry V5](https://github.com/TradeTrust/token-registry/blob/master/README.md)
 
 ### 8. **Document Builder**
-> The `DocumentBuilder` class helps build and manage W3C Verifiable Credentials (VCs) with credential status features. It supports creating documents with two types of credential statuses: `transferableRecords` and `verifiableDocument`. It can sign the document using a private key, verify its signature, and serialize the document to a JSON format. Additionally, it allows for configuration of document rendering methods and expiration dates.
+> The `DocumentBuilder` class helps build and manage W3C Verifiable Credentials (VCs) with credential status features, implementing the **W3C VC Data Model 2.0** specification. It supports creating documents with two types of credential statuses: `transferableRecords` and `verifiableDocument`. It can sign the document using a private key, verify its signature, and serialize the document to a JSON format. Additionally, it allows for configuration of document rendering methods and expiration dates.
 
 #### Usage
 
@@ -690,7 +690,7 @@ To learn more about defining custom contexts, check out the [Credential Subject 
 // Adds a custom vocabulary used to define terms in the `credentialSubject`.
 // Users can define their own context if they have domain-specific fields or custom data structures.
 const builder = new DocumentBuilder({
-  '@context': 'https://w3c-ccg.github.io/citizenship-vocab/contexts/citizenship-v1.jsonld'
+  '@context': 'https://w3c-ccg.github.io/citizenship-vocab/contexts/citizenship-v2.jsonld'
 });
 ```
 
@@ -699,8 +699,8 @@ Set the subject of the Verifiable Credential, which typically contains informati
 
 ```ts
 builder.credentialSubject({
-  id: 'did:example:123',
-  name: 'John Doe',
+  type: ['Person'],
+  givenName: 'TrustVC',
 });
 ```
 
@@ -736,7 +736,7 @@ builder.credentialStatus({
 ```
 
 ##### Set Expiration Date
-You can set an expiration date for the document.
+You can set an valid until date (expiration) for the document.
 
 ```ts
 builder.expirationDate('2026-01-01T00:00:00Z');
@@ -764,16 +764,17 @@ builder.qrCode({
 ```
 
 ##### Sign the Document
-To sign the document, provide a `PrivateKeyPair` from `@trustvc/trustvc`.
+To sign the document, provide a `PrivateKeyPair` from `@trustvc/trustvc`. The builder uses ECDSA key for signing by default.
 
 ```ts
 const privateKey: PrivateKeyPair = {
-  id: 'did:example:456#key1',
-  controller: 'did:example:456',
-  type: VerificationType.Bls12381G2Key2020,
-  publicKeyBase58: 'your-public-key-base58',
-  privateKeyBase58: 'your-private-key-base58',
-};
+    '@context': 'https://w3id.org/security/multikey/v1',
+    id: 'did:web:example.com#multikey-1',
+    type: VerificationType.Multikey,
+    controller: 'did:web:example.com',
+    publicKeyMultibase: 'your-public-key-multibase',
+    secretKeyMultibase: 'your-secret-key-multibase',
+}
 
 const signedDocument = await builder.sign(privateKey);
 console.log(signedDocument);
@@ -783,19 +784,18 @@ Example Output After Signing
 ```json
 {
   "@context": [
-    "https://www.w3.org/2018/credentials/v1",
-    "https://w3c-ccg.github.io/citizenship-vocab/contexts/citizenship-v1.jsonld",
-    "https://w3id.org/vc/status-list/2021/v1",
-    "https://trustvc.io/context/render-method-context.json",
+    "https://www.w3.org/ns/credentials/v2",
+    "https://w3c-ccg.github.io/citizenship-vocab/contexts/citizenship-v2.jsonld",
+    "https://trustvc.io/context/render-method-context-v2.json",
     "https://trustvc.io/context/qrcode-context.json",
-    "https://w3id.org/security/bbs/v1"
+    "https://w3id.org/security/data-integrity/v2"
   ],
   "type": ["VerifiableCredential"],
   "credentialSubject": {
-    "id": "did:example:123",
-    "name": "John Doe"
+    "type": ["Person"],
+    "givenName": "TrustVC",
   },
-  "expirationDate": "2026-01-01T00:00:00Z",
+  "validUntil": "2026-01-01T00:00:00Z",
   "renderMethod": [
     {
       "id": "https://example.com/rendering-method",
@@ -814,24 +814,33 @@ Example Output After Signing
     "statusListIndex": "<placeholder>",
     "statusListCredential": "https://example.com/status-list"
   },
-  "issuer": "did:example:456",
-  "issuanceDate": "2025-01-01T00:00:00Z",
+  "issuer": "did:web:example.com",
+  "validFrom": "2025-01-01T00:00:00Z",
   "id": "urn:bnid:_:0195fec2-4ae1-7cca-9182-03fd7da5142b",
   "proof": {
-    "type": "BbsBlsSignature2020",
+    "type": "DataIntegrityProof",
     "created": "2025-01-01T00:00:01Z",
+    "verificationMethod": "did:web:example.com#multikey-1",
+    "cryptosuite": "ecdsa-sd-2023",
     "proofPurpose": "assertionMethod",
-    "proofValue": "rV56L+QYozATRy3GOVLomzUo99sXtw2x0Cy9dEkHJ15wi4cS12cQJRIwzONVi3YscdhaSKoqD1jWmwb5A/khLZnDq5eo3QzDgTVClYuV86opL3HJyoS4+t2rRt3wl+chnATy2jqr5zMEvcVJ3gdXpQ==",
-    "verificationMethod": "did:example:456#key1"
+    "proofValue": "u2V0AhVhAh1oLoiuV2AwmSa2ZspbmrG2gCDbpZW.......",
   }
 }
 ```
 
-##### Verify the Document
-To verify the signature of the signed document:
+##### Deriving the Document
+To derive the document, provide the signed document and the attributes to be revealed to the `derive` method.
 
 ```ts
-const isVerified = await builder.verify();
+const derivedDocument = await builder.derive(signedDocument, ['/credentialSubject/givenName']);
+console.log(derivedDocument);
+```
+
+##### Verify the Document
+To verify the signature of the signed document, the ECDSA algorithm requires the document to derived first before it can be verified.
+
+```ts
+const isVerified = await builder.verify(derivedDocument);
 console.log(isVerified); // true or false
 ```
 

@@ -85,6 +85,7 @@ export interface SignOptions {
 
 /**
  * Main class responsible for building, configuring, and signing documents with credential statuses.
+ * This class implements the W3C Verifiable Credentials Data Model 2.0 specification.
  */
 export class DocumentBuilder {
   private document: Partial<VerifiableCredential>; // Holds the document to be built and signed.
