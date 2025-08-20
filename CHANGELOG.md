@@ -1,3 +1,10 @@
+## [1.6.0-alpha.6](https://github.com/TrustVC/trustvc/compare/v1.6.0-alpha.5...v1.6.0-alpha.6) (2025-08-20)
+
+
+### Features
+
+* update sign and derive method ([#101](https://github.com/TrustVC/trustvc/issues/101)) ([7b8a012](https://github.com/TrustVC/trustvc/commit/7b8a012fc7d0a62790b17123793895f42f5a7f85))
+
 ## [1.6.0-alpha.5](https://github.com/TrustVC/trustvc/compare/v1.6.0-alpha.4...v1.6.0-alpha.5) (2025-08-19)
 
 
