@@ -3,8 +3,12 @@ import {
   BitstringStatusListCredentialStatus,
   CredentialStatusType,
 } from '@trustvc/w3c-credential-status';
-import { CredentialStatus, isSignedDocument, verifyCredentialStatus } from '@trustvc/w3c-vc';
-import { SignedVerifiableCredential } from '../../..';
+import {
+  CredentialStatus,
+  isSignedDocument,
+  verifyCredentialStatus,
+  SignedVerifiableCredential,
+} from '@trustvc/w3c-vc';
 //w3cCredentialStatus enums
 export enum W3CCredentialStatusCode {
   SKIPPED = 0,

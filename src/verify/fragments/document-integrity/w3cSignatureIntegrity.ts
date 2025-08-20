@@ -1,5 +1,6 @@
 import { VerificationFragment, Verifier, VerifierOptions } from '@tradetrust-tt/tt-verify';
-import { SignedVerifiableCredential, verifyW3CSignature } from '../../..';
+import { SignedVerifiableCredential } from '@trustvc/w3c-vc';
+import { verifyW3CSignature } from '../../../w3c/verify';
 
 export const w3cSignatureIntegrity: Verifier<VerificationFragment> = {
   skip: async () => {

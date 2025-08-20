@@ -1,7 +1,8 @@
 import { PrivateKeyPair } from '@trustvc/w3c-issuer';
-import { signW3C, verifyW3CSignature } from '../w3c';
+import { deriveW3C, signW3C, verifyW3CSignature } from '../w3c';
 import { assertCredentialStatus, assertTransferableRecords } from '@trustvc/w3c-credential-status';
 import {
+  ContextDocument,
   CredentialStatus,
   CryptoSuiteName,
   SignedVerifiableCredential,
@@ -14,6 +15,15 @@ import { constants as constantsV5 } from '@tradetrust-tt/token-registry-v5';
 import { v4Contracts } from '../token-registry-v4';
 import { v5Contracts } from '../token-registry-v5';
 import { SUPPORTED_CHAINS } from '../utils';
+import {
+  BBS_V1_URL,
+  DATA_INTEGRITY_V2_URL,
+  QRCODE_CONTEXT_URL,
+  RENDER_CONTEXT_V2_URL,
+  TR_CONTEXT_URL,
+  VC_V1_URL,
+  VC_V2_URL,
+} from '@trustvc/w3c-context';
 
 /**
  * Configuration for a W3C Verifiable Document using a Bitstring Status List.
@@ -66,6 +76,14 @@ export interface qrCode {
 }
 
 /**
+ * Options for signing a document.
+ * @property {string[]} mandatoryPointers - The mandatory pointers to be used for signing the document.
+ */
+export interface SignOptions {
+  mandatoryPointers?: string[];
+}
+
+/**
  * Main class responsible for building, configuring, and signing documents with credential statuses.
  */
 export class DocumentBuilder {
@@ -114,17 +132,16 @@ export class DocumentBuilder {
         tokenRegistry: config.tokenRegistry,
       };
       this.rpcProviderUrl = config.rpcProviderUrl;
-      this.addContext('https://trustvc.io/context/transferable-records-context.json'); // Add transferable records context to document.
+      this.addContext(TR_CONTEXT_URL); // Add transferable records context to document.
     } else if (isVerifiable) {
       this.selectedStatusType = 'verifiableDocument';
       this.statusConfig = {
         id: `${config.url}#${config.index}`,
-        type: 'StatusList2021Entry',
+        type: 'BitstringStatusListEntry',
         statusPurpose: config.purpose || 'revocation', // Set status purpose to "revocation" by default.
         statusListIndex: config.index,
         statusListCredential: config.url,
       };
-      this.addContext('https://w3id.org/vc/status-list/2021/v1'); // Add context for verifiable document status list.
     } else {
       throw new Error('Configuration Error: Missing required fields for credential status.');
     }
@@ -135,7 +152,7 @@ export class DocumentBuilder {
   // Sets the expiration date of the document.
   expirationDate(date: string | Date) {
     if (this.isSigned) throw new Error('Configuration Error: Document is already signed.');
-    this.document.expirationDate = typeof date === 'string' ? date : date.toISOString();
+    this.document.validUntil = typeof date === 'string' ? date : date.toISOString();
     return this;
   }
 
@@ -143,7 +160,7 @@ export class DocumentBuilder {
   renderMethod(method: RenderMethod) {
     if (this.isSigned) throw new Error('Configuration Error: Document is already signed.');
     this.document.renderMethod = [method];
-    this.addContext('https://trustvc.io/context/render-method-context.json'); // Add render method context to document.
+    this.addContext(RENDER_CONTEXT_V2_URL); // Add render method context to document.
     return this;
   }
 
@@ -151,12 +168,12 @@ export class DocumentBuilder {
   qrCode(method: qrCode) {
     if (this.isSigned) throw new Error('Configuration Error: Document is already signed.');
     this.document.qrCode = method;
-    this.addContext('https://trustvc.io/context/qrcode-context.json'); // Add qrcode context to document.
+    this.addContext(QRCODE_CONTEXT_URL); // Add qrcode context to document.
     return this;
   }
 
   // Sign the document using the provided private key and an optional cryptographic suite.
-  async sign(privateKey: PrivateKeyPair, cryptoSuite?: CryptoSuiteName) {
+  async sign(privateKey: PrivateKeyPair, cryptoSuite?: CryptoSuiteName, options?: SignOptions) {
     if (this.isSigned) throw new Error('Configuration Error: Document is already signed.');
 
     if (this.selectedStatusType) {
@@ -179,21 +196,36 @@ export class DocumentBuilder {
     }
 
     this.document.issuer = privateKey.id.split('#')[0]; // Set the issuer of the document.
-    this.document.issuanceDate = this.document.issuanceDate || new Date().toISOString(); // Set the issuance date if not already present.
-    this.addContext('https://w3id.org/security/bbs/v1'); // Add context for bbs.
+    this.document.validFrom = this.document.validFrom || new Date().toISOString(); // Set the issuance date if not already present.
+    if (!cryptoSuite || cryptoSuite === 'ecdsa-sd-2023') {
+      this.addContext(DATA_INTEGRITY_V2_URL);
+    } else {
+      this.addContext(BBS_V1_URL); // Add context for bbs.
+    }
 
-    const signedVC = await signW3C(this.document, privateKey, cryptoSuite);
+    const signedVC = await signW3C(this.document, privateKey, cryptoSuite, options);
     if (signedVC.error) throw new Error(`Signing Error: ${signedVC.error}`);
     this.isSigned = true;
     return signedVC.signed;
   }
 
+  async derive(
+    credential: SignedVerifiableCredential,
+    revealedAttributes: ContextDocument | string[],
+  ) {
+    if (!this.isSigned) throw new Error('Configuration Error: Document is not signed yet.');
+
+    const derivedCredential = await deriveW3C(credential, revealedAttributes);
+    if (derivedCredential.error) throw new Error(`Derivation Error: ${derivedCredential.error}`);
+    return derivedCredential.derived;
+  }
+
   // Verify the document.
-  async verify() {
+  async verify(credential?: SignedVerifiableCredential) {
     if (!this.isSigned) throw new Error('Verification Error: Document is not signed yet.');
 
     const verificationResult = await verifyW3CSignature(
-      this.document as SignedVerifiableCredential,
+      (credential || this.document) as SignedVerifiableCredential,
     );
     if (verificationResult.error)
       throw new Error(`Verification Error: ${verificationResult.error}`);
@@ -246,10 +278,11 @@ export class DocumentBuilder {
 
   // Private helper method to build the context for the document, ensuring uniqueness and adding the default W3C context.
   private buildContext(context: string | string[]): string[] {
-    return [
-      'https://www.w3.org/2018/credentials/v1',
-      ...(Array.isArray(context) ? context : context ? [context] : []),
-    ].filter((v, i, a) => a.indexOf(v) === i);
+    const arrayContext = Array.isArray(context) ? context : context ? [context] : [];
+    if (arrayContext.includes(VC_V1_URL)) {
+      throw new Error('Document builder does not support data model v1.1.');
+    }
+    return [VC_V2_URL, ...arrayContext].filter((v, i, a) => a.indexOf(v) === i);
   }
 
   // Private helper method to add a new context to the document if it does not already exist.
