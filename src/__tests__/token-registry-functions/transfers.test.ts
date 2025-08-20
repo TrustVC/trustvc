@@ -88,12 +88,12 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
   describe(`transfer holder with TR Version ${titleEscrowVersion} and ethers version ${ethersVersion}`, () => {
     const params = isV5TT
       ? {
-          holderAddress: '0xholder',
+          newHolderAddress: '0xholder',
           remarks: '0xencrypted_remarks',
           tokenId: 1,
         }
       : {
-          holderAddress: '0xholder',
+          newHolderAddress: '0xholder',
           tokenId: 1,
         };
     const txHash = isV5TT ? 'v5_transfer_holder_tx_hash' : 'v4_transfer_holder_tx_hash';

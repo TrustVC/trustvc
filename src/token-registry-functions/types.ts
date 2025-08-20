@@ -65,7 +65,7 @@ export type OwnerOfTokenOptions = {
 };
 
 export interface TransferHolderParams {
-  holderAddress: string;
+  newHolderAddress: string;
   remarks?: string;
 }
 export interface TransferBeneficiaryParams {

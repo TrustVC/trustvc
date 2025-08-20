@@ -62,7 +62,7 @@ const transferHolder = async (
 
   if (!titleEscrowAddress) throw new Error('Token registry address is required');
   if (!signer.provider) throw new Error('Provider is required');
-  const { holderAddress, remarks } = params;
+  const { newHolderAddress, remarks } = params;
 
   // Connect V5 contract by default
   // let titleEscrowContract: v5Contracts.TitleEscrow | v4Contracts.TitleEscrow =
@@ -121,7 +121,7 @@ const transferHolder = async (
   // Check callStatic (dry run)
   try {
     const isV6 = isV6EthersProvider(signer.provider);
-    const args = isV5TT ? [holderAddress, encryptedRemarks] : [holderAddress];
+    const args = isV5TT ? [newHolderAddress, encryptedRemarks] : [newHolderAddress];
 
     if (isV6) {
       await (titleEscrowContract as ContractV6).transferHolder.staticCall(...args);
@@ -137,9 +137,9 @@ const transferHolder = async (
   const txOptions = await getTxOptions(signer, chainId, maxFeePerGas, maxPriorityFeePerGas);
   // Send the actual transaction
   if (isV5TT) {
-    return await titleEscrowContract.transferHolder(holderAddress, encryptedRemarks, txOptions);
+    return await titleEscrowContract.transferHolder(newHolderAddress, encryptedRemarks, txOptions);
   } else if (isV4TT) {
-    return await titleEscrowContract.transferHolder(holderAddress, txOptions);
+    return await titleEscrowContract.transferHolder(newHolderAddress, txOptions);
   }
 };
 
