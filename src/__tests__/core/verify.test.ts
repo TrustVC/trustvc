@@ -13,6 +13,7 @@ import {
   WRAPPED_DOCUMENT_DNS_TXT_V2,
 } from '../fixtures/fixtures';
 import { W3CCredentialStatusCode } from '../../verify/fragments/document-status/w3cCredentialStatus';
+import { openAttestationDidSignedDocumentStatus } from '@tradetrust-tt/tt-verify';
 
 const providerUrl = 'https://rpc-amoy.polygon.technology';
 
@@ -613,6 +614,25 @@ describe.each(ecdsaTestScenarios)(
 
 describe.concurrent('V3 verify', () => {
   it('should verify a DND_DID document and return fragments', async ({ expect }) => {
+    vi.spyOn(openAttestationDidSignedDocumentStatus, 'verify').mockResolvedValue({
+      data: {
+        details: {
+          issuance: {
+            did: 'did:ethr:0xB26B4941941C51a4885E5B7D3A1B861E54405f90#controller',
+            issued: true,
+          },
+          revocation: {
+            revoked: false,
+          },
+        },
+        issuedOnAll: true,
+        revokedOnAny: false,
+      },
+      name: 'OpenAttestationDidSignedDocumentStatus',
+      status: 'VALID',
+      type: 'DOCUMENT_STATUS',
+    });
+
     expect(await verifyDocument(SIGNED_WRAPPED_DOCUMENT_DNS_DID_V3)).toMatchInlineSnapshot(`
       [
         {

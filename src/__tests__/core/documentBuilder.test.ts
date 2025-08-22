@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { DocumentBuilder } from '../../core/documentBuilder';
 import { PrivateKeyPair, VerificationType } from '@trustvc/w3c-issuer';
+import { ContextDocument } from '@trustvc/w3c-context';
 
-const testPrivateKey: PrivateKeyPair = {
+const BBS2020testPrivateKey: PrivateKeyPair = {
   id: 'did:web:trustvc.github.io:did:1#keys-1',
   controller: 'did:web:trustvc.github.io:did:1',
   type: VerificationType.Bls12381G2Key2020,
@@ -11,19 +12,30 @@ const testPrivateKey: PrivateKeyPair = {
   privateKeyBase58: '4LDU56PUhA9ZEutnR1qCWQnUhtLtpLu2EHSq4h1o7vtF',
 };
 
-/* Update skipped test case when updating Document builder using w3c-vc 2.0 */
-describe('DocumentBuilder', () => {
+const ECDSAtestPrivateKey: PrivateKeyPair = {
+  '@context': 'https://w3id.org/security/multikey/v1',
+  id: 'did:web:trustvc.github.io:did:1#multikey-1',
+  type: VerificationType.Multikey,
+  controller: 'did:web:trustvc.github.io:did:1',
+  publicKeyMultibase: 'zDnaemDNwi4G5eTzGfRooFFu5Kns3be6yfyVNtiaMhWkZbwtc',
+  secretKeyMultibase: 'z42tmUXTVn3n9BihE6NhdMpvVBTnFTgmb6fw18o5Ud6puhRW',
+};
+
+describe('DocumentBuilder data model 2.0 using ECDSA', () => {
   let documentBuilder: DocumentBuilder;
 
   beforeEach(() => {
     documentBuilder = new DocumentBuilder({}).credentialSubject({});
   });
 
-  describe.skip('Initialization', () => {
+  describe('Initialization', () => {
     it('should initialize with default context and type', async () => {
-      const signedDocument = await documentBuilder.sign(testPrivateKey);
+      const signedDocument = await documentBuilder.sign(ECDSAtestPrivateKey, 'ecdsa-sd-2023');
       expect(signedDocument).toMatchObject({
-        '@context': expect.arrayContaining(['https://www.w3.org/2018/credentials/v1']),
+        '@context': expect.arrayContaining([
+          'https://www.w3.org/ns/credentials/v2',
+          'https://w3id.org/security/data-integrity/v2',
+        ]),
         type: expect.arrayContaining(['VerifiableCredential']),
       });
     });
@@ -33,7 +45,7 @@ describe('DocumentBuilder', () => {
     it('should return the current state of the document as a JSON string', () => {
       const expectedJson = JSON.stringify(
         {
-          '@context': ['https://www.w3.org/2018/credentials/v1'],
+          '@context': ['https://www.w3.org/ns/credentials/v2'],
           type: ['VerifiableCredential'],
           credentialSubject: {},
         },
@@ -45,15 +57,15 @@ describe('DocumentBuilder', () => {
     });
   });
 
-  describe.skip('Validation Errors', () => {
+  describe('Validation Errors', () => {
     it('should throw an error when required fields are missing', async () => {
-      await expect(new DocumentBuilder({}).sign(testPrivateKey)).rejects.toThrow(
+      await expect(new DocumentBuilder({}).sign(ECDSAtestPrivateKey)).rejects.toThrow(
         'Validation Error: Missing required field "credentialSubject" in the credential.',
       );
     });
 
     it('should throw an error when document is already signed', async () => {
-      await documentBuilder.sign(testPrivateKey);
+      await documentBuilder.sign(ECDSAtestPrivateKey);
       expect(() =>
         documentBuilder.credentialStatus({
           chain: 'amoy',
@@ -108,39 +120,57 @@ describe('DocumentBuilder', () => {
     });
   });
 
-  describe.skip('Signing and Verification', () => {
-    it('should sign and verify the document successfully for transferableRecords', async () => {
+  describe('Sign, Derive and Verify', () => {
+    it('should sign, derive and verify the document successfully for transferableRecords', async () => {
       documentBuilder.credentialStatus({
         chain: 'amoy',
         chainId: 80002,
         tokenRegistry: '0x71D28767662cB233F887aD2Bb65d048d760bA694',
         rpcProviderUrl: 'https://rpc-amoy.polygon.technology',
       });
-      const signedDocument = await documentBuilder.sign(testPrivateKey);
+      const signedDocument = await documentBuilder.sign(ECDSAtestPrivateKey);
       expect(signedDocument).toBeDefined();
+      const derivedDocument = await documentBuilder.derive([]);
+      expect(derivedDocument).toBeDefined();
       const verificationResult = await documentBuilder.verify();
       expect(verificationResult).toBe(true);
-    });
+    }, 10000);
 
-    it('should sign and verify the document successfully for verifiableDocument', async () => {
+    it('should sign, derive and verify the document successfully for verifiableDocument', async () => {
       documentBuilder.credentialStatus({
         url: 'https://trustvc.github.io/did/credentials/statuslist/1',
         index: 10, // Not revoked
       });
-      const signedDocument = await documentBuilder.sign(testPrivateKey);
+      const signedDocument = await documentBuilder.sign(ECDSAtestPrivateKey);
       expect(signedDocument).toBeDefined();
+      const derivedDocument = await documentBuilder.derive([]);
+      expect(derivedDocument).toBeDefined();
       const verificationResult = await documentBuilder.verify();
       expect(verificationResult).toBe(true);
-    });
-
-    it('should not verify the document if it is not signed yet', async () => {
-      await expect(documentBuilder.verify()).rejects.toThrow(
-        'Verification Error: Document is not signed yet.',
-      );
-    });
+    }, 10000);
   });
 
-  describe('Error Handling in Signing', () => {
+  describe('Error Handling', () => {
+    it('Should throw error if document builder initialized with data model v1.1 context', () => {
+      expect(
+        () => new DocumentBuilder({ '@context': ['https://www.w3.org/2018/credentials/v1'] }),
+      ).toThrow('Document builder does not support data model v1.1.');
+    });
+
+    it('Should throw an error when trying to verify without deriving', async () => {
+      documentBuilder.credentialStatus({
+        chain: 'amoy',
+        chainId: 80002,
+        tokenRegistry: '0x71D28767662cB233F887aD2Bb65d048d760bA694',
+        rpcProviderUrl: 'https://rpc-amoy.polygon.technology',
+      });
+      const signedDocument = await documentBuilder.sign(ECDSAtestPrivateKey);
+      expect(signedDocument).toBeDefined();
+      await expect(documentBuilder.verify()).rejects.toThrow(
+        'Verification Error: Document is not derived yet. Use derive() first.',
+      );
+    });
+
     it('should throw an error for an unsupported chain ID', async () => {
       documentBuilder.credentialStatus({
         chain: 'unknown-chain',
@@ -148,7 +178,7 @@ describe('DocumentBuilder', () => {
         tokenRegistry: '0x71D28767662cB233F887aD2Bb65d048d760bA694',
         rpcProviderUrl: 'https://rpc-amoy.polygon.technology',
       });
-      await expect(documentBuilder.sign(testPrivateKey)).rejects.toThrow(
+      await expect(documentBuilder.sign(ECDSAtestPrivateKey)).rejects.toThrow(
         'Unsupported Chain: Chain ID 999999 is not supported.',
       );
     });
@@ -160,7 +190,7 @@ describe('DocumentBuilder', () => {
         tokenRegistry: '0x71D28767662cB233F887aD2Bb65d048d760bA694',
         rpcProviderUrl: 'https://invalid-rpc-url', // Invalid RPC URL
       });
-      await expect(documentBuilder.sign(testPrivateKey)).rejects.toThrow(
+      await expect(documentBuilder.sign(ECDSAtestPrivateKey)).rejects.toThrow(
         'Network Error: Unable to verify token registry. Please check the RPC URL or token registry address.',
       );
     }, 45_000);
@@ -170,32 +200,32 @@ describe('DocumentBuilder', () => {
         url: 'https://trustvc.github.io/did/credentials/statuslist/1',
         index: 5, // Revoked
       });
-      await expect(documentBuilder.sign(testPrivateKey)).rejects.toThrow(
+      await expect(documentBuilder.sign(ECDSAtestPrivateKey)).rejects.toThrow(
         'Credential Verification Failed: Invalid credential status detected.',
       );
     });
 
-    it.skip('should throw an error when signing a document with an invalid credential status', async () => {
+    it('should throw an error when signing a document with an invalid credential status', async () => {
       documentBuilder.credentialStatus({
         url: 'https://trustvc.github.io/did/credentials/statuslist/3', // Invalid URL
         index: 10,
       });
-      await expect(documentBuilder.sign(testPrivateKey)).rejects.toThrowError(
+      await expect(documentBuilder.sign(ECDSAtestPrivateKey)).rejects.toThrowError(
         /Credential Verification Failed:/,
       );
     });
   });
 
-  describe('expirationDate', () => {
-    it('should set expiration date when given a string', () => {
+  describe('validUntil', () => {
+    it('should set valid until (expiration) date when given a string', () => {
       documentBuilder.expirationDate('2025-12-31T23:59:59Z');
-      expect(documentBuilder['document'].expirationDate).toBe('2025-12-31T23:59:59Z');
+      expect(documentBuilder['document'].validUntil).toBe('2025-12-31T23:59:59Z');
     });
 
-    it('should set expiration date when given a Date object', () => {
+    it('should set valid until (expiration) date when given a Date object', () => {
       const date = new Date('2025-12-31T23:59:59Z');
       documentBuilder.expirationDate(date);
-      expect(documentBuilder['document'].expirationDate).toBe(date.toISOString());
+      expect(documentBuilder['document'].validUntil).toBe(date.toISOString());
     });
   });
 
@@ -213,6 +243,9 @@ describe('DocumentBuilder', () => {
         templateName: 'BILL_OF_LADING',
       });
       expect(documentBuilder['document'].renderMethod).toEqual([method]);
+      expect(documentBuilder['document']['@context']).toContain(
+        'https://trustvc.io/context/render-method-context-v2.json',
+      );
     });
   });
 
@@ -228,6 +261,116 @@ describe('DocumentBuilder', () => {
         type: 'TrustVCQRCode',
       });
       expect(documentBuilder['document'].qrCode).toEqual(method);
+      expect(documentBuilder['document']['@context']).toContain(
+        'https://trustvc.io/context/qrcode-context.json',
+      );
+    });
+  });
+});
+
+describe('DocumentBuilder Data model 2.0 using BBS2020', () => {
+  let documentBuilder: DocumentBuilder;
+
+  beforeEach(() => {
+    documentBuilder = new DocumentBuilder({}).credentialSubject({});
+  });
+
+  describe('Initialization', () => {
+    it('should initialize with default context and type', async () => {
+      const signedDocument = await documentBuilder.sign(
+        BBS2020testPrivateKey,
+        'BbsBlsSignature2020',
+      );
+      expect(signedDocument).toMatchObject({
+        '@context': expect.arrayContaining([
+          'https://www.w3.org/ns/credentials/v2',
+          'https://w3id.org/security/bbs/v1',
+        ]),
+        type: expect.arrayContaining(['VerifiableCredential']),
+      });
+    });
+  });
+
+  describe('Validation Errors', () => {
+    it('should throw an error when required fields are missing', async () => {
+      await expect(
+        new DocumentBuilder({}).sign(BBS2020testPrivateKey, 'BbsBlsSignature2020'),
+      ).rejects.toThrow(
+        'Validation Error: Missing required field "credentialSubject" in the credential.',
+      );
+    });
+
+    it('should throw an error when document is already signed', async () => {
+      await documentBuilder.sign(BBS2020testPrivateKey, 'BbsBlsSignature2020');
+      expect(() =>
+        documentBuilder.credentialStatus({
+          chain: 'amoy',
+          chainId: 80002,
+          tokenRegistry: '0x71D28767662cB233F887aD2Bb65d048d760bA694',
+          rpcProviderUrl: 'https://rpc-amoy.polygon.technology',
+        }),
+      ).toThrow('Configuration Error: Document is already signed.');
+    });
+  });
+
+  describe('Signing and Verification', () => {
+    it('should sign and verify the document successfully for transferableRecords', async () => {
+      documentBuilder.credentialStatus({
+        chain: 'amoy',
+        chainId: 80002,
+        tokenRegistry: '0x71D28767662cB233F887aD2Bb65d048d760bA694',
+        rpcProviderUrl: 'https://rpc-amoy.polygon.technology',
+      });
+      const signedDocument = await documentBuilder.sign(
+        BBS2020testPrivateKey,
+        'BbsBlsSignature2020',
+      );
+      expect(signedDocument).toBeDefined();
+      const verificationResult = await documentBuilder.verify();
+      expect(verificationResult).toBe(true);
+    });
+
+    it('should sign and verify the document successfully for verifiableDocument', async () => {
+      documentBuilder.credentialStatus({
+        url: 'https://trustvc.github.io/did/credentials/statuslist/1',
+        index: 10, // Not revoked
+      });
+      const signedDocument = await documentBuilder.sign(
+        BBS2020testPrivateKey,
+        'BbsBlsSignature2020',
+      );
+      expect(signedDocument).toBeDefined();
+      const verificationResult = await documentBuilder.verify();
+      expect(verificationResult).toBe(true);
+    });
+
+    it('should not verify the document if it is not signed yet', async () => {
+      await expect(documentBuilder.verify()).rejects.toThrow(
+        'Verification Error: Document is not signed yet.',
+      );
+    });
+
+    it('should be able to derive document and verify derived document', async () => {
+      const contextDocument: ContextDocument = {
+        '@context': [
+          'https://www.w3.org/ns/credentials/v2',
+          'https://w3id.org/security/bbs/v1',
+          'https://trustvc.io/context/transferable-records-context.json',
+        ],
+        type: ['VerifiableCredential'],
+      };
+
+      documentBuilder.credentialStatus({
+        chain: 'amoy',
+        chainId: 80002,
+        tokenRegistry: '0x71D28767662cB233F887aD2Bb65d048d760bA694',
+        rpcProviderUrl: 'https://rpc-amoy.polygon.technology',
+      });
+      await documentBuilder.sign(BBS2020testPrivateKey, 'BbsBlsSignature2020');
+      const derivedDocument = await documentBuilder.derive(contextDocument);
+      expect(derivedDocument).toBeDefined();
+      const verificationResult = await documentBuilder.verify();
+      expect(verificationResult).toBe(true);
     });
   });
 });
