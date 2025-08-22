@@ -1,3 +1,10 @@
+## [1.6.0-alpha.7](https://github.com/TrustVC/trustvc/compare/v1.6.0-alpha.6...v1.6.0-alpha.7) (2025-08-22)
+
+
+### Features
+
+* update document builder to data model 2.0 ([#104](https://github.com/TrustVC/trustvc/issues/104)) ([f04f153](https://github.com/TrustVC/trustvc/commit/f04f153e8f9ca9e756bfd08fac977ed00fbd5c79))
+
 ## [1.6.0-alpha.6](https://github.com/TrustVC/trustvc/compare/v1.6.0-alpha.5...v1.6.0-alpha.6) (2025-08-20)
 
 
