@@ -66,7 +66,7 @@ export interface RenderMethod {
 }
 
 /**
- * Configuration for the qrcoode used in a Verifiable Credential document.
+ * Configuration for the qrcode used in a Verifiable Credential document.
  * @property {string} uri - A unique identifier for the qrcode, typically a URL or URI.
  * @property {string} type - The type of the qrcode method (e.g., 'TrustVCQRCode').
  */
@@ -228,7 +228,8 @@ export class DocumentBuilder {
   async verify() {
     if (!this.isSigned) throw new Error('Verification Error: Document is not signed yet.');
 
-    if (this.document.proof.cryptosuite === CryptoSuite.EcdsaSd2023 && !this.isDerived) {
+    const cryptosuite = (this.document as SignedVerifiableCredential)?.proof?.cryptosuite;
+    if (cryptosuite === CryptoSuite.EcdsaSd2023 && !this.isDerived) {
       throw new Error('Verification Error: Document is not derived yet. Use derive() first.');
     }
 

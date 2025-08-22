@@ -736,7 +736,7 @@ builder.credentialStatus({
 ```
 
 ##### Set Expiration Date
-You can set an valid until date (expiration) for the document.
+You can set a valid until date (expiration) for the document.
 
 ```ts
 builder.expirationDate('2026-01-01T00:00:00Z');
@@ -829,7 +829,7 @@ Example Output After Signing
 ```
 
 ##### Deriving the Document
-To derive the document, provide the attributes to be revealed to the `derive` method.
+Provide the attributes to reveal to the `derive` method.
 
 ```ts
 const derivedDocument = await builder.derive(['/credentialSubject/givenName']);
