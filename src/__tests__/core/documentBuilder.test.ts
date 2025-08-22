@@ -130,9 +130,9 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
       });
       const signedDocument = await documentBuilder.sign(ECDSAtestPrivateKey);
       expect(signedDocument).toBeDefined();
-      const derivedDocument = await documentBuilder.derive(signedDocument, []);
+      const derivedDocument = await documentBuilder.derive([]);
       expect(derivedDocument).toBeDefined();
-      const verificationResult = await documentBuilder.verify(derivedDocument);
+      const verificationResult = await documentBuilder.verify();
       expect(verificationResult).toBe(true);
     }, 10000);
 
@@ -143,9 +143,9 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
       });
       const signedDocument = await documentBuilder.sign(ECDSAtestPrivateKey);
       expect(signedDocument).toBeDefined();
-      const derivedDocument = await documentBuilder.derive(signedDocument, []);
+      const derivedDocument = await documentBuilder.derive([]);
       expect(derivedDocument).toBeDefined();
-      const verificationResult = await documentBuilder.verify(derivedDocument);
+      const verificationResult = await documentBuilder.verify();
       expect(verificationResult).toBe(true);
     }, 10000);
   });
@@ -167,7 +167,7 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
       const signedDocument = await documentBuilder.sign(ECDSAtestPrivateKey);
       expect(signedDocument).toBeDefined();
       await expect(documentBuilder.verify()).rejects.toThrow(
-        'Verification Error: ecdsa-sd-2023 base credentials must be derived before verification. Use deriveCredential() first.',
+        'Verification Error: Document is not derived yet. Use derive() first.',
       );
     });
 
@@ -366,13 +366,10 @@ describe('DocumentBuilder Data model 2.0 using BBS2020', () => {
         tokenRegistry: '0x71D28767662cB233F887aD2Bb65d048d760bA694',
         rpcProviderUrl: 'https://rpc-amoy.polygon.technology',
       });
-      const signedDocument = await documentBuilder.sign(
-        BBS2020testPrivateKey,
-        'BbsBlsSignature2020',
-      );
-      const derivedDocument = await documentBuilder.derive(signedDocument, contextDocument);
+      await documentBuilder.sign(BBS2020testPrivateKey, 'BbsBlsSignature2020');
+      const derivedDocument = await documentBuilder.derive(contextDocument);
       expect(derivedDocument).toBeDefined();
-      const verificationResult = await documentBuilder.verify(derivedDocument);
+      const verificationResult = await documentBuilder.verify();
       expect(verificationResult).toBe(true);
     });
   });

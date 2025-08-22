@@ -829,18 +829,18 @@ Example Output After Signing
 ```
 
 ##### Deriving the Document
-To derive the document, provide the signed document and the attributes to be revealed to the `derive` method.
+To derive the document, provide the attributes to be revealed to the `derive` method.
 
 ```ts
-const derivedDocument = await builder.derive(signedDocument, ['/credentialSubject/givenName']);
+const derivedDocument = await builder.derive(['/credentialSubject/givenName']);
 console.log(derivedDocument);
 ```
 
 ##### Verify the Document
-To verify the signature of the signed document, the ECDSA algorithm requires the document to derived first before it can be verified.
+To verify the signature of the signed document, ensure the document is derived first and then call the `verify` method.
 
 ```ts
-const isVerified = await builder.verify(derivedDocument);
+const isVerified = await builder.verify();
 console.log(isVerified); // true or false
 ```
 

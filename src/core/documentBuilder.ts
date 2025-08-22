@@ -1,4 +1,4 @@
-import { PrivateKeyPair } from '@trustvc/w3c-issuer';
+import { CryptoSuite, PrivateKeyPair } from '@trustvc/w3c-issuer';
 import { deriveW3C, signW3C, verifyW3CSignature } from '../w3c';
 import { assertCredentialStatus, assertTransferableRecords } from '@trustvc/w3c-credential-status';
 import {
@@ -95,7 +95,7 @@ export class DocumentBuilder {
   private rpcProviderUrl: string; // Holds the RPC provider URL for verifying token registry.
   private requiredFields: string[] = ['credentialSubject']; // Required fields that must be present in the document.
   private isSigned: boolean = false; // Tracks if a document is signed
-
+  private isDerived: boolean = false; // Tracks if a document is derived
   /**
    * Constructor to initialize the document builder.
    * @param {Partial<VerifiableCredential>} input - The input document.
@@ -210,23 +210,30 @@ export class DocumentBuilder {
     return signedVC.signed;
   }
 
-  async derive(
-    credential: SignedVerifiableCredential,
-    revealedAttributes: ContextDocument | string[],
-  ) {
+  async derive(revealedAttributes: ContextDocument | string[]) {
     if (!this.isSigned) throw new Error('Configuration Error: Document is not signed yet.');
+    if (this.isDerived) throw new Error('Configuration Error: Document is already derived.');
 
-    const derivedCredential = await deriveW3C(credential, revealedAttributes);
+    const derivedCredential = await deriveW3C(
+      this.document as SignedVerifiableCredential,
+      revealedAttributes,
+    );
     if (derivedCredential.error) throw new Error(`Derivation Error: ${derivedCredential.error}`);
+    this.document = derivedCredential.derived;
+    this.isDerived = true;
     return derivedCredential.derived;
   }
 
   // Verify the document.
-  async verify(credential?: SignedVerifiableCredential) {
+  async verify() {
     if (!this.isSigned) throw new Error('Verification Error: Document is not signed yet.');
 
+    if (this.document.proof.cryptosuite === CryptoSuite.EcdsaSd2023 && !this.isDerived) {
+      throw new Error('Verification Error: Document is not derived yet. Use derive() first.');
+    }
+
     const verificationResult = await verifyW3CSignature(
-      (credential || this.document) as SignedVerifiableCredential,
+      this.document as SignedVerifiableCredential,
     );
     if (verificationResult.error)
       throw new Error(`Verification Error: ${verificationResult.error}`);
