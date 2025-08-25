@@ -8,6 +8,7 @@ import {
   openAttestationHash,
 } from '@tradetrust-tt/tt-verify';
 import { w3cSignatureIntegrity } from './document-integrity/w3cSignatureIntegrity';
+import { ecdsaW3CSignatureIntegrity } from './document-integrity/ecdsaW3CSignatureIntegrity';
 import {
   credentialStatusTransferableRecordVerifier,
   TRANSFERABLE_RECORDS_TYPE,
@@ -30,4 +31,5 @@ export {
   w3cCredentialStatus,
   w3cIssuerIdentity,
   w3cSignatureIntegrity,
+  ecdsaW3CSignatureIntegrity,
 };

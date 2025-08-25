@@ -1,7 +1,7 @@
 import { VerificationFragment, Verifier, VerifierOptions } from '@tradetrust-tt/tt-verify';
 import { DocumentLoader } from '@trustvc/w3c-context';
 import { queryDidDocument } from '@trustvc/w3c-issuer';
-import { SignedVerifiableCredential } from '../../..';
+import { SignedVerifiableCredential } from '@trustvc/w3c-vc';
 
 const checkDidWebResolve = async (
   did: string,
