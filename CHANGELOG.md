@@ -1,3 +1,14 @@
+## [2.0.0](https://github.com/TrustVC/trustvc/compare/v1.8.1...v2.0.0) (2025-08-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* ecdsa and w3c data model 2.0
+
+### Features
+
+* ecdsa and w3c data model 2.0 ([#105](https://github.com/TrustVC/trustvc/issues/105)) ([a106501](https://github.com/TrustVC/trustvc/commit/a106501601954e8227496b64a55b0e2493016ac6))
+
 ## [1.8.1](https://github.com/TrustVC/trustvc/compare/v1.8.0...v1.8.1) (2025-08-07)
 
 
