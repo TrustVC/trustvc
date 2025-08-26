@@ -1,3 +1,10 @@
+## [2.0.1](https://github.com/TrustVC/trustvc/compare/v2.0.0...v2.0.1) (2025-08-26)
+
+
+### Bug Fixes
+
+* readme update ([#106](https://github.com/TrustVC/trustvc/issues/106)) ([f165b12](https://github.com/TrustVC/trustvc/commit/f165b12631246622d94f128f853f9dcc3baf5118))
+
 ## [2.0.0](https://github.com/TrustVC/trustvc/compare/v1.8.1...v2.0.0) (2025-08-25)
 
 
