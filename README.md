@@ -2,7 +2,7 @@
 
 ## About
 
-TrustVC is a comprehensive wrapper library designed to simplify the signing and verification processes for TrustVC W3C [Verifiable Credentials (VC)](https://github.com/TrustVC/w3c) and OpenAttestation Verifiable Documents (VD), adhering to the W3C [VC](https://www.w3.org/TR/vc-data-model/) Data Model v1.1 (W3C Standard). It ensures compatibility and interoperability for Verifiable Credentials while supporting OpenAttestation [Verifiable Documents (VD)](https://github.com/Open-Attestation/open-attestation) v6.9.5. TrustVC seamlessly integrates functionalities for handling W3C Verifiable Credentials and OpenAttestation Verifiable Documents, leveraging existing TradeTrust libraries and smart contracts for [Token Registry](https://github.com/TradeTrust/token-registry) (V4 and V5). Additionally, it includes essential utility functions for strings, networks, and chains, making it a versatile tool for developers working with decentralized identity and verifiable data solutions.
+TrustVC is a comprehensive wrapper library designed to simplify the signing and verification processes for TrustVC W3C [Verifiable Credentials (VC)](https://github.com/TrustVC/w3c) and OpenAttestation Verifiable Documents (VD), adhering to the W3C [VC](https://www.w3.org/TR/vc-data-model/) Data Model v2.0 (W3C Standard). It ensures compatibility and interoperability for Verifiable Credentials while supporting OpenAttestation [Verifiable Documents (VD)](https://github.com/Open-Attestation/open-attestation) v6.9.5. TrustVC seamlessly integrates functionalities for handling W3C Verifiable Credentials and OpenAttestation Verifiable Documents, leveraging existing TradeTrust libraries and smart contracts for [Token Registry](https://github.com/TradeTrust/token-registry) (V4 and V5). Additionally, it includes essential utility functions for strings, networks, and chains, making it a versatile tool for developers working with decentralized identity and verifiable data solutions.
 
 ## Table of Contents
 
@@ -114,7 +114,7 @@ console.log(wrappedDocuments);
 
 ### 2. **Signing**
 
-> The TrustVC Signing feature simplifies the signing process for OA documents and W3C-compliant verifiable credentials using BBS+ signatures. This feature allows you to easily sign W3C Verifiable Credentials (VCs) and ensure they comply with the latest standards.
+> The TrustVC Signing feature simplifies the signing process for OA documents and W3C-compliant verifiable credentials using ECDSA signature. This feature allows you to easily sign W3C Verifiable Credentials (VCs) and ensure they comply with the latest standards.
 
 The signing functionality is split into two methods:
 
@@ -169,7 +169,7 @@ const rawDocument = {
   ],
   credentialStatus: {
     id: 'https://trustvc.github.io/did/credentials/statuslist/1#1',
-    type: 'StatusList2021Entry',
+    type: 'BitstringStatusListEntry',
     statusPurpose: 'revocation',
     statusListIndex: '10',
     statusListCredential: 'https://trustvc.github.io/did/credentials/statuslist/1',
@@ -241,12 +241,11 @@ const signedDocument = {
   '@context': [
     'https://www.w3.org/ns/credentials/v2',
     'https://w3id.org/security/data-integrity/v2',
-    'https://w3id.org/vc/status-list/2021/v1',
     'https://w3c-ccg.github.io/citizenship-vocab/contexts/citizenship-v2.jsonld'
   ],
   credentialStatus: {
     id: 'https://trustvc.github.io/did/credentials/statuslist/1#1',
-    type: 'StatusList2021Entry',
+    type: 'BitstringStatusListEntry',
     statusPurpose: 'revocation',
     statusListIndex: '10',
     statusListCredential: 'https://trustvc.github.io/did/credentials/statuslist/1'
@@ -260,14 +259,14 @@ const signedDocument = {
   type: ['VerifiableCredential'],
   validFrom: '2024-04-01T12:19:52Z',
   validUntil: '2029-12-03T12:19:52Z',
-  id: 'urn:uuid:0198bd9e-6686-7ccd-9b2a-ce763ae710d7',
+  id: 'urn:uuid:0198e4a3-b601-7117-9d02-8c9a9a54ab5d',
   proof: {
     type: 'DataIntegrityProof',
     created: '2025-08-18T14:38:51Z',
     verificationMethod: 'did:web:trustvc.github.io:did:1#multikey-1',
     cryptosuite: 'ecdsa-sd-2023',
     proofPurpose: 'assertionMethod',
-    proofValue: 'u2V0AhVhAxfLFkbv8J_O3zJAQrSWrEY3sgeMwN02b2eaHEgjnJYu1rnCBYORfZUVZwRoRuNIiY1NTGHmQpzlgqtQz7A0R3FgjgCQDzt3_aUvSMrlIZdsyVcB4KPHHjA4BbSv-PZ4Bbm4GpY5YIA1mQ8LYmpjJ7vNvN3DsfIengZrnziTLO9exbZjn1KqFilhA0lp1y6BZ-fhiUdWsojYesLDSzCy6Tq_AICaIvCjYSJMEaY7SomJnCkdpuhM0GQHDTy5kjzb7sSzowACqDDf9OVhAfOC7vg4WQGrI6M3dvLZW3KlBzp1SurRz1PPeHcqOGEDrqybzIlolwNXMhc2T8rcVLl-E04wNsiVjamvqWAQN-lhA4HmVqIxKuR0QvCMEVq3cjUU7G1pQbgMdp9HZDasOT9nh_k5l3JfcXB1_qtRblljXWN0FRKAr9T-DhxzDzGl3-lhA4nNDzd-6xl74rWqr_7U9XZE7LoE-mbgBsyOAOlfHGumMxwddnEZp2iD2uZ7lLXX8Q-nSDXJVvUqKLksy1l2vqVhAm3daNYjH1kVrTW7V-DElcj3K_QfbHEvjd1F2TGVGtBVhF8o01yCxXRX0vzk-AZLZnpDnAUBTSTF5Q8rF-t7L9lhAO7NeIXQtQsdncqtLm2qk1XzFYL2FM5Hx4GZOX39VyT4T0AlFRZQuY9WXYnvMZSvacRvJaSJk5S3cZ6uBminQgVhAExuTEvJQu42-SiaOJ_6M0EjuQfqIgJE-JHirmYs3AAoH_4EKUtPU3y_jRB8XFZxA-wtFDv3KJjqXtNo5aA_6f1hAaokZPSJghFufTaVR8LAwHpXOncGJblKpUZQjKWuA_o2s6tGmx-ja0wgpsqSxvAGMTtkhFTMOI2-tzUuGE05tk1hAzABtV2yEX-RAQFpxkuV0XydAsJDh2dPscrpPHqMfmORsC3xRNL73uDaqqlaL99CvOgq4kJWmChw7TUYO62yaSVhA5-F-snwj-OZtws7_qMwvBgeNK9wvkZTlFLjRV6GDYx6r5TaLkR05GVzyBMv0Qs2z-cXPRZByS7p7_hbeykoYSYJnL2lzc3VlcmovdmFsaWRGcm9t'
+    proofValue: 'u2V0AhVhAWvyp4W7vt4DBhJy2JjKdbDjNSjh3mFsIfPv68Xk2uc4PSFf1iiAeq19rvnHou1LW_Ff0MrRxzcmuTsBO54q3vVgjgCQDz9CT1s28B8Wsk-i8hgzexvcOZgInRbK9VpG6pMwSfbNYIA0xoaqSwjMxAISQ2l2uRmBFlIdL3XFduNUlo93wj5EMilhA24fPUQHaYlpN2hezHkI2QbUpUzVdIoRFA9KdzA1JNWM9GuCKWF0A62W91QmN82237JIiF1d2aLq3lnCpgR_Y-VhAdhqKN1MXPH5BNYAmM1rSZLHGF92dYt2k3XLb84UsgBYNx0f5VKOKFKNY-ZNho59RdsSTRNbsUzU-zzH1CLkc-lhAKgI6LHZPLePwB-Vsad2jOO-_PGHoHas5-uNJDDSp-xTO2auFGmpI6OGx-U_xwcKYX3su3qwtYCJ3nf2-l-t5SFhAfNLg1QbwjJBStUFCcVZWzu1wDh1d9owiox2nNm9EDun4DU40ThWLoWJEEGtqJYE0XFeMxCNkGJGvBQkXJxKZYlhAXBhzKu4D8oXuUHymh5rXvp-a4cUHI0Mh0H0eEifx41FqPc_hNNhCEZKAl_lB6mxIAA-5rqDkUH8zj-gH0TDgq1hA8GZCjLF6wE5feS14DscTe_oVIAfe_2YYTdDLwtklycGXiIGjMs3XmX002URnASJU2RcX1hROupc2tpXFGOQZmlhAPwgkCD6aSL2gusl56goodXi7lg5GDJyh3iYSSA2qL0HkBs7q3FsbijIvscH3-bIEWZHUX127ZC3f1UL85WPR01hAQi-48VLrcfPC1aFuwuUQm_UEwkZ4LZsEvvPrPtrC1WjtGq7-NDAfNkz6cO9MgsUwjAncXliJW-tTNX3ujDfEA1hAARmh7uujgnsv7CoQt4suDhtVJKZA5UdKahJkUvqXZKRFfhRmJHPwJKnM04IV_AcQd8RH--v2ZUzD6IUGYXCUIVhABjkqmiaLL9PY20li9JBOd0VR7udnu0eM8JMGnnHm_gEIKM3eHWPqyfJyw9AfFymBwm0fgBqRxf0LIo9uDkLlwYJnL2lzc3VlcmovdmFsaWRGcm9t'
   }
 };
 
@@ -283,42 +282,42 @@ const derivationResult = await deriveW3C(signedDocument, {
 
 ### 4. **Verifying**
 
-> TrustVC simplifies the verification process with a single function that supports both W3C Verifiable Credentials (VCs) and OpenAttestation Verifiable Documents (VDs). Whether you're working with W3C standards or OpenAttestation standards, TrustVC handles the verification seamlessly.
+> TrustVC simplifies the verification process with a single function that supports both W3C Verifiable Credentials (VCs) and OpenAttestation Verifiable Documents (VDs). Whether you're working with W3C standards or OpenAttestation standards, TrustVC handles the verification seamlessly. For ECDSA-signed documents, which normally require derivation before verification, TrustVC automatically handles this process internally - if a document is not derived, the `verifyDocument` function will automatically derive and verify the document in a single step.
 
 ```ts
 import { verifyDocument } from '@trustvc/trustvc';
 
 const signedDocument = {
   '@context': [
-    'https://www.w3.org/2018/credentials/v1',
-    'https://w3c-ccg.github.io/citizenship-vocab/contexts/citizenship-v1.jsonld',
-    'https://w3id.org/security/bbs/v1',
-    'https://w3id.org/vc/status-list/2021/v1',
+    'https://www.w3.org/ns/credentials/v2',
+    'https://w3id.org/security/data-integrity/v2',
+    'https://w3c-ccg.github.io/citizenship-vocab/contexts/citizenship-v2.jsonld'
   ],
   credentialStatus: {
     id: 'https://trustvc.github.io/did/credentials/statuslist/1#1',
-    type: 'StatusList2021Entry',
+    type: 'BitstringStatusListEntry',
     statusPurpose: 'revocation',
     statusListIndex: '10',
-    statusListCredential: 'https://trustvc.github.io/did/credentials/statuslist/1',
+    statusListCredential: 'https://trustvc.github.io/did/credentials/statuslist/1'
   },
   credentialSubject: {
-    name: 'TrustVC',
-    birthDate: '2024-04-01T12:19:52Z',
-    type: ['PermanentResident', 'Person'],
+    type: ['Person'],
+    givenName: 'TrustVC',
+    birthDate: '2024-04-01T12:19:52Z'
   },
-  expirationDate: '2029-12-03T12:19:52Z',
   issuer: 'did:web:trustvc.github.io:did:1',
   type: ['VerifiableCredential'],
-  issuanceDate: '2024-04-01T12:19:52Z',
+  validFrom: '2024-04-01T12:19:52Z',
+  validUntil: '2029-12-03T12:19:52Z',
+  id: 'urn:uuid:0198e4a3-b601-7117-9d02-8c9a9a54ab5d',
   proof: {
-    type: 'BbsBlsSignature2020',
-    created: '2024-10-14T04:11:49Z',
+    type: 'DataIntegrityProof',
+    created: '2025-08-18T14:38:51Z',
+    verificationMethod: 'did:web:trustvc.github.io:did:1#multikey-1',
+    cryptosuite: 'ecdsa-sd-2023',
     proofPurpose: 'assertionMethod',
-    proofValue:
-      'l79dlFQMowalep+WCFqgCvpVBcCAr0GDEFUV6S7gRVY/TQ+sp/wcwaT61PaD19rJYUHlKfzccE4m7waZyoLEkBLFiK2g54Q2i+CdtYBgDdkUDsoULSBMcH1MwGHwdjfXpldFNFrHFx/IAvLVniyeMQ==',
-    verificationMethod: 'did:web:trustvc.github.io:did:1#keys-1',
-  },
+    proofValue: 'u2V0AhVhAWvyp4W7vt4DBhJy2JjKdbDjNSjh3mFsIfPv68Xk2uc4PSFf1iiAeq19rvnHou1LW_Ff0MrRxzcmuTsBO54q3vVgjgCQDz9CT1s28B8Wsk-i8hgzexvcOZgInRbK9VpG6pMwSfbNYIA0xoaqSwjMxAISQ2l2uRmBFlIdL3XFduNUlo93wj5EMilhA24fPUQHaYlpN2hezHkI2QbUpUzVdIoRFA9KdzA1JNWM9GuCKWF0A62W91QmN82237JIiF1d2aLq3lnCpgR_Y-VhAdhqKN1MXPH5BNYAmM1rSZLHGF92dYt2k3XLb84UsgBYNx0f5VKOKFKNY-ZNho59RdsSTRNbsUzU-zzH1CLkc-lhAKgI6LHZPLePwB-Vsad2jOO-_PGHoHas5-uNJDDSp-xTO2auFGmpI6OGx-U_xwcKYX3su3qwtYCJ3nf2-l-t5SFhAfNLg1QbwjJBStUFCcVZWzu1wDh1d9owiox2nNm9EDun4DU40ThWLoWJEEGtqJYE0XFeMxCNkGJGvBQkXJxKZYlhAXBhzKu4D8oXuUHymh5rXvp-a4cUHI0Mh0H0eEifx41FqPc_hNNhCEZKAl_lB6mxIAA-5rqDkUH8zj-gH0TDgq1hA8GZCjLF6wE5feS14DscTe_oVIAfe_2YYTdDLwtklycGXiIGjMs3XmX002URnASJU2RcX1hROupc2tpXFGOQZmlhAPwgkCD6aSL2gusl56goodXi7lg5GDJyh3iYSSA2qL0HkBs7q3FsbijIvscH3-bIEWZHUX127ZC3f1UL85WPR01hAQi-48VLrcfPC1aFuwuUQm_UEwkZ4LZsEvvPrPtrC1WjtGq7-NDAfNkz6cO9MgsUwjAncXliJW-tTNX3ujDfEA1hAARmh7uujgnsv7CoQt4suDhtVJKZA5UdKahJkUvqXZKRFfhRmJHPwJKnM04IV_AcQd8RH--v2ZUzD6IUGYXCUIVhABjkqmiaLL9PY20li9JBOd0VR7udnu0eM8JMGnnHm_gEIKM3eHWPqyfJyw9AfFymBwm0fgBqRxf0LIo9uDkLlwYJnL2lzc3VlcmovdmFsaWRGcm9t'
+  }
 };
 
 const resultFragments = await verifyDocument(signedDocument);
@@ -809,7 +808,7 @@ Example Output After Signing
   },
   "credentialStatus": {
     "id": "https://example.com/status-list#<placeholder>",
-    "type": "StatusList2021Entry",
+    "type": "BitstringStatusListEntry",
     "statusPurpose": "revocation",
     "statusListIndex": "<placeholder>",
     "statusListCredential": "https://example.com/status-list"
