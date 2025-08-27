@@ -1,3 +1,10 @@
+## [2.0.3](https://github.com/TrustVC/trustvc/compare/v2.0.2...v2.0.3) (2025-08-27)
+
+
+### Bug Fixes
+
+* upgrade package ([#108](https://github.com/TrustVC/trustvc/issues/108)) ([68f5831](https://github.com/TrustVC/trustvc/commit/68f58316062f7e622065162f29a2fb72d4a92bad))
+
 ## [2.0.2](https://github.com/TrustVC/trustvc/compare/v2.0.1...v2.0.2) (2025-08-27)
 
 
