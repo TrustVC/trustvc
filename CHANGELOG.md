@@ -1,3 +1,10 @@
+## [2.0.4](https://github.com/TrustVC/trustvc/compare/v2.0.3...v2.0.4) (2025-08-28)
+
+
+### Bug Fixes
+
+* updated empty credential verifier check ([#110](https://github.com/TrustVC/trustvc/issues/110)) ([b7f99c4](https://github.com/TrustVC/trustvc/commit/b7f99c4ec1fac558fd0b4a70e9035c0de72b04d9))
+
 ## [2.0.3](https://github.com/TrustVC/trustvc/compare/v2.0.2...v2.0.3) (2025-08-27)
 
 
