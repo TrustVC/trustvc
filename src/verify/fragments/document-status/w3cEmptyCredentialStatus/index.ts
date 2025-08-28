@@ -1,9 +1,12 @@
-import { VerificationFragment, Verifier, VerifierOptions } from '@tradetrust-tt/tt-verify';
+import { VerificationFragment, Verifier } from '@tradetrust-tt/tt-verify';
 import { SignedVerifiableCredential } from '@trustvc/w3c-vc';
-import { verifyW3CSignature } from '../../../../w3c';
 
 const type = 'DOCUMENT_STATUS';
 const name = 'W3CEmptyCredentialStatus';
+
+function isSignedVerifiableCredential(document: unknown): document is SignedVerifiableCredential {
+  return typeof document === 'object' && document !== null && 'proof' in document;
+}
 
 export const w3cEmptyCredentialStatus: Verifier<VerificationFragment> = {
   skip: async () => {
@@ -28,10 +31,10 @@ export const w3cEmptyCredentialStatus: Verifier<VerificationFragment> = {
     );
   },
 
-  verify: async (document: unknown, verifierOptions: VerifierOptions) => {
+  verify: async (document: unknown) => {
     const doc = document as SignedVerifiableCredential;
-    const verificationResult = await verifyW3CSignature(doc, verifierOptions);
-    if (verificationResult.verified) {
+    const verificationResult = isSignedVerifiableCredential(doc);
+    if (verificationResult) {
       return {
         type,
         name,
@@ -44,7 +47,7 @@ export const w3cEmptyCredentialStatus: Verifier<VerificationFragment> = {
         name,
         data: false,
         reason: {
-          message: verificationResult.error,
+          message: 'Document is not a valid SignedVerifiableCredential',
         },
         status: 'INVALID',
       };
