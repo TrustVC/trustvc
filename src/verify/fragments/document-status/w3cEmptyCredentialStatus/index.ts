@@ -1,4 +1,4 @@
-import { VerificationFragment, Verifier } from '@tradetrust-tt/tt-verify';
+import { VerificationFragment, Verifier, VerifierOptions } from '@tradetrust-tt/tt-verify';
 import { isSignedDocument, SignedVerifiableCredential } from '@trustvc/w3c-vc';
 
 const type = 'DOCUMENT_STATUS';
@@ -27,7 +27,8 @@ export const w3cEmptyCredentialStatus: Verifier<VerificationFragment> = {
     );
   },
 
-  verify: async (document: unknown) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  verify: async (document: unknown, verifierOptions: VerifierOptions) => {
     const doc = document as SignedVerifiableCredential;
     const verificationResult = isSignedDocument(doc);
     if (verificationResult) {
