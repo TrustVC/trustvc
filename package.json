@@ -10,6 +10,7 @@
   ],
   "scripts": {
     "test": "npx vitest --run --test-timeout=15000",
+    "test:watch": "npx vitest --test-timeout=15000",
     "test:e2e": "concurrently -k \"npm run e2e:node\" \"npm run wait-and-test\"",
     "e2e:node": "npx hardhat node",
     "wait-and-test": "wait-on tcp:8545 && npm run e2e:test",
