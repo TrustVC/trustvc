@@ -1,3 +1,10 @@
+## [2.0.5](https://github.com/TrustVC/trustvc/compare/v2.0.4...v2.0.5) (2025-09-01)
+
+
+### Bug Fixes
+
+* error message handling for W3C documents ([#111](https://github.com/TrustVC/trustvc/issues/111)) ([4e1d6d1](https://github.com/TrustVC/trustvc/commit/4e1d6d1e7d4218d88ecf6d23361ff1a3e4e962c6))
+
 ## [2.0.4](https://github.com/TrustVC/trustvc/compare/v2.0.3...v2.0.4) (2025-08-28)
 
 
