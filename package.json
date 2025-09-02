@@ -122,7 +122,7 @@
     "@tradetrust-tt/tradetrust": "^6.10.2",
     "@tradetrust-tt/tradetrust-utils": "^2.4.2",
     "@tradetrust-tt/tt-verify": "^9.5.1",
-    "@trustvc/w3c": "^1.3.0-alpha.9",
+    "@trustvc/w3c": "^1.3.0-alpha.10",
     "@trustvc/w3c-context": "^1.3.0-alpha.8",
     "@trustvc/w3c-credential-status": "^1.3.0-alpha.8",
     "@trustvc/w3c-issuer": "^1.3.0-alpha.6",
