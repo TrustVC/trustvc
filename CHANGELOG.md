@@ -1,3 +1,10 @@
+## [2.0.6](https://github.com/TrustVC/trustvc/compare/v2.0.5...v2.0.6) (2025-09-02)
+
+
+### Bug Fixes
+
+* update w3c function ([#112](https://github.com/TrustVC/trustvc/issues/112)) ([cc5d8fb](https://github.com/TrustVC/trustvc/commit/cc5d8fbbb22de41a304905559e51f17524893e7c))
+
 ## [2.0.5](https://github.com/TrustVC/trustvc/compare/v2.0.4...v2.0.5) (2025-09-01)
 
 
