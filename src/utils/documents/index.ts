@@ -12,7 +12,7 @@ import {
 } from '../../open-attestation';
 import { TRANSFERABLE_RECORDS_TYPE } from '../../verify/fragments';
 import { TransferableRecordsCredentialStatus } from '../../w3c/credential-status';
-import { isSignedDocument, SignedVerifiableCredential } from '../../w3c/vc';
+import { isDerived, isSignedDocument, SignedVerifiableCredential } from '../../w3c/vc';
 import { CHAIN_ID } from '../supportedChains';
 
 export type WrappedOrSignedOpenAttestationDocument = WrappedDocument<OpenAttestationDocument>;
@@ -106,9 +106,9 @@ export const getChainId = (
   }
 };
 
-export const isObfuscated = (
+export const isObfuscated = async (
   document: WrappedDocument<OpenAttestationDocument> | SignedVerifiableCredential,
-): boolean => {
+): Promise<boolean> => {
   if (isWrappedV3Document(document)) {
     return !!document.proof.privacy?.obfuscated?.length;
   }
@@ -118,7 +118,7 @@ export const isObfuscated = (
   }
 
   if (isSignedDocument(document)) {
-    return document.proof?.type === 'BbsBlsSignatureProof2020';
+    return await isDerived(document);
   }
 
   throw new Error(
