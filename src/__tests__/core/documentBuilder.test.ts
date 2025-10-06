@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { DocumentBuilder } from '../../core/documentBuilder';
 import { PrivateKeyPair, VerificationType } from '@trustvc/w3c-issuer';
-import { ContextDocument } from '@trustvc/w3c-context';
 
 const BBS2020testPrivateKey: PrivateKeyPair = {
   id: 'did:web:trustvc.github.io:did:1#keys-1',
@@ -25,7 +24,9 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
   let documentBuilder: DocumentBuilder;
 
   beforeEach(() => {
-    documentBuilder = new DocumentBuilder({}).credentialSubject({});
+    documentBuilder = new DocumentBuilder({
+      '@context': 'https://trustvc.io/context/bill-of-lading.json',
+    }).credentialSubject({ type: ['BillOfLading'] });
   });
 
   describe('Initialization', () => {
@@ -35,6 +36,7 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
         '@context': expect.arrayContaining([
           'https://www.w3.org/ns/credentials/v2',
           'https://w3id.org/security/data-integrity/v2',
+          'https://trustvc.io/context/bill-of-lading.json',
         ]),
         type: expect.arrayContaining(['VerifiableCredential']),
       });
@@ -45,9 +47,12 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
     it('should return the current state of the document as a JSON string', () => {
       const expectedJson = JSON.stringify(
         {
-          '@context': ['https://www.w3.org/ns/credentials/v2'],
+          '@context': [
+            'https://www.w3.org/ns/credentials/v2',
+            'https://trustvc.io/context/bill-of-lading.json',
+          ],
           type: ['VerifiableCredential'],
-          credentialSubject: {},
+          credentialSubject: { type: ['BillOfLading'] },
         },
         null,
         2,
@@ -275,102 +280,11 @@ describe('DocumentBuilder Data model 2.0 using BBS2020', () => {
     documentBuilder = new DocumentBuilder({}).credentialSubject({});
   });
 
-  describe('Initialization', () => {
-    it('should initialize with default context and type', async () => {
-      const signedDocument = await documentBuilder.sign(
-        BBS2020testPrivateKey,
-        'BbsBlsSignature2020',
-      );
-      expect(signedDocument).toMatchObject({
-        '@context': expect.arrayContaining([
-          'https://www.w3.org/ns/credentials/v2',
-          'https://w3id.org/security/bbs/v1',
-        ]),
-        type: expect.arrayContaining(['VerifiableCredential']),
-      });
-    });
-  });
-
-  describe('Validation Errors', () => {
-    it('should throw an error when required fields are missing', async () => {
-      await expect(
-        new DocumentBuilder({}).sign(BBS2020testPrivateKey, 'BbsBlsSignature2020'),
-      ).rejects.toThrow(
-        'Validation Error: Missing required field "credentialSubject" in the credential.',
-      );
-    });
-
-    it('should throw an error when document is already signed', async () => {
-      await documentBuilder.sign(BBS2020testPrivateKey, 'BbsBlsSignature2020');
-      expect(() =>
-        documentBuilder.credentialStatus({
-          chain: 'amoy',
-          chainId: 80002,
-          tokenRegistry: '0x71D28767662cB233F887aD2Bb65d048d760bA694',
-          rpcProviderUrl: 'https://rpc-amoy.polygon.technology',
-        }),
-      ).toThrow('Configuration Error: Document is already signed.');
-    });
-  });
-
-  describe('Signing and Verification', () => {
-    it('should sign and verify the document successfully for transferableRecords', async () => {
-      documentBuilder.credentialStatus({
-        chain: 'amoy',
-        chainId: 80002,
-        tokenRegistry: '0x71D28767662cB233F887aD2Bb65d048d760bA694',
-        rpcProviderUrl: 'https://rpc-amoy.polygon.technology',
-      });
-      const signedDocument = await documentBuilder.sign(
-        BBS2020testPrivateKey,
-        'BbsBlsSignature2020',
-      );
-      expect(signedDocument).toBeDefined();
-      const verificationResult = await documentBuilder.verify();
-      expect(verificationResult).toBe(true);
-    });
-
-    it('should sign and verify the document successfully for verifiableDocument', async () => {
-      documentBuilder.credentialStatus({
-        url: 'https://trustvc.github.io/did/credentials/statuslist/1',
-        index: 10, // Not revoked
-      });
-      const signedDocument = await documentBuilder.sign(
-        BBS2020testPrivateKey,
-        'BbsBlsSignature2020',
-      );
-      expect(signedDocument).toBeDefined();
-      const verificationResult = await documentBuilder.verify();
-      expect(verificationResult).toBe(true);
-    });
-
-    it('should not verify the document if it is not signed yet', async () => {
-      await expect(documentBuilder.verify()).rejects.toThrow(
-        'Verification Error: Document is not signed yet.',
-      );
-    });
-
-    it('should be able to derive document and verify derived document', async () => {
-      const contextDocument: ContextDocument = {
-        '@context': [
-          'https://www.w3.org/ns/credentials/v2',
-          'https://w3id.org/security/bbs/v1',
-          'https://trustvc.io/context/transferable-records-context.json',
-        ],
-        type: ['VerifiableCredential'],
-      };
-
-      documentBuilder.credentialStatus({
-        chain: 'amoy',
-        chainId: 80002,
-        tokenRegistry: '0x71D28767662cB233F887aD2Bb65d048d760bA694',
-        rpcProviderUrl: 'https://rpc-amoy.polygon.technology',
-      });
-      await documentBuilder.sign(BBS2020testPrivateKey, 'BbsBlsSignature2020');
-      const derivedDocument = await documentBuilder.derive(contextDocument);
-      expect(derivedDocument).toBeDefined();
-      const verificationResult = await documentBuilder.verify();
-      expect(verificationResult).toBe(true);
-    });
+  it('should throw error when trying to sign with BbsBlsSignature2020', async () => {
+    await expect(
+      documentBuilder.sign(BBS2020testPrivateKey, 'BbsBlsSignature2020'),
+    ).rejects.toThrow(
+      'BbsBlsSignature2020 is no longer supported. Please use the latest cryptosuite versions instead',
+    );
   });
 });

@@ -1612,6 +1612,72 @@ export const ECDSA_W3C_VERIFIABLE_DOCUMENT_V1_1 = freezeObject({
   },
 });
 
+export const BBS2023_W3C_VERIFIABLE_DOCUMENT_V2_0 = freezeObject({
+  '@context': [
+    'https://www.w3.org/ns/credentials/v2',
+    'https://w3id.org/security/data-integrity/v2',
+    'https://trustvc.io/context/transferable-records-context.json',
+    'https://trustvc.io/context/attachments-context.json',
+    'https://trustvc.io/context/qrcode-context.json',
+    'https://trustvc.io/context/bill-of-lading.json',
+    'https://trustvc.io/context/render-method-context-v2.json',
+  ],
+  qrCode: { type: 'TrustVCQRCode', uri: 'https://localhost:3000/qrcode' },
+  credentialStatus: {
+    type: 'TransferableRecords',
+    tokenNetwork: { chain: 'MATIC', chainId: '80001' },
+    tokenRegistry: '0xE0a94770B8e969B5D9179d6dA8730B01e19279e2',
+    tokenId: 'c9f954f5cd10aa6eb4d02a9047ed45d70205e0206425cdd7238d45b3a2529491',
+  },
+  credentialSubject: {
+    billOfLadingName: 'TrustVC Bill of Lading',
+    scac: 'SGPU',
+    blNumber: 'SGCNM21566325',
+    vessel: 'vessel',
+    voyageNo: 'voyageNo',
+    portOfLoading: 'Singapore',
+    portOfDischarge: 'Paris',
+    carrierName: 'A.P. Moller',
+    placeOfReceipt: 'Beijing',
+    placeOfDelivery: 'Singapore',
+    packages: [
+      { packagesDescription: 'package 1', packagesWeight: '10', packagesMeasurement: '20' },
+      { packagesDescription: 'package 2', packagesWeight: '10', packagesMeasurement: '20' },
+    ],
+    shipperName: 'Shipper Name',
+    shipperAddressStreet: '101 ORCHARD ROAD',
+    shipperAddressCountry: 'SINGAPORE',
+    consigneeName: 'Consignee name',
+    notifyPartyName: 'Notify Party Name',
+    links: 'https://localhost:3000/url',
+    attachments: [
+      { data: 'BASE64_ENCODED_FILE', filename: 'sample1.pdf', mimeType: 'application/pdf' },
+      { data: 'BASE64_ENCODED_FILE', filename: 'sample2.pdf', mimeType: 'application/pdf' },
+    ],
+    type: ['BillOfLading'],
+  },
+  renderMethod: [
+    {
+      id: 'https://localhost:3000/renderer',
+      type: 'EMBEDDED_RENDERER',
+      templateName: 'BILL_OF_LADING',
+    },
+  ],
+  validUntil: '2029-12-03T12:19:52Z',
+  issuer: 'did:web:trustvc.github.io:did:1',
+  type: ['VerifiableCredential'],
+  validFrom: '2024-04-01T12:19:52Z',
+  id: 'urn:uuid:01999f97-53b3-7337-b852-24fc22e6dab7',
+  proof: {
+    type: 'DataIntegrityProof',
+    verificationMethod: 'did:web:trustvc.github.io:did:1#multikey-2',
+    cryptosuite: 'bbs-2023',
+    proofPurpose: 'assertionMethod',
+    proofValue:
+      'u2V0ChVhQkxEIPZQRcCYa_DVdzn94xbcFe1OjSOH2CbwFV3O2fmyzppXKGt1iZg87FnNFKUKpL9591HkwCmKKuQwRkdnexNHPfsTju0WYkOjhuRQNVNNYQD9WZttHrlLy5Yt4KX5JlbD4AqxyPhcyoKk-Wo6FkAtp78zG_THkeDFZZiI-UUYKjRf-169_cRJcvK5pKH1lTFFYYI39K3Wi-5P1hP7ChGf2V9wmQ-egtRazAMNEt_X4g4iitVcZ-PE0kQ-Xsh-ea5CEmQ3V8Yco8ZXCQvfZyu-lahTHpzH70s6N2ZB70Mn52xzHM7_BM1n1ywQ0k4E27OiBN1ggXL67s8-x7caeAOr0kGYLCkwYNN4cyVPSfp7csMhs0DWDZy9pc3N1ZXJqL3ZhbGlkRnJvbXEvY3JlZGVudGlhbFN0YXR1cw',
+  },
+});
+
 // Freeze fixture to prevent accidental changes during tests
 function freezeObject<T>(obj: T): T {
   return deepFreeze(obj) as T;

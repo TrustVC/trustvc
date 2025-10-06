@@ -155,7 +155,7 @@ const signedWrappedDocument = await signOA(wrappedDocument, {
 
 #### b) TrustVC W3C Signing (signW3C)
 
-The `signW3C` function signs W3C Verifiable Credentials using the provided cryptographic suite and key pair. By default, it uses the **ecdsa-sd-2023** crypto suite unless otherwise specified.
+The `signW3C` function signs W3C Verifiable Credentials using the provided cryptographic suite and key pair. By default, it uses the **ecdsa-sd-2023** crypto suite unless otherwise specified. It also supports **bbs-2023** for modern BBS signatures.
 
 ```ts
 import { signW3C, VerificationType } from '@trustvc/trustvc';
@@ -195,7 +195,7 @@ const signingResult = await signW3C(rawDocument, {
   secretKeyMultibase: '<secretKeyMultibase>'
 });
 
-// You can also specify mandatory pointers for selective disclosure with ecdsa-sd-2023
+// You can also specify mandatory pointers for selective disclosure with ecdsa-sd-2023 / bbs-2023
 const signingResultWithPointers = await signW3C(
   rawDocument,
   {
@@ -212,7 +212,22 @@ const signingResultWithPointers = await signW3C(
   }
 );
 
-// Alternatively, specify a different crypto suite. Ensure the context is updated to include the crypto suite.
+// Using BBS-2023 cryptosuite
+const signingResultWithBbs2023 = await signW3C(
+  rawDocument,
+  {
+    '@context': 'https://w3id.org/security/multikey/v1',
+    id: 'did:web:trustvc.github.io:did:1#multikey-2',
+    type: VerificationType.Multikey,
+    controller: 'did:web:trustvc.github.io:did:1',
+    publicKeyMultibase: 'zUC75kRac7BdtjawFUxowfgD6mzqnRHFxAfMDaBynebdYgakviQkPS1KNJEw7uGWqj91H3hSE4pTERb3EZKLgKXjpqHWrN8dyE8SKyPBE3k7kUGjBNAqJoNGgUzqUW3DSaWrcNr',
+    secretKeyMultibase: '<secretKeyMultibase>',
+  },
+  'bbs-2023'
+);
+
+// ⚠️ DEPRECATED: BbsBlsSignature2020 is no longer supported
+// Use 'ecdsa-sd-20203 or bbs-2023' cryptosuite instead as shown above
 const signingResultWithBbs = await signW3C(
   rawDocument,
   {
@@ -222,7 +237,7 @@ const signingResultWithBbs = await signW3C(
     publicKeyBase58: 'oRfEeWFresvhRtXCkihZbxyoi2JER7gHTJ5psXhHsdCoU1MttRMi3Yp9b9fpjmKh7bMgfWKLESiK2YovRd8KGzJsGuamoAXfqDDVhckxuc9nmsJ84skCSTijKeU4pfAcxeJ',
     privateKeyBase58: '<privateKeyBase58>',
   },
-  'BbsBlsSignature2020'
+  'BbsBlsSignature2020' // This will return an error
 );
 
 ```
@@ -231,7 +246,7 @@ const signingResultWithBbs = await signW3C(
 
 ### 3. **Deriving (Selective Disclosure)**
 
-> When using ECDSA-SD-2023 crypto suite, we can derive a new credential with selective disclosure. This means you can choose which parts of the credential to reveal while keeping others hidden.
+> When using ECDSA-SD-2023 or BBS-2023 crypto suites, we can derive a new credential with selective disclosure. This means you can choose which parts of the credential to reveal while keeping others hidden.
 
 ```ts
 import { deriveW3C } from '@trustvc/trustvc';
@@ -282,7 +297,7 @@ const derivationResult = await deriveW3C(signedDocument, {
 
 ### 4. **Verifying**
 
-> TrustVC simplifies the verification process with a single function that supports both W3C Verifiable Credentials (VCs) and OpenAttestation Verifiable Documents (VDs). Whether you're working with W3C standards or OpenAttestation standards, TrustVC handles the verification seamlessly. For ECDSA-signed documents, which normally require derivation before verification, TrustVC automatically handles this process internally - if a document is not derived, the `verifyDocument` function will automatically derive and verify the document in a single step.
+> TrustVC simplifies the verification process with a single function that supports both W3C Verifiable Credentials (VCs) and OpenAttestation Verifiable Documents (VDs). Whether you're working with W3C standards or OpenAttestation standards, TrustVC handles the verification seamlessly. For ECDSA-SD-2023 and BBS-2023 signed documents, which normally require derivation before verification, TrustVC automatically handles this process internally - if a document is not derived, the `verifyDocument` function will automatically derive and verify the document in a single step.
 
 ```ts
 import { verifyDocument } from '@trustvc/trustvc';
