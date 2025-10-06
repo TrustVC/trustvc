@@ -184,6 +184,7 @@ export class DocumentBuilder {
 
     // Verify the document's credential status based on the selected status type.
     if (this.selectedStatusType === 'verifiableDocument') {
+      // TODO: For document builder, let user use only BitStringStatusList with v2.0
       assertCredentialStatus(this.document.credentialStatus);
       const verificationResult = await verifyCredentialStatus(this.document.credentialStatus);
       if (verificationResult.error)
