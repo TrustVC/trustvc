@@ -227,7 +227,7 @@ const signingResultWithBbs2023 = await signW3C(
 );
 
 // ⚠️ DEPRECATED: BbsBlsSignature2020 is no longer supported
-// Use 'ecdsa-sd-20203 or bbs-2023' cryptosuite instead as shown above
+// Use 'ecdsa-sd-2023 or bbs-2023' cryptosuite instead as shown above
 const signingResultWithBbs = await signW3C(
   rawDocument,
   {
