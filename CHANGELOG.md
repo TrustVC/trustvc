@@ -1,3 +1,10 @@
+## [2.1.0](https://github.com/TrustVC/trustvc/compare/v2.0.7...v2.1.0) (2025-10-09)
+
+
+### Features
+
+* update sign and derive ([#114](https://github.com/TrustVC/trustvc/issues/114)) ([e4419a5](https://github.com/TrustVC/trustvc/commit/e4419a58a49d3b4e8aaeb6b265338c2f1746a357))
+
 ## [2.0.7](https://github.com/TrustVC/trustvc/compare/v2.0.6...v2.0.7) (2025-09-10)
 
 
