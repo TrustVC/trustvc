@@ -2,7 +2,6 @@ import { CryptoSuite, PrivateKeyPair } from '@trustvc/w3c-issuer';
 import { deriveW3C, signW3C, verifyW3CSignature } from '../w3c';
 import { assertCredentialStatus, assertTransferableRecords } from '@trustvc/w3c-credential-status';
 import {
-  ContextDocument,
   CredentialStatus,
   CryptoSuiteName,
   SignedVerifiableCredential,
@@ -185,6 +184,7 @@ export class DocumentBuilder {
 
     // Verify the document's credential status based on the selected status type.
     if (this.selectedStatusType === 'verifiableDocument') {
+      // TODO: For document builder, let user use only BitStringStatusList with v2.0
       assertCredentialStatus(this.document.credentialStatus);
       const verificationResult = await verifyCredentialStatus(this.document.credentialStatus);
       if (verificationResult.error)
@@ -210,7 +210,7 @@ export class DocumentBuilder {
     return signedVC.signed;
   }
 
-  async derive(revealedAttributes: ContextDocument | string[]) {
+  async derive(revealedAttributes: string[]) {
     if (!this.isSigned) throw new Error('Configuration Error: Document is not signed yet.');
     if (this.isDerived) throw new Error('Configuration Error: Document is already derived.');
 
