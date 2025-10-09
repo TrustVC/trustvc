@@ -11,6 +11,8 @@ import {
   W3C_VERIFIABLE_DOCUMENT,
   WRAPPED_DOCUMENT_DID_TOKEN_REGISTRY_V3,
   WRAPPED_DOCUMENT_DNS_TXT_V2,
+  BBS2023_W3C_VERIFIABLE_DOCUMENT_V2_0,
+  BBS2023_W3C_DERIVED_DOCUMENT_V2_0,
 } from '../fixtures/fixtures';
 import { W3CCredentialStatusCode } from '../../verify/fragments/document-status/w3cCredentialStatus';
 import { openAttestationDidSignedDocumentStatus } from '@tradetrust-tt/tt-verify';
@@ -34,6 +36,16 @@ describe.concurrent('W3C verify', () => {
               "code": 0,
               "codeString": "SKIPPED",
               "message": "Document either has no proof or proof type is not 'DataIntegrityProof' or proof cryptosuite is not 'ecdsa-sd-2023'.",
+            },
+            "status": "SKIPPED",
+            "type": "DOCUMENT_INTEGRITY",
+          },
+          {
+            "name": "Bbs2023W3CSignatureIntegrity",
+            "reason": {
+              "code": 0,
+              "codeString": "SKIPPED",
+              "message": "Document either has no proof or proof type is not 'DataIntegrityProof' or proof cryptosuite is not 'bbs-2023'.",
             },
             "status": "SKIPPED",
             "type": "DOCUMENT_INTEGRITY",
@@ -301,6 +313,16 @@ describe.concurrent('W3C verify', () => {
               "type": "DOCUMENT_INTEGRITY",
             },
             {
+              "name": "Bbs2023W3CSignatureIntegrity",
+              "reason": {
+                "code": 0,
+                "codeString": "SKIPPED",
+                "message": "Document either has no proof or proof type is not 'DataIntegrityProof' or proof cryptosuite is not 'bbs-2023'.",
+              },
+              "status": "SKIPPED",
+              "type": "DOCUMENT_INTEGRITY",
+            },
+            {
               "name": "W3CCredentialStatus",
               "reason": {
                 "code": 0,
@@ -449,30 +471,41 @@ describe.concurrent('W3C verify', () => {
   });
 });
 
-const ecdsaTestScenarios = [
+const w3cTestScenarios = [
   {
+    cryptosuite: 'ecdsa-sd-2023',
+    verifierName: 'EcdsaW3CSignatureIntegrity',
     version: 'v1.1',
     signedCredential: ECDSA_W3C_VERIFIABLE_DOCUMENT_V1_1,
     derivedCredential: ECDSA_W3C_DERIVED_DOCUMENT_V1_1,
   },
   {
+    cryptosuite: 'ecdsa-sd-2023',
+    verifierName: 'EcdsaW3CSignatureIntegrity',
     version: 'v2.0',
     signedCredential: ECDSA_W3C_VERIFIABLE_DOCUMENT_V2_0,
     derivedCredential: ECDSA_W3C_DERIVED_DOCUMENT_V2_0,
   },
+  {
+    cryptosuite: 'bbs-2023',
+    verifierName: 'Bbs2023W3CSignatureIntegrity',
+    version: 'v2.0',
+    signedCredential: BBS2023_W3C_VERIFIABLE_DOCUMENT_V2_0,
+    derivedCredential: BBS2023_W3C_DERIVED_DOCUMENT_V2_0,
+  },
 ];
 
-describe.each(ecdsaTestScenarios)(
-  'W3C ECDSA $version Verify',
-  ({ version, signedCredential, derivedCredential }) => {
-    it(`should verify a derived ECDSA ${version} W3C document and return all valid fragments`, async ({
+describe.each(w3cTestScenarios)(
+  'W3C $cryptosuite $version Verify',
+  ({ cryptosuite, verifierName, version, signedCredential, derivedCredential }) => {
+    it(`should verify a derived ${cryptosuite} ${version} W3C document and return all valid fragments`, async ({
       expect,
     }) => {
       expect(await verifyDocument(derivedCredential as any)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             data: true,
-            name: 'EcdsaW3CSignatureIntegrity',
+            name: verifierName,
             reason: {
               message: 'Document verified successfully',
             },
@@ -489,15 +522,15 @@ describe.each(ecdsaTestScenarios)(
       );
     });
 
-    it('should handle ECDSA W3C non-derived document verification', async ({ expect }) => {
+    it(`should handle ${cryptosuite} W3C non-derived document verification`, async ({ expect }) => {
       const result = await verifyDocument(signedCredential as any);
 
-      // Check that our ECDSA verifier ran
+      // Check that our verifier ran
       expect(result).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             data: true,
-            name: 'EcdsaW3CSignatureIntegrity',
+            name: verifierName,
             reason: {
               message: 'Document verified after derivation',
             },
@@ -522,7 +555,7 @@ describe.each(ecdsaTestScenarios)(
         expect.arrayContaining([
           expect.objectContaining({
             data: false,
-            name: 'EcdsaW3CSignatureIntegrity',
+            name: verifierName,
             reason: {
               message: 'Invalid signature.',
             },
@@ -547,12 +580,11 @@ describe.each(ecdsaTestScenarios)(
       expect(await verifyDocument(unsupportedCryptosuite)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            name: 'EcdsaW3CSignatureIntegrity',
+            name: verifierName,
             reason: {
               code: W3CCredentialStatusCode.SKIPPED,
               codeString: 'SKIPPED',
-              message:
-                "Document either has no proof or proof type is not 'DataIntegrityProof' or proof cryptosuite is not 'ecdsa-sd-2023'.",
+              message: `Document either has no proof or proof type is not 'DataIntegrityProof' or proof cryptosuite is not '${cryptosuite}'.`,
             },
             status: 'SKIPPED',
             type: 'DOCUMENT_INTEGRITY',
@@ -575,12 +607,11 @@ describe.each(ecdsaTestScenarios)(
       expect(await verifyDocument(unsupportedProofType)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            name: 'EcdsaW3CSignatureIntegrity',
+            name: verifierName,
             reason: {
               code: W3CCredentialStatusCode.SKIPPED,
               codeString: 'SKIPPED',
-              message:
-                "Document either has no proof or proof type is not 'DataIntegrityProof' or proof cryptosuite is not 'ecdsa-sd-2023'.",
+              message: `Document either has no proof or proof type is not 'DataIntegrityProof' or proof cryptosuite is not '${cryptosuite}'.`,
             },
             status: 'SKIPPED',
             type: 'DOCUMENT_INTEGRITY',
@@ -596,12 +627,11 @@ describe.each(ecdsaTestScenarios)(
       expect(await verifyDocument(documentWithoutProof as any)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            name: 'EcdsaW3CSignatureIntegrity',
+            name: verifierName,
             reason: {
               code: W3CCredentialStatusCode.SKIPPED,
               codeString: 'SKIPPED',
-              message:
-                "Document either has no proof or proof type is not 'DataIntegrityProof' or proof cryptosuite is not 'ecdsa-sd-2023'.",
+              message: `Document either has no proof or proof type is not 'DataIntegrityProof' or proof cryptosuite is not '${cryptosuite}'.`,
             },
             status: 'SKIPPED',
             type: 'DOCUMENT_INTEGRITY',

@@ -1622,12 +1622,18 @@ export const BBS2023_W3C_VERIFIABLE_DOCUMENT_V2_0 = freezeObject({
     'https://trustvc.io/context/bill-of-lading.json',
     'https://trustvc.io/context/render-method-context-v2.json',
   ],
-  qrCode: { type: 'TrustVCQRCode', uri: 'https://localhost:3000/qrcode' },
+  qrCode: {
+    type: 'TrustVCQRCode',
+    uri: 'https://localhost:3000/qrcode',
+  },
   credentialStatus: {
     type: 'TransferableRecords',
-    tokenNetwork: { chain: 'MATIC', chainId: '80001' },
+    tokenNetwork: {
+      chain: 'MATIC',
+      chainId: '80001',
+    },
     tokenRegistry: '0xE0a94770B8e969B5D9179d6dA8730B01e19279e2',
-    tokenId: 'c9f954f5cd10aa6eb4d02a9047ed45d70205e0206425cdd7238d45b3a2529491',
+    tokenId: '15648d77abd5a02ebde2c072dd3378c1b2f89ac1bb40d9a2b2612b0f497f02d9',
   },
   credentialSubject: {
     billOfLadingName: 'TrustVC Bill of Lading',
@@ -1641,8 +1647,16 @@ export const BBS2023_W3C_VERIFIABLE_DOCUMENT_V2_0 = freezeObject({
     placeOfReceipt: 'Beijing',
     placeOfDelivery: 'Singapore',
     packages: [
-      { packagesDescription: 'package 1', packagesWeight: '10', packagesMeasurement: '20' },
-      { packagesDescription: 'package 2', packagesWeight: '10', packagesMeasurement: '20' },
+      {
+        packagesDescription: 'package 1',
+        packagesWeight: '10',
+        packagesMeasurement: '20',
+      },
+      {
+        packagesDescription: 'package 2',
+        packagesWeight: '10',
+        packagesMeasurement: '20',
+      },
     ],
     shipperName: 'Shipper Name',
     shipperAddressStreet: '101 ORCHARD ROAD',
@@ -1651,8 +1665,16 @@ export const BBS2023_W3C_VERIFIABLE_DOCUMENT_V2_0 = freezeObject({
     notifyPartyName: 'Notify Party Name',
     links: 'https://localhost:3000/url',
     attachments: [
-      { data: 'BASE64_ENCODED_FILE', filename: 'sample1.pdf', mimeType: 'application/pdf' },
-      { data: 'BASE64_ENCODED_FILE', filename: 'sample2.pdf', mimeType: 'application/pdf' },
+      {
+        data: 'BASE64_ENCODED_FILE',
+        filename: 'sample1.pdf',
+        mimeType: 'application/pdf',
+      },
+      {
+        data: 'BASE64_ENCODED_FILE',
+        filename: 'sample2.pdf',
+        mimeType: 'application/pdf',
+      },
     ],
     type: ['BillOfLading'],
   },
@@ -1667,17 +1689,50 @@ export const BBS2023_W3C_VERIFIABLE_DOCUMENT_V2_0 = freezeObject({
   issuer: 'did:web:trustvc.github.io:did:1',
   type: ['VerifiableCredential'],
   validFrom: '2024-04-01T12:19:52Z',
-  id: 'urn:uuid:01999f97-53b3-7337-b852-24fc22e6dab7',
+  id: 'urn:uuid:0199c3d9-47a1-7aad-ab31-f17c85c35b24',
   proof: {
     type: 'DataIntegrityProof',
     verificationMethod: 'did:web:trustvc.github.io:did:1#multikey-2',
     cryptosuite: 'bbs-2023',
     proofPurpose: 'assertionMethod',
     proofValue:
-      'u2V0ChVhQkxEIPZQRcCYa_DVdzn94xbcFe1OjSOH2CbwFV3O2fmyzppXKGt1iZg87FnNFKUKpL9591HkwCmKKuQwRkdnexNHPfsTju0WYkOjhuRQNVNNYQD9WZttHrlLy5Yt4KX5JlbD4AqxyPhcyoKk-Wo6FkAtp78zG_THkeDFZZiI-UUYKjRf-169_cRJcvK5pKH1lTFFYYI39K3Wi-5P1hP7ChGf2V9wmQ-egtRazAMNEt_X4g4iitVcZ-PE0kQ-Xsh-ea5CEmQ3V8Yco8ZXCQvfZyu-lahTHpzH70s6N2ZB70Mn52xzHM7_BM1n1ywQ0k4E27OiBN1ggXL67s8-x7caeAOr0kGYLCkwYNN4cyVPSfp7csMhs0DWDZy9pc3N1ZXJqL3ZhbGlkRnJvbXEvY3JlZGVudGlhbFN0YXR1cw',
+      'u2V0ChVhQicHeGgo-ngEAkIlaL1O_b2XhL8XEX94FRrW5AOC9Hnx0FQTFqA9iVz2HSese9dNpJKDYhTUGpH0ctt8ZZB5_doDVwYVFRXmTAJk7kqK-_h5YQD9WZttHrlLy5Yt4KX5JlbD4AqxyPhcyoKk-Wo6FkAtpDWl0V5eBqRG3QfLSfc4qG9tRFNkt0RSNMTTit-pOc6JYYLDx2EM7LXGzSqyTOC8ZKJ9hgD0GHrf59LhRlLV3-pK34L5ohGo8I-g81SD6xVKofBMNiXxFLrp7w56sQlEOkcpISekB2jtn0DeTWzNHrnVwuejhZPM1PPtOuxtkbzj6J1ggaQbwf84CJ4iQHGBFKYxYIBQP3qvdSn1isizeXkY-fGODZy9pc3N1ZXJqL3ZhbGlkRnJvbXEvY3JlZGVudGlhbFN0YXR1cw',
   },
 });
 
+export const BBS2023_W3C_DERIVED_DOCUMENT_V2_0 = freezeObject({
+  '@context': [
+    'https://www.w3.org/ns/credentials/v2',
+    'https://w3id.org/security/data-integrity/v2',
+    'https://trustvc.io/context/transferable-records-context.json',
+    'https://trustvc.io/context/attachments-context.json',
+    'https://trustvc.io/context/qrcode-context.json',
+    'https://trustvc.io/context/bill-of-lading.json',
+    'https://trustvc.io/context/render-method-context-v2.json',
+  ],
+  id: 'urn:uuid:0199c3d9-47a1-7aad-ab31-f17c85c35b24',
+  type: ['VerifiableCredential'],
+  issuer: 'did:web:trustvc.github.io:did:1',
+  validFrom: '2024-04-01T12:19:52Z',
+  credentialStatus: {
+    type: 'TransferableRecords',
+    tokenNetwork: {
+      chain: 'MATIC',
+      chainId: '80001',
+    },
+    tokenRegistry: '0xE0a94770B8e969B5D9179d6dA8730B01e19279e2',
+    tokenId: '15648d77abd5a02ebde2c072dd3378c1b2f89ac1bb40d9a2b2612b0f497f02d9',
+  },
+  credentialSubject: { type: ['BillOfLading'], billOfLadingName: 'TrustVC Bill of Lading' },
+  proof: {
+    type: 'DataIntegrityProof',
+    verificationMethod: 'did:web:trustvc.github.io:did:1#multikey-2',
+    cryptosuite: 'bbs-2023',
+    proofPurpose: 'assertionMethod',
+    proofValue:
+      'u2V0DhVkF0IoMJuP2cjbd_u5EDovRaWnAazxjEwFveZdWE9ovyg7ES9qgAidZbuY8-AGIU9HdV4pSNvqj0GSuXml7K3dT8SjCkyQQQ357nPfVkGPOtBFwcfCOw1BURZscQb16MB7nLYyTvAKHaC20Xw3thMyqZU_g6h8RWYRyljBesFgwpzdJuoCVS-FKjiDus99iLrYx9BOmVCfIGwtcox4vvW5cxrdQ2_71L0ZgRtctpkUbQ1rdDw_nD5Bjc9fnoeAX0_AZRnx6k6ITPDxzfTScwrk9f3pU6hTR5yWpjETAEmWgkq1vgVQghMNispZznFgJ01NedwY8hqRRFrnympaW2aKxyT1YenMSusyTwLdLu37k4xrcW2X1vLesOPVkzpxsGYIRsby6cJs8fHyWPKsUBCR7N2kWt2k1MVZM8wEpPR1c-hkjgEqoPxjcRJWLKoGLbcGEgUdik68FFz7TGvgY8VEIgTz-t4Hs_I2LtgFcwkPMW5W2Qp6eISFn08smoWR874uI7AlW7j56-Z0VTILPcfsD1TVDl4pvP3_SB87hBEb9ixi-tKf_7YcrmvnAZnGOfgr7wBaXP_WgzD3Ms7BJAYC-IAcxpXlKCTbQcvw6dM9VjMNAR8xFqadlfz2pGkMPjMiXb1Sg6QAtLp6COMnFL1x7pRxO9jNK8b2v4PC08r1cUeRKdx1ZveMG8J4zFp8RzwQAvDVsAffpG3j528csobWUeo-B5HLoVJyUoQMuBrjVlBnbMEdaAdMh5VScDfaPM4m6s1OgEtEOuI9WpHUzQgkY4O9w7M1CWFX0I9M2NIn662KS3yZXRlpNcFQPuxjBCbIuCR36E0b_KbLWS9_e0Etsm8qQkQzUt-w8m7Ja6RUEK6-wE_zBGzNZ0PaqqlqDjpqxzleCaXWf2aKNYC_VeRGiGlZx0mxEltC6WySJbCeVzM51zVgxyTR3XqIg0tNS-0BoHwpb4WLvJQpIbFlSvnxWRfJx6nTHaBgBKLrYTPFt1tPRQ9VNF42DmgTcXzS34cifLsj12UNdXld91nD4JaFIw2c6BJ5wrB_Gbe5kJ4Q1IQSOJbSM-2RZAUxpt2pg-aIhSwSxhq3fvxN9fyWEs1_Vy8Jui5PXLg8NfQ6xNza8qGZEKiJTXu2gFKjOxZhORbem3c0mTlvsGgmcvXOnxd2sLddeEPs3tWCSgdJwnlpV2osZZrJi3_l1TJThbeMN9qKTiVuXQRbA4jvBsYy4iyCNBRzqsYPW6-M2mmx7D_KPqxaXVzM_13hcSI8OXACQ4Lu8Z-HvrQKJ9_CsFwNTERWbvVUQnLSl-GStX1n6Y-ow2XKLxr4KIhjyHVCqQdXV6oIZzzLogEfiQLLGvSjt90ozMoWkPVl1OJlYah2lVJaPpekdOlh0d-6dQowaMGGVmxfNfpjAXFbYmIaX96GgBf-b-1cyqGD3hg7UnKTQzhtbCVSuggrsf_jVLg3wBxRgmrD4AmY9gZZsirdRyCIXSIzgT3YRb4sDfY-V-OzA6pRLBpfRZKT8mSiGHH4VuLWGD3L7w5rSOGoFmeDXmtqjDBq73OpO-4j08YAMStjPFFip8zklkPEGJ_zY0nrqj_FIBpLNDSbz13VIacX07aMn7ofLa6Gy2zQ5EgdO3lgL3Motg6E8XgRbwsrI_qFRcqfQ4Ok1KBaVvURjwe8fOPDpV805QZsVUVPwFlcErdoXTIlxEPwZpBYvea6HQUx7PCA5rxdAA0tMzLhr_Ic2mLZ_UdIxXOdhyy9hrn55SldDk1xKA2rMLLolbIsZeReks1-HBmheDhukb9Ogb4UVIss3zgpfES1CBCrkMbhFs3LIbGl0yamlgo0u5w48yVpvwLcT2jK-GALpZBlirOYqVf9N9ymWod-U4RfM5c-e-e1ZnHuf3usgM9G0rf_0nUv-V9EFVSnzTBp55LIWf5J3sGqg2yDDEOxDv0IPb422D3mE7jqJuUpldBTaMh63zbF7Hq3jcaZ9l6MABAECAgGKAAEDBAUGBwgLDIMDCQpA',
+  },
+});
 // Freeze fixture to prevent accidental changes during tests
 function freezeObject<T>(obj: T): T {
   return deepFreeze(obj) as T;

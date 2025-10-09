@@ -36,6 +36,7 @@ import { credentialStatusTransferableRecordVerifier } from './fragments/document
 import { w3cCredentialStatus } from './fragments/document-status/w3cCredentialStatus';
 import { w3cIssuerIdentity } from './fragments/issuer-identity/w3cIssuerIdentity';
 import { w3cEmptyCredentialStatus } from './fragments';
+import { bbs2023W3CSignatureIntegrity } from './fragments/document-integrity/bbs2023w3cSignatureIntegrity';
 
 const verifiers = {
   documentIntegrity: {
@@ -66,6 +67,7 @@ const openAttestationVerifiers = [
 const w3cVerifiers: Verifier<VerificationFragment>[] = [
   w3cSignatureIntegrity,
   ecdsaW3CSignatureIntegrity,
+  bbs2023W3CSignatureIntegrity,
   w3cCredentialStatus,
   credentialStatusTransferableRecordVerifier,
   w3cEmptyCredentialStatus,
