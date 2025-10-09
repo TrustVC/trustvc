@@ -1,3 +1,10 @@
+## [2.2.0](https://github.com/TrustVC/trustvc/compare/v2.1.0...v2.2.0) (2025-10-09)
+
+
+### Features
+
+* bbs2023 verification fragment ([#115](https://github.com/TrustVC/trustvc/issues/115)) ([9bf7c7f](https://github.com/TrustVC/trustvc/commit/9bf7c7f825c8dd5cf924aec0c11dbd88009b5891))
+
 ## [2.1.0](https://github.com/TrustVC/trustvc/compare/v2.0.7...v2.1.0) (2025-10-09)
 
 
