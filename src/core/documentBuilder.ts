@@ -1,4 +1,4 @@
-import { CryptoSuite, PrivateKeyPair } from '@trustvc/w3c-issuer';
+import { PrivateKeyPair } from '@trustvc/w3c-issuer';
 import { deriveW3C, signW3C, verifyW3CSignature } from '../w3c';
 import { assertCredentialStatus, assertTransferableRecords } from '@trustvc/w3c-credential-status';
 import {
@@ -15,7 +15,6 @@ import { v4Contracts } from '../token-registry-v4';
 import { v5Contracts } from '../token-registry-v5';
 import { SUPPORTED_CHAINS } from '../utils';
 import {
-  BBS_V1_URL,
   DATA_INTEGRITY_V2_URL,
   QRCODE_CONTEXT_URL,
   RENDER_CONTEXT_V2_URL,
@@ -173,8 +172,18 @@ export class DocumentBuilder {
   }
 
   // Sign the document using the provided private key and an optional cryptographic suite.
-  async sign(privateKey: PrivateKeyPair, cryptoSuite?: CryptoSuiteName, options?: SignOptions) {
+  async sign(
+    privateKey: PrivateKeyPair,
+    cryptoSuite?: Exclude<CryptoSuiteName, 'BbsBlsSignature2020'>,
+    options?: SignOptions,
+  ) {
     if (this.isSigned) throw new Error('Configuration Error: Document is already signed.');
+
+    if ((cryptoSuite as string) === 'BbsBlsSignature2020') {
+      throw new Error(
+        'BbsBlsSignature2020 is no longer supported. Please use the latest cryptosuite versions instead',
+      );
+    }
 
     if (this.selectedStatusType) {
       this.document.credentialStatus = this.statusConfig;
@@ -198,11 +207,7 @@ export class DocumentBuilder {
 
     this.document.issuer = privateKey.id.split('#')[0]; // Set the issuer of the document.
     this.document.validFrom = this.document.validFrom || new Date().toISOString(); // Set the issuance date if not already present.
-    if (!cryptoSuite || cryptoSuite === 'ecdsa-sd-2023') {
-      this.addContext(DATA_INTEGRITY_V2_URL);
-    } else {
-      this.addContext(BBS_V1_URL); // Add context for bbs.
-    }
+    this.addContext(DATA_INTEGRITY_V2_URL);
 
     const signedVC = await signW3C(this.document, privateKey, cryptoSuite, options);
     if (signedVC.error) throw new Error(`Signing Error: ${signedVC.error}`);
@@ -228,8 +233,8 @@ export class DocumentBuilder {
   async verify() {
     if (!this.isSigned) throw new Error('Verification Error: Document is not signed yet.');
 
-    const cryptosuite = (this.document as SignedVerifiableCredential)?.proof?.cryptosuite;
-    if (cryptosuite === CryptoSuite.EcdsaSd2023 && !this.isDerived) {
+    // Both ECDSA-SD-2023 and BBS-2023 require document to be derived.
+    if (!this.isDerived) {
       throw new Error('Verification Error: Document is not derived yet. Use derive() first.');
     }
 

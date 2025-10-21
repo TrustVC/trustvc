@@ -1,6 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { DocumentBuilder } from '../../core/documentBuilder';
-import { PrivateKeyPair, VerificationType } from '@trustvc/w3c-issuer';
+import {
+  Bbs2023PrivateKeyPair,
+  CryptoSuite,
+  PrivateKeyPair,
+  VerificationType,
+} from '@trustvc/w3c-issuer';
 
 const BBS2020testPrivateKey: PrivateKeyPair = {
   id: 'did:web:trustvc.github.io:did:1#keys-1',
@@ -18,6 +23,16 @@ const ECDSAtestPrivateKey: PrivateKeyPair = {
   controller: 'did:web:trustvc.github.io:did:1',
   publicKeyMultibase: 'zDnaemDNwi4G5eTzGfRooFFu5Kns3be6yfyVNtiaMhWkZbwtc',
   secretKeyMultibase: 'z42tmUXTVn3n9BihE6NhdMpvVBTnFTgmb6fw18o5Ud6puhRW',
+};
+
+const bbs2023KeyPair: Bbs2023PrivateKeyPair = {
+  '@context': 'https://w3id.org/security/multikey/v1',
+  id: 'did:web:trustvc.github.io:did:1#multikey-2',
+  type: VerificationType.Multikey,
+  controller: 'did:web:trustvc.github.io:did:1',
+  publicKeyMultibase:
+    'zUC7HnpncVAkTjtL6B8prX6bQM2WA5sJ7rXFeCqyrvPnrzoFBjYsVUTNwzhhPUazja73tWwPeEBWCUgq5qBSrtrXiYhVvBCgZPTCiWANj7TSiZJ6SnyC3pkt94GiuChhAvmRRbt',
+  secretKeyMultibase: 'z488ur1KSFDd3Y1L6pXcPrZRjE18PNBhgzwJvMeoSxKPNysj',
 };
 
 describe('DocumentBuilder data model 2.0 using ECDSA', () => {
@@ -126,7 +141,7 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
   });
 
   describe('Sign, Derive and Verify', () => {
-    it('should sign, derive and verify the document successfully for transferableRecords', async () => {
+    it('should sign, derive and verify the document successfully for transferableRecords using ECDSA', async () => {
       documentBuilder.credentialStatus({
         chain: 'amoy',
         chainId: 80002,
@@ -141,12 +156,40 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
       expect(verificationResult).toBe(true);
     }, 10000);
 
-    it('should sign, derive and verify the document successfully for verifiableDocument', async () => {
+    it('should sign, derive and verify the document successfully for verifiableDocument using ECDSA', async () => {
       documentBuilder.credentialStatus({
         url: 'https://trustvc.github.io/did/credentials/statuslist/1',
         index: 10, // Not revoked
       });
       const signedDocument = await documentBuilder.sign(ECDSAtestPrivateKey);
+      expect(signedDocument).toBeDefined();
+      const derivedDocument = await documentBuilder.derive([]);
+      expect(derivedDocument).toBeDefined();
+      const verificationResult = await documentBuilder.verify();
+      expect(verificationResult).toBe(true);
+    }, 10000);
+
+    it('should sign, derive and verify the document successfully for transferableRecords using BBS2023', async () => {
+      documentBuilder.credentialStatus({
+        chain: 'amoy',
+        chainId: 80002,
+        tokenRegistry: '0x71D28767662cB233F887aD2Bb65d048d760bA694',
+        rpcProviderUrl: 'https://rpc-amoy.polygon.technology',
+      });
+      const signedDocument = await documentBuilder.sign(bbs2023KeyPair, CryptoSuite.Bbs2023);
+      expect(signedDocument).toBeDefined();
+      const derivedDocument = await documentBuilder.derive([]);
+      expect(derivedDocument).toBeDefined();
+      const verificationResult = await documentBuilder.verify();
+      expect(verificationResult).toBe(true);
+    }, 10000);
+
+    it('should sign, derive and verify the document successfully for verifiableDocument using BBS2023', async () => {
+      documentBuilder.credentialStatus({
+        url: 'https://trustvc.github.io/did/credentials/statuslist/1',
+        index: 10, // Not revoked
+      });
+      const signedDocument = await documentBuilder.sign(bbs2023KeyPair, CryptoSuite.Bbs2023);
       expect(signedDocument).toBeDefined();
       const derivedDocument = await documentBuilder.derive([]);
       expect(derivedDocument).toBeDefined();
@@ -162,7 +205,7 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
       ).toThrow('Document builder does not support data model v1.1.');
     });
 
-    it('Should throw an error when trying to verify without deriving', async () => {
+    it('Should throw an error when trying to verify without deriving using ECDSA', async () => {
       documentBuilder.credentialStatus({
         chain: 'amoy',
         chainId: 80002,
@@ -170,6 +213,20 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
         rpcProviderUrl: 'https://rpc-amoy.polygon.technology',
       });
       const signedDocument = await documentBuilder.sign(ECDSAtestPrivateKey);
+      expect(signedDocument).toBeDefined();
+      await expect(documentBuilder.verify()).rejects.toThrow(
+        'Verification Error: Document is not derived yet. Use derive() first.',
+      );
+    });
+
+    it('Should throw an error when trying to verify without deriving using BBS2023', async () => {
+      documentBuilder.credentialStatus({
+        chain: 'amoy',
+        chainId: 80002,
+        tokenRegistry: '0x71D28767662cB233F887aD2Bb65d048d760bA694',
+        rpcProviderUrl: 'https://rpc-amoy.polygon.technology',
+      });
+      const signedDocument = await documentBuilder.sign(bbs2023KeyPair, CryptoSuite.Bbs2023);
       expect(signedDocument).toBeDefined();
       await expect(documentBuilder.verify()).rejects.toThrow(
         'Verification Error: Document is not derived yet. Use derive() first.',
@@ -217,6 +274,14 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
       });
       await expect(documentBuilder.sign(ECDSAtestPrivateKey)).rejects.toThrowError(
         /Credential Verification Failed:/,
+      );
+    });
+
+    it('should throw error when trying to sign with BbsBlsSignature2020', async () => {
+      await expect(
+        documentBuilder.sign(BBS2020testPrivateKey, 'BbsBlsSignature2020' as any),
+      ).rejects.toThrow(
+        'BbsBlsSignature2020 is no longer supported. Please use the latest cryptosuite versions instead',
       );
     });
   });
@@ -270,21 +335,5 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
         'https://trustvc.io/context/qrcode-context.json',
       );
     });
-  });
-});
-
-describe('DocumentBuilder Data model 2.0 using BBS2020', () => {
-  let documentBuilder: DocumentBuilder;
-
-  beforeEach(() => {
-    documentBuilder = new DocumentBuilder({}).credentialSubject({});
-  });
-
-  it('should throw error when trying to sign with BbsBlsSignature2020', async () => {
-    await expect(
-      documentBuilder.sign(BBS2020testPrivateKey, 'BbsBlsSignature2020'),
-    ).rejects.toThrow(
-      'BbsBlsSignature2020 is no longer supported. Please use the latest cryptosuite versions instead',
-    );
   });
 });
