@@ -1,3 +1,10 @@
+## [2.3.0](https://github.com/TrustVC/trustvc/compare/v2.2.0...v2.3.0) (2025-10-21)
+
+
+### Features
+
+* document builder bbs2023 support ([#116](https://github.com/TrustVC/trustvc/issues/116)) ([ce6e285](https://github.com/TrustVC/trustvc/commit/ce6e2856dcc633cf7e5b29eb3e51979beb92ef6e))
+
 ## [2.2.0](https://github.com/TrustVC/trustvc/compare/v2.1.0...v2.2.0) (2025-10-09)
 
 
