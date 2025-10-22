@@ -691,7 +691,7 @@ function rejectTransferOwners(bytes calldata _remark) external;
 For more information on Token Registry and Title Escrow contracts **version v5**, please visit the readme of [TradeTrust Token Registry V5](https://github.com/TradeTrust/token-registry/blob/master/README.md)
 
 ### 8. **Document Builder**
-> The `DocumentBuilder` class helps build and manage W3C Verifiable Credentials (VCs) with credential status features, implementing the **W3C VC Data Model 2.0** specification. It supports creating documents with two types of credential statuses: `transferableRecords` and `verifiableDocument`. It can sign the document using a private key, verify its signature, and serialize the document to a JSON format. Additionally, it allows for configuration of document rendering methods and expiration dates.
+> The `DocumentBuilder` class helps build and manage W3C Verifiable Credentials (VCs) with credential status features, implementing the **W3C VC Data Model 2.0** specification. It supports creating documents with two types of credential statuses: `transferableRecords` and `verifiableDocument`. It can sign the document using modern cryptographic signature schemes including **ECDSA-SD-2023** (default) and **BBS-2023**, verify its signature, and serialize the document to a JSON format. Additionally, it allows for configuration of document rendering methods and expiration dates.
 
 #### Usage
 
@@ -778,23 +778,45 @@ builder.qrCode({
 ```
 
 ##### Sign the Document
-To sign the document, provide a `PrivateKeyPair` from `@trustvc/trustvc`. The builder uses ECDSA key for signing by default.
+To sign the document, provide a `PrivateKeyPair` from `@trustvc/trustvc`. The builder supports both **ECDSA-SD-2023** (default) and **BBS-2023** cryptographic signature schemes.
+
+**ECDSA-SD-2023 Signing (Default)**
 
 ```ts
-const privateKey: PrivateKeyPair = {
+const ecdsaKeyPair: PrivateKeyPair = {
     '@context': 'https://w3id.org/security/multikey/v1',
     id: 'did:web:example.com#multikey-1',
     type: VerificationType.Multikey,
     controller: 'did:web:example.com',
-    publicKeyMultibase: 'your-public-key-multibase',
-    secretKeyMultibase: 'your-secret-key-multibase',
+    publicKeyMultibase: 'your-ecdsa-public-key-multibase',
+    secretKeyMultibase: 'your-ecdsa-secret-key-multibase',
 }
 
-const signedDocument = await builder.sign(privateKey);
+// Sign with default ECDSA-SD-2023 cryptosuite
+const signedDocument = await builder.sign(ecdsaKeyPair);
 console.log(signedDocument);
 ```
 
-Example Output After Signing
+**BBS-2023 Signing**
+
+```ts
+import { CryptoSuite } from '@trustvc/trustvc';
+
+const bbs2023KeyPair: PrivateKeyPair = {
+    '@context': 'https://w3id.org/security/multikey/v1',
+    id: 'did:web:example.com#multikey-2',
+    type: VerificationType.Multikey,
+    controller: 'did:web:example.com',
+    publicKeyMultibase: 'your-bbs-public-key-multibase',
+    secretKeyMultibase: 'your-bbs-secret-key-multibase',
+}
+
+// Sign with BBS-2023 cryptosuite by passing CryptoSuite.Bbs2023
+const signedDocument = await builder.sign(bbs2023KeyPair, CryptoSuite.Bbs2023);
+console.log(signedDocument);
+```
+
+**Example Output After Signing (ECDSA-SD-2023)**
 ```json
 {
   "@context": [
