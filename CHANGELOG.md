@@ -1,3 +1,15 @@
+## [2.3.2](https://github.com/TrustVC/trustvc/compare/v2.3.1...v2.3.2) (2025-10-28)
+
+
+### Bug Fixes
+
+* apothem rpc url ([#119](https://github.com/TrustVC/trustvc/issues/119)) ([72dc96d](https://github.com/TrustVC/trustvc/commit/72dc96d36418de2f256c3cb09e4a9debc0cddc21))
+
+
+### Miscellaneous Chores
+
+* update readme to include bbs2023 ([#117](https://github.com/TrustVC/trustvc/issues/117)) ([9da03c9](https://github.com/TrustVC/trustvc/commit/9da03c9cbd40703d1e2cf3da857b69a93034120c))
+
 ## [2.3.1](https://github.com/TrustVC/trustvc/compare/v2.3.0...v2.3.1) (2025-10-21)
 
 
