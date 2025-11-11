@@ -1,3 +1,10 @@
+## [2.4.0](https://github.com/TrustVC/trustvc/compare/v2.3.2...v2.4.0) (2025-11-11)
+
+
+### Features
+
+* package version update w3c ([#120](https://github.com/TrustVC/trustvc/issues/120)) ([a6317fa](https://github.com/TrustVC/trustvc/commit/a6317fad854509b1d83088b968b39e009905cc4c))
+
 ## [2.3.2](https://github.com/TrustVC/trustvc/compare/v2.3.1...v2.3.2) (2025-10-28)
 
 
