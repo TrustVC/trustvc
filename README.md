@@ -29,6 +29,9 @@ TrustVC is a comprehensive wrapper library designed to simplify the signing and 
 
 ## Installation
 
+**Prerequisites:**
+- Node.js >= 20.0.0
+
 ```ts
 npm install
 npm run build
