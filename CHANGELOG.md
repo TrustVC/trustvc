@@ -1,3 +1,10 @@
+## [2.4.1](https://github.com/TrustVC/trustvc/compare/v2.4.0...v2.4.1) (2025-11-13)
+
+
+### Bug Fixes
+
+* node version update to 20 ([#121](https://github.com/TrustVC/trustvc/issues/121)) ([5bc33d1](https://github.com/TrustVC/trustvc/commit/5bc33d141d4160c58a43a0712836806ff3aef2c8))
+
 ## [2.4.0](https://github.com/TrustVC/trustvc/compare/v2.3.2...v2.4.0) (2025-11-11)
 
 
