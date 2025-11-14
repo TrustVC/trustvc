@@ -295,7 +295,9 @@ export const mockV4TradeTrustTokenContract = {
   ownerOf: vi.fn(() => Promise.resolve(MOCK_OWNER_ADDRESS)),
 };
 
-export const PRIVATE_KEY = '0x59c6995e998f97a5a004497e5f1ebce0c16828d44b3f8d0bfa3a89d271d5b6b9'; // random local key
+// Note: Dummy test wallets — private keys for local development and CI/CD only.
+// These wallets are not for production and hold no funds or value on any network.
+export const PRIVATE_KEY = '0x59c6995e998f97a5a004497e5f1ebce0c16828d44b3f8d0bfa3a89d271d5b6b9';
 
 export const providerV5 = new ethersV5.providers.JsonRpcProvider();
 export const providerV6 = new JsonRpcProviderV6();
