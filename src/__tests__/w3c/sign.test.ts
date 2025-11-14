@@ -19,6 +19,8 @@ describe('W3C sign', () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { proof, id, ...documentWithoutProof } = W3C_VERIFIABLE_DOCUMENT;
 
+    // Note: Dummy/test cryptographic BBS 2020 key pairs for local development and CI/CD.
+    // Used for signing/verifying credentials only. Not for production. Do not control funds.
     const signingResult = await signW3C(
       documentWithoutProof,
       {
@@ -79,6 +81,8 @@ describe('W3C sign', () => {
         ...documentWithoutProof
       } = ECDSA_W3C_VERIFIABLE_DOCUMENT_V2_0;
 
+      // Note: Dummy/test cryptographic ECDSA key pairs for local development and CI/CD.
+      // Used for signing/verifying credentials only. Not for production. Do not control funds.
       const signingResult = await signW3C(
         { ...documentWithoutProof, credentialStatus: restCredentialStatus },
         {
@@ -111,6 +115,8 @@ describe('W3C sign', () => {
         ...documentWithoutProof
       } = BBS2023_W3C_VERIFIABLE_DOCUMENT_V2_0;
 
+      // Note: Dummy/test cryptographic BBS 2023 key pairs for local development and CI/CD.
+      // Used for signing/verifying credentials only. Not for production. Do not control funds.
       const signingResult = await signW3C(
         { ...documentWithoutProof, credentialStatus: restCredentialStatus },
         {

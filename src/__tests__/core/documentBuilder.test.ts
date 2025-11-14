@@ -7,7 +7,13 @@ import {
   VerificationType,
 } from '@trustvc/w3c-issuer';
 
+// -----------------------------
+// Note: Dummy/test cryptographic key pairs for local development and CI/CD.
+// Used for signing/verifying credentials only. Not for production. Do not control funds.
+// -----------------------------
+
 const BBS2020testPrivateKey: PrivateKeyPair = {
+  // test key for BBS 2020 signing
   id: 'did:web:trustvc.github.io:did:1#keys-1',
   controller: 'did:web:trustvc.github.io:did:1',
   type: VerificationType.Bls12381G2Key2020,
@@ -17,6 +23,7 @@ const BBS2020testPrivateKey: PrivateKeyPair = {
 };
 
 const ECDSAtestPrivateKey: PrivateKeyPair = {
+  // test key for ECDSA signing
   '@context': 'https://w3id.org/security/multikey/v1',
   id: 'did:web:trustvc.github.io:did:1#multikey-1',
   type: VerificationType.Multikey,
@@ -26,6 +33,7 @@ const ECDSAtestPrivateKey: PrivateKeyPair = {
 };
 
 const bbs2023KeyPair: Bbs2023PrivateKeyPair = {
+  // test key for BBS 2023 signing
   '@context': 'https://w3id.org/security/multikey/v1',
   id: 'did:web:trustvc.github.io:did:1#multikey-2',
   type: VerificationType.Multikey,
