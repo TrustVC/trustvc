@@ -1,3 +1,10 @@
+## [2.4.2](https://github.com/TrustVC/trustvc/compare/v2.4.1...v2.4.2) (2025-11-14)
+
+
+### Bug Fixes
+
+* add security notes for test cryptographic keys and wallets ([#122](https://github.com/TrustVC/trustvc/issues/122)) ([20700c4](https://github.com/TrustVC/trustvc/commit/20700c498df4bc8d06ff59cfeafece798bb448af))
+
 ## [2.4.1](https://github.com/TrustVC/trustvc/compare/v2.4.0...v2.4.1) (2025-11-13)
 
 
