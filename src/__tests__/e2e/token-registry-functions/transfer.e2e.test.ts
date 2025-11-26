@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import { network } from 'hardhat';
 import { ethers as ethersV6 } from 'ethersV6';
-import { CHAIN_ID } from '@tradetrust-tt/tradetrust-utils';
+import { CHAIN_ID } from '../../../utils';
 
 // Import the functions we want to test
 import {

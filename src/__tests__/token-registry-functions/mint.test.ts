@@ -4,7 +4,6 @@ import { ethers as ethersV5, Wallet as WalletV5 } from 'ethers';
 import { Wallet as WalletV6, Network, ethers as ethersV6 } from 'ethersV6';
 import * as coreModule from '../../core';
 
-import { CHAIN_ID } from '@tradetrust-tt/tradetrust-utils';
 import { mint } from '../../token-registry-functions';
 import {
   MOCK_V4_ADDRESS,
@@ -17,6 +16,7 @@ import {
 } from './fixtures.js';
 import { ProviderInfo } from '../../token-registry-functions/types';
 import { getEthersContractFromProvider } from '../../utils/ethers/index.js';
+import { CHAIN_ID } from '../../utils/index.js';
 
 const providers: ProviderInfo[] = [
   {
