@@ -3,7 +3,7 @@ import { network } from 'hardhat';
 import { ethers as ethersV6, ZeroAddress } from 'ethersV6';
 import '@nomiclabs/hardhat-ethers';
 import '@nomicfoundation/hardhat-chai-matchers';
-import { CHAIN_ID } from '@tradetrust-tt/tradetrust-utils';
+import { CHAIN_ID } from '../../../utils';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import type {
   MintTokenOptions,

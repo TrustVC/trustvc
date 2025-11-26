@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ethers as ethersV5, Wallet as WalletV5 } from 'ethers';
 import { ethers as ethersV6, Network, Wallet as WalletV6 } from 'ethersV6';
 import * as coreModule from '../../core';
-import { CHAIN_ID } from '@tradetrust-tt/tradetrust-utils';
+import { CHAIN_ID } from '../../utils/supportedChains';
 import {
   rejectTransferBeneficiary,
   rejectTransferHolder,

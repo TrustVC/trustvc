@@ -1,4 +1,4 @@
-import { CHAIN_ID } from '@tradetrust-tt/tradetrust-utils';
+import { CHAIN_ID } from '../utils';
 import { BigNumber, providers as providersV5 } from 'ethers';
 import { BigNumberish, Provider as ProviderV6 } from 'ethersV6';
 
