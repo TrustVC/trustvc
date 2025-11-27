@@ -168,10 +168,6 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
 
       const mockChainId = CHAIN_ID.mainnet;
 
-      //  to allow overriding
-      // const { SUPPORTED_CHAINS: SUPPORTED_CHAINS } = await import(
-      //   '@tradetrust-tt/tradetrust-utils'
-      // );
       const originalChainData = SUPPORTED_CHAINS[mockChainId].gasStation;
       SUPPORTED_CHAINS[mockChainId] = {
         ...SUPPORTED_CHAINS[mockChainId],
@@ -357,10 +353,6 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
         } as unknown as Network);
       }
 
-      // to allow overriding
-      // const { SUPPORTED_CHAINS: SUPPORTED_CHAINS } = await import(
-      //   '@tradetrust-tt/tradetrust-utils'
-      // );
       const originalChainData = SUPPORTED_CHAINS[mockChainId].gasStation;
       SUPPORTED_CHAINS[mockChainId] = {
         ...SUPPORTED_CHAINS[mockChainId],
@@ -539,8 +531,6 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
         } as unknown as Network);
       }
 
-      // to allow overriding
-      // const { SUPPORTED_CHAINS: SUPPORTED_CHAINS } = await import('../../utils/supportedChains');
       const originalChainData = SUPPORTED_CHAINS[mockChainId].gasStation;
       SUPPORTED_CHAINS[mockChainId] = {
         ...SUPPORTED_CHAINS[mockChainId],
@@ -715,8 +705,6 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
         } as unknown as Network);
       }
 
-      // to allow overriding
-      // const { SUPPORTED_CHAINS: SUPPORTED_CHAINS } = await import('../../utils/network');
       const originalChainData = SUPPORTED_CHAINS[mockChainId].gasStation;
       SUPPORTED_CHAINS[mockChainId] = {
         ...SUPPORTED_CHAINS[mockChainId],

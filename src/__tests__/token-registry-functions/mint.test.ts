@@ -15,8 +15,8 @@ import {
   providerV6,
 } from './fixtures.js';
 import { ProviderInfo } from '../../token-registry-functions/types';
-import { getEthersContractFromProvider } from '../../utils/ethers/index.js';
-import { CHAIN_ID } from '../../utils/index.js';
+import { getEthersContractFromProvider } from '../../utils/ethers';
+import { CHAIN_ID } from '../../utils';
 
 const providers: ProviderInfo[] = [
   {
