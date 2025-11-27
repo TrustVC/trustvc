@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import { ethers as ethersV6, ZeroAddress } from 'ethersV6';
-import { CHAIN_ID } from '@tradetrust-tt/tradetrust-utils';
+import { CHAIN_ID } from '../../../utils';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 
 // Import the functions we want to test

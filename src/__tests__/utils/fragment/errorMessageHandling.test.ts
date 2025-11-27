@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { CONSTANTS } from '@tradetrust-tt/tradetrust-utils';
-
-import { errorMessageHandling } from 'src/utils/fragment';
+import { errorMessages as CONSTANTS } from '../../../utils';
+import { errorMessageHandling } from '../../../utils/fragment';
 
 // Fixtures
 import {

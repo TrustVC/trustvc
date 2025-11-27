@@ -4,7 +4,7 @@ import { ethers as ethersV5, Wallet as WalletV5 } from 'ethers';
 import { ethers as ethersV6, Network, Wallet as WalletV6 } from 'ethersV6';
 import * as coreModule from '../../core';
 import { encrypt } from '../../core';
-import { CHAIN_ID } from '@tradetrust-tt/tradetrust-utils';
+import { CHAIN_ID, SUPPORTED_CHAINS } from '../../utils/supportedChains';
 import {
   nominate,
   transferBeneficiary,
@@ -168,10 +168,6 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
 
       const mockChainId = CHAIN_ID.mainnet;
 
-      //  to allow overriding
-      const { SUPPORTED_CHAINS: SUPPORTED_CHAINS } = await import(
-        '@tradetrust-tt/tradetrust-utils'
-      );
       const originalChainData = SUPPORTED_CHAINS[mockChainId].gasStation;
       SUPPORTED_CHAINS[mockChainId] = {
         ...SUPPORTED_CHAINS[mockChainId],
@@ -357,10 +353,6 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
         } as unknown as Network);
       }
 
-      // to allow overriding
-      const { SUPPORTED_CHAINS: SUPPORTED_CHAINS } = await import(
-        '@tradetrust-tt/tradetrust-utils'
-      );
       const originalChainData = SUPPORTED_CHAINS[mockChainId].gasStation;
       SUPPORTED_CHAINS[mockChainId] = {
         ...SUPPORTED_CHAINS[mockChainId],
@@ -539,10 +531,6 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
         } as unknown as Network);
       }
 
-      // to allow overriding
-      const { SUPPORTED_CHAINS: SUPPORTED_CHAINS } = await import(
-        '@tradetrust-tt/tradetrust-utils'
-      );
       const originalChainData = SUPPORTED_CHAINS[mockChainId].gasStation;
       SUPPORTED_CHAINS[mockChainId] = {
         ...SUPPORTED_CHAINS[mockChainId],
@@ -717,10 +705,6 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
         } as unknown as Network);
       }
 
-      // to allow overriding
-      const { SUPPORTED_CHAINS: SUPPORTED_CHAINS } = await import(
-        '@tradetrust-tt/tradetrust-utils'
-      );
       const originalChainData = SUPPORTED_CHAINS[mockChainId].gasStation;
       SUPPORTED_CHAINS[mockChainId] = {
         ...SUPPORTED_CHAINS[mockChainId],
