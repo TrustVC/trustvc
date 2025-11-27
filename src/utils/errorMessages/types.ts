@@ -1,5 +1,5 @@
 /**
- * Type definitions matching the structure in @tradetrust-tt/tradetrust-utils/VerificationErrorMessages.ts
+ * Type definitions matching the structure
  */
 
 // Define the structure of an error message
