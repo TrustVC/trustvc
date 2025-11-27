@@ -1,4 +1,3 @@
-// export * from '@tradetrust-tt/tradetrust-utils/constants/supportedChains';
 import 'dotenv/config';
 import { gasStation, GasStationFeeData } from '../gasStation';
 import { iconAstron, iconEthereum, iconPolygon, iconStability, iconXDC } from '../static/icons';

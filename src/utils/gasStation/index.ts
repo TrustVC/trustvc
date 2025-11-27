@@ -1,5 +1,3 @@
-// export { gasStation, calculateMaxFee, scaleBigNumber } from '@tradetrust-tt/tradetrust-utils';
-// export type { GasStationFunction, GasStationFeeData } from '@tradetrust-tt/tradetrust-utils';
 import { BigNumber, ethers } from 'ethers';
 import fetch from 'node-fetch';
 

@@ -1,4 +1,3 @@
-// import { CONSTANTS } from '@tradetrust-tt/tradetrust-utils';
 import * as CONSTANTS from './VerificationErrorMessages';
 
 import { ErrorMessages } from './types';

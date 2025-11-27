@@ -1,8 +1,3 @@
-// import {
-//   errorMessageHandling as OAErrorMessageHandling,
-//   CONSTANTS,
-//   interpretFragments,
-// } from '@tradetrust-tt/tradetrust-utils';
 import {
   isValid,
   InvalidVerificationFragment,
