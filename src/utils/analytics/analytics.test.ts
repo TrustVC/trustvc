@@ -19,9 +19,9 @@ const mockGaEvent = {
 };
 
 beforeEach(() => {
-  vi.spyOn(console, 'error').mockImplementation(() => {});
-
-  vi.spyOn(console, 'warn').mockImplementation(() => {});
+  // Reuse the same spies so expectations track calls correctly
+  consoleError.mockImplementation(() => {});
+  consoleWarn.mockImplementation(() => {});
 });
 
 afterEach(() => {
