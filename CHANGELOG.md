@@ -1,3 +1,10 @@
+## [2.5.0](https://github.com/TrustVC/trustvc/compare/v2.4.2...v2.5.0) (2025-11-27)
+
+
+### Features
+
+* merge tt utils ([#123](https://github.com/TrustVC/trustvc/issues/123)) ([5b997fc](https://github.com/TrustVC/trustvc/commit/5b997fc161c33412ead965c3104bb587bd439cd1))
+
 ## [2.4.2](https://github.com/TrustVC/trustvc/compare/v2.4.1...v2.4.2) (2025-11-14)
 
 
