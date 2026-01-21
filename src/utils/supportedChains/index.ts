@@ -84,7 +84,7 @@ export const SUPPORTED_CHAINS: supportedChains = {
     explorerUrl: 'https://www.oklink.com/amoy',
     explorerApiUrl: `https://www.oklink.com/${process.env.OKLINK_API_KEY}`,
     rpcUrl: `https://polygon-amoy.infura.io/v3/${process.env.INFURA_API_KEY}`,
-    gasStation: gasStation('https://gasstation-testnet.polygon.technology/amoy'),
+    gasStation: gasStation('https://gasstation.polygon.technology/amoy'),
     nativeCurrency: {
       name: 'MATIC',
       symbol: 'aMATIC',
