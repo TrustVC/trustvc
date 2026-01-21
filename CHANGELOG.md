@@ -1,3 +1,10 @@
+## [2.5.1](https://github.com/TrustVC/trustvc/compare/v2.5.0...v2.5.1) (2026-01-21)
+
+
+### Bug Fixes
+
+* gas station amoy ([#124](https://github.com/TrustVC/trustvc/issues/124)) ([8c51025](https://github.com/TrustVC/trustvc/commit/8c51025be87e6df80b7d4c6027387f2130100952))
+
 ## [2.5.0](https://github.com/TrustVC/trustvc/compare/v2.4.2...v2.5.0) (2025-11-27)
 
 
