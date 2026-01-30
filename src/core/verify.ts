@@ -31,9 +31,9 @@ interface VerifyDocumentParams {
 }
 
 /**
- * Asynchronously verifies a document (OpenAttestation or W3C Verifiable Credential) using a specified Ethereum-compatible JSON-RPC provider.
+ * Asynchronously verifies a document (OpenAttestation (including OpenCert) or W3C Verifiable Credential) using a specified Ethereum-compatible JSON-RPC provider.
  *
- * This function builds a verification process that can handle both OpenAttestation documents and W3C Verifiable Credentials.
+ * This function builds a verification process that can handle both OpenAttestation documents (including OpenCert) and W3C Verifiable Credentials.
  * For OpenAttestation, it uses OpenAttestation's verifiers and DID identity proof. For W3C Verifiable Credentials,
  * it verifies signatures, credential status, and issuer identity.
  *
