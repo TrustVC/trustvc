@@ -39,7 +39,7 @@ interface VerifyDocumentParams {
  *
  * The function takes an Ethereum-compatible JSON-RPC provider URL, which allows the user to specify the network
  * (e.g., Ethereum, Polygon) for DID resolution and verification tasks.
- * @param {DocumentsToVerify | SignedVerifiableCredential} document - The document to be verified, either an OpenAttestation document or a W3C Verifiable Credential.
+ * @param {DocumentsToVerify | SignedVerifiableCredential} document - The document to be verified, either an OpenAttestation document, OpenCert document or a W3C Verifiable Credential.
  * @param {VerificationBuilderOptions} options - The options object containing the provider URL and document loader.
  * @param {string} options.rpcProviderUrl - The Ethereum-compatible JSON-RPC provider URL (e.g., Infura, Alchemy, etc.).
  * @param {DocumentLoader} options.documentLoader - The document loader to be used for loading JSON-LD contexts, DIDs and credential status.
