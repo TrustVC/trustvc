@@ -1,6 +1,5 @@
 import {
   isValid,
-  openAttestationDidIdentityProof,
   openAttestationDidSignedDocumentStatus,
   openAttestationDnsDidIdentityProof,
   openAttestationDnsTxtIdentityProof,
@@ -52,17 +51,13 @@ const verifiers = {
     credentialStatusTransferableRecordVerifier,
   },
   issuerIdentity: {
-    openAttestationDidIdentityProof,
     openAttestationDnsDidIdentityProof,
     openAttestationDnsTxtIdentityProof,
     w3cIssuerIdentity,
   },
 };
 
-const openAttestationVerifiers = [
-  ...originalOpenAttestationVerifiers,
-  openAttestationDidIdentityProof,
-];
+const openAttestationVerifiers = [...originalOpenAttestationVerifiers];
 
 const w3cVerifiers: Verifier<VerificationFragment>[] = [
   w3cSignatureIntegrity,
@@ -84,7 +79,6 @@ export {
   getIdentifier,
   createResolver,
   utils,
-  openAttestationDidIdentityProof,
 };
 
 export type {
