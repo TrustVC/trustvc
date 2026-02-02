@@ -152,9 +152,26 @@ export const registryVerifier: VerifierType = {
     });
   },
   verify: async (document): Promise<OpencertsRegistryVerifierVerificationFragment> => {
-    const res = await fetch('https://opencerts.io/static/registry.json');
-    const registryJson: unknown = await res.json();
-    const registry = registryJson as Registry;
+    let registry: Registry;
+    try {
+      const res = await fetch('https://opencerts.io/static/registry.json');
+      if (!res.ok) {
+        throw new CodedError(
+          `Non-OK response while fetching registry.json (status ${res.status})`,
+          OpencertsRegistryCode.UNEXPECTED_ERROR,
+          'UNEXPECTED_ERROR',
+        );
+      }
+
+      const registryJson: unknown = await res.json();
+      registry = registryJson as Registry;
+    } catch (error) {
+      throw new CodedError(
+        `Failed to retrieve opencerts registry: ${(error as Error).message}`,
+        OpencertsRegistryCode.UNEXPECTED_ERROR,
+        'UNEXPECTED_ERROR',
+      );
+    }
 
     if (utils.isWrappedV3Document(document)) {
       const data = storeToData(registry, document.openAttestationMetadata.proof.value);
