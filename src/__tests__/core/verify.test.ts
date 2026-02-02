@@ -1056,7 +1056,7 @@ it(
 );
 
 it(
-  'should verify document and return correct OpenCertRegistryVerify fragments even rpcProviderUrl is not correct. (Incorrect / Missing RPC Url)',
+  'should verify document and return correct IssuerIdentity fragment but error on DocumentStatus fragment when rpcProviderUrl is not correct as network was not provided. (Missing RPC Url)',
   { timeout: 300000 },
   async ({ expect }) => {
     expect(await verifyDocument(OPENCERT_VERIFIABLE_DOCUMENT_V2_0)).toMatchInlineSnapshot(`
