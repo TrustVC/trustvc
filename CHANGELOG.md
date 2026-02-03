@@ -1,3 +1,10 @@
+## [2.5.2](https://github.com/TrustVC/trustvc/compare/v2.5.1...v2.5.2) (2026-02-03)
+
+
+### Bug Fixes
+
+* remove did verification for issuer identity ([#126](https://github.com/TrustVC/trustvc/issues/126)) ([3ea270c](https://github.com/TrustVC/trustvc/commit/3ea270c21fef16478106a44c689d85f71e16b560))
+
 ## [2.5.1](https://github.com/TrustVC/trustvc/compare/v2.5.0...v2.5.1) (2026-01-21)
 
 
