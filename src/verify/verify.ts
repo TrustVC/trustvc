@@ -36,7 +36,7 @@ import { w3cCredentialStatus } from './fragments/document-status/w3cCredentialSt
 import { w3cIssuerIdentity } from './fragments/issuer-identity/w3cIssuerIdentity';
 import { w3cEmptyCredentialStatus } from './fragments';
 import { bbs2023W3CSignatureIntegrity } from './fragments/document-integrity/bbs2023W3CSignatureIntegrity';
-import { registryVerifier } from 'src/open-cert/verify';
+import { registryVerifier } from '../open-cert';
 
 const verifiers = {
   documentIntegrity: {
