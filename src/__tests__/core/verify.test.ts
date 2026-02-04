@@ -731,16 +731,6 @@ describe.concurrent('V3 verify', () => {
           "type": "ISSUER_IDENTITY",
         },
         {
-          "name": "OpenAttestationDidIdentityProof",
-          "reason": {
-            "code": 0,
-            "codeString": "SKIPPED",
-            "message": "Document is not using DID as top level identifier or has not been wrapped",
-          },
-          "status": "SKIPPED",
-          "type": "ISSUER_IDENTITY",
-        },
-        {
           "name": "OpencertsRegistryVerifier",
           "reason": {
             "code": 1,
@@ -817,16 +807,6 @@ describe.concurrent('V3 verify', () => {
               "code": 0,
               "codeString": "SKIPPED",
               "message": "Document was not issued using DNS-DID",
-            },
-            "status": "SKIPPED",
-            "type": "ISSUER_IDENTITY",
-          },
-          {
-            "name": "OpenAttestationDidIdentityProof",
-            "reason": {
-              "code": 0,
-              "codeString": "SKIPPED",
-              "message": "Document is not using DID as top level identifier or has not been wrapped",
             },
             "status": "SKIPPED",
             "type": "ISSUER_IDENTITY",
@@ -913,16 +893,6 @@ describe.concurrent('V2 verify', () => {
             "code": 0,
             "codeString": "SKIPPED",
             "message": "Document was not issued using DNS-DID",
-          },
-          "status": "SKIPPED",
-          "type": "ISSUER_IDENTITY",
-        },
-        {
-          "name": "OpenAttestationDidIdentityProof",
-          "reason": {
-            "code": 0,
-            "codeString": "SKIPPED",
-            "message": "Document is not using DID as top level identifier or has not been wrapped",
           },
           "status": "SKIPPED",
           "type": "ISSUER_IDENTITY",

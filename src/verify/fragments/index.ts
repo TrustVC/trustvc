@@ -1,5 +1,4 @@
 import {
-  openAttestationDidIdentityProof,
   openAttestationDidSignedDocumentStatus,
   openAttestationDnsDidIdentityProof,
   openAttestationDnsTxtIdentityProof,
@@ -20,7 +19,6 @@ import { w3cEmptyCredentialStatus } from './document-status/w3cEmptyCredentialSt
 export {
   TRANSFERABLE_RECORDS_TYPE,
   credentialStatusTransferableRecordVerifier,
-  openAttestationDidIdentityProof,
   openAttestationDidSignedDocumentStatus,
   openAttestationDnsDidIdentityProof,
   openAttestationDnsTxtIdentityProof,
