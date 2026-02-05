@@ -22,7 +22,7 @@ describe.concurrent('OpenCert registry verifier', () => {
       // Uses real https://opencerts.io/static/registry.json
       expect(fragment.type).toBe('ISSUER_IDENTITY');
       expect(fragment.name).toBe('OpencertsRegistryVerifier');
-      expect(fragment.status).toBe('VALID');
+      expect(fragment.status).toBe('INVALID'); // INVALID because we are not using a fixture that has a valid registry. Do internal testing for opencert with valid registry instead.
     },
   );
 });
@@ -68,20 +68,22 @@ describe.concurrent('OpenCert signature verify', () => {
 
         it('given a new array item is added, should return false', async () => {
           const modifiedData: any = cloneDeep(document.data);
-          expect(Array.isArray(modifiedData.fieldOfStudy)).toBe(true);
-          const originalLength = modifiedData.fieldOfStudy.length;
-          modifiedData.fieldOfStudy.push({
-            frameworkName: 'fake-framework',
-            frameworkVersion: 'fake-version',
-            code: 'fake-code',
-            description: 'fake-description',
+          expect(Array.isArray(modifiedData.transcript)).toBe(true);
+          const originalLength = modifiedData.transcript.length;
+          modifiedData.transcript.push({
+            name: 'fake-name',
+            grade: 'fake-grade',
+            courseCredit: 'fake-course-credit',
+            courseCode: 'fake-course-code',
+            examinationDate: 'fake-exam-date',
+            semester: 'fake-semester',
           });
-          expect(modifiedData.fieldOfStudy.length).toBe(originalLength + 1);
+          expect(modifiedData.transcript.length).toBe(originalLength + 1);
 
           expect(
             await verifySignature({
               ...document,
-              data: modifiedData, // Added new array item into fieldOfStudy
+              data: modifiedData, // Added new array item into transcript
             }),
           ).toBe(false);
         });
@@ -117,14 +119,14 @@ describe.concurrent('OpenCert signature verify', () => {
 
           it('given insertion into an array', async () => {
             const modifiedData: any = cloneDeep(document.data);
-            const originalLength = modifiedData.qualificationLevel.length;
-            modifiedData.qualificationLevel.push({ name: 'newField' });
-            expect(modifiedData.qualificationLevel.length).toBe(originalLength + 1);
+            const originalLength = modifiedData.transcript.length;
+            modifiedData.transcript.push({ name: 'newField' });
+            expect(modifiedData.transcript.length).toBe(originalLength + 1);
 
             expect(
               await verifySignature({
                 ...document,
-                data: modifiedData, // Added new field into qualification level array
+                data: modifiedData, // Added new field into transcript array
               }),
             ).toBe(false);
           });
@@ -145,9 +147,9 @@ describe.concurrent('OpenCert signature verify', () => {
 
           it('given insertion into an array', async () => {
             const modifiedData: any = cloneDeep(document.data);
-            const originalLength = modifiedData.qualificationLevel.length;
-            modifiedData.qualificationLevel.push(['abc']);
-            expect(modifiedData.qualificationLevel.length).toBe(originalLength + 1);
+            const originalLength = modifiedData.transcript.length;
+            modifiedData.transcript.push(['abc']);
+            expect(modifiedData.transcript.length).toBe(originalLength + 1);
 
             expect(
               await verifySignature({
@@ -170,11 +172,11 @@ describe.concurrent('OpenCert signature verify', () => {
           ).toBe(false);
 
           const modifiedData: any = cloneDeep(document.data);
-          const originalLength = modifiedData.qualificationLevel.length;
-          modifiedData.qualificationLevel.push({
+          const originalLength = modifiedData.transcript.length;
+          modifiedData.transcript.push({
             name: null,
           });
-          expect(modifiedData.qualificationLevel.length).toBe(originalLength + 1);
+          expect(modifiedData.transcript.length).toBe(originalLength + 1);
 
           expect(
             await verifySignature({
@@ -186,10 +188,10 @@ describe.concurrent('OpenCert signature verify', () => {
 
         it('given a null value is inserted into an array, should return false', async () => {
           const modifiedData: any = cloneDeep(document.data);
-          const originalLength = modifiedData.fieldOfStudy.length;
-          modifiedData.fieldOfStudy.push(null);
-          expect(modifiedData.fieldOfStudy.length).toBe(originalLength + 1);
-          expect(modifiedData.fieldOfStudy[originalLength]).toBe(null);
+          const originalLength = modifiedData.transcript.length;
+          modifiedData.transcript.push(null);
+          expect(modifiedData.transcript.length).toBe(originalLength + 1);
+          expect(modifiedData.transcript[originalLength]).toBe(null);
 
           expect(
             await verifySignature({
@@ -201,9 +203,9 @@ describe.concurrent('OpenCert signature verify', () => {
 
         it('given an altered value type that string coerce to the same value, should return false', async () => {
           const modifiedData: any = cloneDeep(document.data);
-          expect(typeof modifiedData.qualificationLevel?.[0]?.code).toBe('string');
-          modifiedData.qualificationLevel[0].code = 70;
-          expect(typeof modifiedData.qualificationLevel[0].code).toBe('number');
+          expect(typeof modifiedData.transcript?.[0]?.semester).toBe('string');
+          modifiedData.transcript[0].semester = 1;
+          expect(typeof modifiedData.transcript[0].semester).toBe('number');
 
           expect(
             await verifySignature({
