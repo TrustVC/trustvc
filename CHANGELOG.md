@@ -1,3 +1,10 @@
+## [2.6.0](https://github.com/TrustVC/trustvc/compare/v2.5.2...v2.6.0) (2026-02-06)
+
+
+### Features
+
+* implement opencert verify ([#125](https://github.com/TrustVC/trustvc/issues/125)) ([6885892](https://github.com/TrustVC/trustvc/commit/6885892619ab2a1551ebfea14854b9425f6c0abd))
+
 ## [2.5.2](https://github.com/TrustVC/trustvc/compare/v2.5.1...v2.5.2) (2026-02-03)
 
 
