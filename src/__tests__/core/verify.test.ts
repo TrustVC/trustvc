@@ -13,6 +13,7 @@ import {
   WRAPPED_DOCUMENT_DNS_TXT_V2,
   BBS2023_W3C_VERIFIABLE_DOCUMENT_V2_0,
   BBS2023_W3C_DERIVED_DOCUMENT_V2_0,
+  OPENCERT_VERIFIABLE_DOCUMENT_V2_0,
 } from '../fixtures/fixtures';
 import { W3CCredentialStatusCode } from '../../verify/fragments/document-status/w3cCredentialStatus';
 import { openAttestationDidSignedDocumentStatus } from '@tradetrust-tt/tt-verify';
@@ -729,6 +730,16 @@ describe.concurrent('V3 verify', () => {
           "status": "VALID",
           "type": "ISSUER_IDENTITY",
         },
+        {
+          "name": "OpencertsRegistryVerifier",
+          "reason": {
+            "code": 1,
+            "codeString": "SKIPPED",
+            "message": "Document issuers doesn't have "documentStore" or "certificateStore" property or DOCUMENT_STORE method",
+          },
+          "status": "SKIPPED",
+          "type": "ISSUER_IDENTITY",
+        },
       ]
     `);
   });
@@ -796,6 +807,16 @@ describe.concurrent('V3 verify', () => {
               "code": 0,
               "codeString": "SKIPPED",
               "message": "Document was not issued using DNS-DID",
+            },
+            "status": "SKIPPED",
+            "type": "ISSUER_IDENTITY",
+          },
+          {
+            "name": "OpencertsRegistryVerifier",
+            "reason": {
+              "code": 1,
+              "codeString": "SKIPPED",
+              "message": "Document issuers doesn't have "documentStore" or "certificateStore" property or DOCUMENT_STORE method",
             },
             "status": "SKIPPED",
             "type": "ISSUER_IDENTITY",
@@ -876,7 +897,103 @@ describe.concurrent('V2 verify', () => {
           "status": "SKIPPED",
           "type": "ISSUER_IDENTITY",
         },
+        {
+          "name": "OpencertsRegistryVerifier",
+          "reason": {
+            "code": 1,
+            "codeString": "SKIPPED",
+            "message": "Document issuers doesn't have "documentStore" or "certificateStore" property or DOCUMENT_STORE method",
+          },
+          "status": "SKIPPED",
+          "type": "ISSUER_IDENTITY",
+        },
       ]
     `);
   });
 });
+
+it(
+  'should verify a document and return OpenCertRegistryVerifier fragment regardless whether rpcProviderUrl is correct (Happy Path)',
+  { timeout: 300000 },
+  async ({ expect }) => {
+    const fragments = await verifyDocument(OPENCERT_VERIFIABLE_DOCUMENT_V2_0, {
+      rpcProviderUrl: 'https://ethereum-rpc.publicnode.com',
+    });
+
+    expect(fragments).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'OpenAttestationHash',
+          status: 'VALID',
+          type: 'DOCUMENT_INTEGRITY',
+        }),
+        expect.objectContaining({
+          name: 'OpenAttestationEthereumDocumentStoreStatus',
+          status: 'VALID',
+          type: 'DOCUMENT_STATUS',
+          data: expect.objectContaining({
+            issuedOnAll: true,
+            revokedOnAny: false,
+          }),
+        }),
+        expect.objectContaining({
+          name: 'OpenAttestationDnsTxtIdentityProof',
+          status: 'VALID',
+          type: 'ISSUER_IDENTITY',
+        }),
+        expect.objectContaining({
+          name: 'OpencertsRegistryVerifier',
+          status: 'INVALID',
+          type: 'ISSUER_IDENTITY',
+          reason: expect.objectContaining({
+            codeString: 'INVALID_IDENTITY',
+          }),
+        }),
+      ]),
+    );
+  },
+);
+
+it(
+  'should verify document and return correct IssuerIdentity fragment but error on DocumentStatus fragment when rpcProviderUrl is not correct as network was not provided. (Missing RPC Url)',
+  { timeout: 300000 },
+  async ({ expect }) => {
+    const fragments = await verifyDocument(OPENCERT_VERIFIABLE_DOCUMENT_V2_0);
+
+    expect(fragments).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'OpenAttestationHash',
+          status: 'VALID',
+          type: 'DOCUMENT_INTEGRITY',
+        }),
+        expect.objectContaining({
+          name: 'OpenAttestationEthereumDocumentStoreStatus',
+          status: 'ERROR',
+          type: 'DOCUMENT_STATUS',
+          reason: expect.objectContaining({
+            codeString: 'UNEXPECTED_ERROR',
+            message: expect.stringContaining('could not detect network'),
+          }),
+        }),
+        expect.objectContaining({
+          name: 'OpenAttestationDnsTxtIdentityProof',
+          status: 'ERROR',
+          type: 'ISSUER_IDENTITY',
+          reason: expect.objectContaining({
+            codeString: 'UNEXPECTED_ERROR',
+            message: expect.stringContaining('could not detect network'),
+          }),
+        }),
+        expect.objectContaining({
+          name: 'OpencertsRegistryVerifier',
+          status: 'INVALID',
+          type: 'ISSUER_IDENTITY',
+          reason: expect.objectContaining({
+            codeString: 'INVALID_IDENTITY',
+          }),
+        }),
+      ]),
+    );
+  },
+);

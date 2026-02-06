@@ -31,15 +31,15 @@ interface VerifyDocumentParams {
 }
 
 /**
- * Asynchronously verifies a document (OpenAttestation or W3C Verifiable Credential) using a specified Ethereum-compatible JSON-RPC provider.
+ * Asynchronously verifies a document (OpenAttestation (including OpenCert) or W3C Verifiable Credential) using a specified Ethereum-compatible JSON-RPC provider.
  *
- * This function builds a verification process that can handle both OpenAttestation documents and W3C Verifiable Credentials.
+ * This function builds a verification process that can handle both OpenAttestation documents (including OpenCert) and W3C Verifiable Credentials.
  * For OpenAttestation, it uses OpenAttestation's verifiers and DID identity proof. For W3C Verifiable Credentials,
  * it verifies signatures, credential status, and issuer identity.
  *
  * The function takes an Ethereum-compatible JSON-RPC provider URL, which allows the user to specify the network
  * (e.g., Ethereum, Polygon) for DID resolution and verification tasks.
- * @param {DocumentsToVerify | SignedVerifiableCredential} document - The document to be verified, either an OpenAttestation document or a W3C Verifiable Credential.
+ * @param {DocumentsToVerify | SignedVerifiableCredential} document - The document to be verified, either an OpenAttestation document, OpenCert document or a W3C Verifiable Credential.
  * @param {VerificationBuilderOptions} options - The options object containing the provider URL and document loader.
  * @param {string} options.rpcProviderUrl - The Ethereum-compatible JSON-RPC provider URL (e.g., Infura, Alchemy, etc.).
  * @param {DocumentLoader} options.documentLoader - The document loader to be used for loading JSON-LD contexts, DIDs and credential status.
