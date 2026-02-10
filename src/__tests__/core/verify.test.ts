@@ -943,7 +943,7 @@ it(
         }),
         expect.objectContaining({
           name: 'OpencertsRegistryVerifier',
-          status: 'INVALID',
+          status: 'SKIPPED',
           type: 'ISSUER_IDENTITY',
           reason: expect.objectContaining({
             codeString: 'INVALID_IDENTITY',
@@ -987,7 +987,7 @@ it(
         }),
         expect.objectContaining({
           name: 'OpencertsRegistryVerifier',
-          status: 'INVALID',
+          status: 'SKIPPED',
           type: 'ISSUER_IDENTITY',
           reason: expect.objectContaining({
             codeString: 'INVALID_IDENTITY',

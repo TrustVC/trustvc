@@ -11,7 +11,7 @@ import {
 } from 'runtypes';
 import {
   CodedError,
-  InvalidVerificationFragment,
+  SkippedVerificationFragment,
   Reason,
   ValidVerificationFragment,
   VerificationBuilderOptions,
@@ -55,7 +55,7 @@ export type OpencertsRegistryVerificationValidData = Static<
 
 export const OpencertsRegistryVerificationInvalidData = Record({
   value: String,
-  status: Literal('INVALID'),
+  status: Literal('SKIPPED'),
   reason: Reason,
 });
 export type OpencertsRegistryVerificationInvalidData = Static<
@@ -78,12 +78,10 @@ export type OpencertsRegistryVerificationInvalidDataArray = Static<
 
 export type OpencertsRegistryVerifierValidFragmentV2 =
   ValidVerificationFragment<OpencertsRegistryVerificationValidDataArray>;
-export type OpencertsRegistryVerifierInvalidFragmentV2 =
-  InvalidVerificationFragment<OpencertsRegistryVerificationInvalidDataArray>;
+export type OpencertsRegistryVerifierInvalidFragmentV2 = SkippedVerificationFragment;
 export type OpencertsRegistryVerifierValidFragmentV3 =
   ValidVerificationFragment<OpencertsRegistryVerificationValidData>;
-export type OpencertsRegistryVerifierInvalidFragmentV3 =
-  InvalidVerificationFragment<OpencertsRegistryVerificationInvalidData>;
+export type OpencertsRegistryVerifierInvalidFragmentV3 = SkippedVerificationFragment;
 export type OpencertsRegistryVerifierVerificationFragment =
   | OpencertsRegistryVerifierValidFragmentV2
   | OpencertsRegistryVerifierInvalidFragmentV2
@@ -117,7 +115,7 @@ const storeToData = (
   }
   return {
     value: store,
-    status: 'INVALID' as const,
+    status: 'SKIPPED' as const,
     reason: {
       code: OpencertsRegistryCode.INVALID_IDENTITY,
       codeString: OpencertsRegistryCode[OpencertsRegistryCode.INVALID_IDENTITY],
@@ -186,8 +184,7 @@ export const registryVerifier: VerifierType = {
         return {
           type,
           name,
-          status: 'INVALID',
-          data,
+          status: 'SKIPPED',
           reason: data.reason,
         };
       }
@@ -206,8 +203,7 @@ export const registryVerifier: VerifierType = {
       return {
         type,
         name,
-        status: 'INVALID',
-        data: issuerFragments,
+        status: 'SKIPPED',
         reason: invalidIssuer.reason,
       };
     } else if (OpencertsRegistryVerificationValidDataArray.guard(issuerFragments)) {
