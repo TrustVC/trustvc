@@ -1,3 +1,10 @@
+## [2.6.1](https://github.com/TrustVC/trustvc/compare/v2.6.0...v2.6.1) (2026-02-10)
+
+
+### Bug Fixes
+
+* change OpencertsRegistryVerifier status from INVALID to SKIPPED ([#127](https://github.com/TrustVC/trustvc/issues/127)) ([c1f49e1](https://github.com/TrustVC/trustvc/commit/c1f49e19f762aa42ddb355da55a6cebb52ddb9fc))
+
 ## [2.6.0](https://github.com/TrustVC/trustvc/compare/v2.5.2...v2.6.0) (2026-02-06)
 
 
