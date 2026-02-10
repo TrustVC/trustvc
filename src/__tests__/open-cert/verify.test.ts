@@ -22,7 +22,7 @@ describe.concurrent('OpenCert registry verifier', () => {
       // Uses real https://opencerts.io/static/registry.json
       expect(fragment.type).toBe('ISSUER_IDENTITY');
       expect(fragment.name).toBe('OpencertsRegistryVerifier');
-      expect(fragment.status).toBe('INVALID'); // INVALID because we are not using a fixture that has a valid registry. Do internal testing for opencert with valid registry instead.
+      expect(fragment.status).toBe('SKIPPED'); // SKIPPED because we are not using a fixture that has a valid registry. Do internal testing for opencert with valid registry instead.
     },
   );
 });
