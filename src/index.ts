@@ -19,6 +19,15 @@ import {
   v5GetEventFromReceipt,
   v5ComputeInterfaceId,
 } from './token-registry-v5';
+import {
+  deployDocumentStore,
+  grantDocumentStoreRole,
+  revokeDocumentStoreRole,
+  documentStoreIssue,
+  documentStoreRevoke,
+  DocumentStore__factory,
+  TransferableDocumentStore__factory,
+} from './document-store';
 export type { TypedContractMethod } from './token-registry-v5/typedContractMethod';
 export * from './token-registry-functions';
 export * from './core';
@@ -28,6 +37,7 @@ export * from './open-cert';
 export * from './w3c';
 export * from './utils';
 export * from './dnsprove';
+
 export {
   v4SupportInterfaceIds,
   v4ContractAddress,
@@ -46,4 +56,11 @@ export {
   v5EncodeInitParams,
   v5GetEventFromReceipt,
   v5ComputeInterfaceId,
+  deployDocumentStore,
+  grantDocumentStoreRole,
+  revokeDocumentStoreRole,
+  documentStoreIssue,
+  documentStoreRevoke,
+  DocumentStore__factory,
+  TransferableDocumentStore__factory,
 };

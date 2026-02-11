@@ -121,6 +121,7 @@
     "@tradetrust-tt/token-registry-v5": "npm:@tradetrust-tt/token-registry@^5.5.0",
     "@tradetrust-tt/tradetrust": "^6.10.2",
     "@tradetrust-tt/tt-verify": "^9.6.0",
+    "@trustvc/document-store": "^1.0.2",
     "@trustvc/w3c": "^2.0.0",
     "@trustvc/w3c-context": "^2.0.0",
     "@trustvc/w3c-credential-status": "^2.0.0",
