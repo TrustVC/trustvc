@@ -82,6 +82,11 @@ describe('Issue Document', () => {
       beforeAll(() => {
         // Clear any existing mocks first
         vi.clearAllMocks();
+        const mockContractConstructor = (mockContract: any) => vi.fn(() => mockContract);
+        // Only set up the mock if it hasn't been set up yet
+        vi.mocked(getEthersContractFromProvider).mockReturnValue(
+          mockContractConstructor(mockContract),
+        );
       });
 
       beforeEach(() => {
