@@ -55,7 +55,6 @@ const deployDocumentStore = async (
   const txOptions = await getTxOptions(signer, chainId, maxFeePerGas, maxPriorityFeePerGas);
 
   const isV6 = isV6EthersProvider(signer.provider);
-  console.log('isv6', isV6);
   const DocumentStoreFactory = options.isTransferable
     ? TransferableDocumentStore__factory
     : DocumentStore__factory;
@@ -69,9 +68,7 @@ const deployDocumentStore = async (
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         signer as any,
       );
-      console.log('before ContractFactory');
       const contract = await ContractFactory.deploy(storeName, owner, txOptions);
-      console.log('after ContractFactory');
       const receipt = await contract.deploymentTransaction().wait();
 
       return receipt;
