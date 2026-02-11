@@ -1,5 +1,5 @@
 import './fixtures';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, beforeAll } from 'vitest';
 import { ethers as ethersV5, Wallet as WalletV5 } from 'ethers';
 import { Wallet as WalletV6, Network, ethers as ethersV6 } from 'ethersV6';
 import * as coreModule from '../../core';
@@ -55,7 +55,7 @@ describe('Issue Document', () => {
 
   describe.each(providers)(
     'Issue Document with $contractType and ethers version $ethersVersion',
-    async ({ Provider, ethersVersion, contractType }) => {
+    ({ Provider, ethersVersion, contractType }) => {
       const isTransferable = contractType === 'TransferableDocumentStore';
       const mockContract = isTransferable
         ? mockTransferableDocumentStoreContract
@@ -82,11 +82,6 @@ describe('Issue Document', () => {
       beforeAll(() => {
         // Clear any existing mocks first
         vi.clearAllMocks();
-        const mockContractConstructor = (mockContract: any) => vi.fn(() => mockContract);
-        // Only set up the mock if it hasn't been set up yet
-        vi.mocked(getEthersContractFromProvider).mockReturnValue(
-          mockContractConstructor(mockContract),
-        );
       });
 
       beforeEach(() => {

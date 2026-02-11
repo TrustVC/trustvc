@@ -5,7 +5,7 @@ import {
 import {
   Signer as SignerV6,
   Contract as ContractV6,
-  ContractTransaction as ContractTransactionV6,
+  ContractTransactionResponse as ContractTransactionV6,
 } from 'ethersV6';
 import {
   Contract as ContractV5,
@@ -28,8 +28,8 @@ import { TT_DOCUMENT_STORE_ABI } from './tt-document-store-abi';
  * 2. TransferableDocumentStore (ERC-165 compliant)
  * 3. TT Document Store (legacy, no ERC-165 support - used as fallback)
  * @param {string} documentStoreAddress - The address of the DocumentStore contract.
- * @param {SignerV5 | SignerV6} signer - Signer instance (Ethers v5 or v6) that authorizes the revoke transaction.
  * @param {string} documentHash - The hash of the document to revoke (must be a valid hex string).
+ * @param {SignerV5 | SignerV6} signer - Signer instance (Ethers v5 or v6) that authorizes the revoke transaction.
  * @param {RevokeOptions} options - Optional transaction metadata including gas values and chain ID.
  * @returns {Promise<ContractTransactionV5 | ContractTransactionV6>} A promise resolving to the transaction result from the revoke call.
  * @throws {Error} If the document store address or signer provider is not provided.
@@ -46,8 +46,8 @@ export interface RevokeOptions {
 
 const documentStoreRevoke = async (
   documentStoreAddress: string,
-  signer: SignerV5 | SignerV6,
   documentHash: string,
+  signer: SignerV5 | SignerV6,
   options: RevokeOptions = {},
 ): Promise<ContractTransactionV5 | ContractTransactionV6> => {
   if (!documentStoreAddress) throw new Error('Document store address is required');

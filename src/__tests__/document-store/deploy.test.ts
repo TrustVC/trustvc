@@ -29,7 +29,6 @@ describe('Deploy Document Store', () => {
         chainId: mockChainId,
         isTransferable: false,
       });
-      console.log('result', result);
 
       expect(result).toEqual({
         address: '0xDeployedDocumentStoreAddress',

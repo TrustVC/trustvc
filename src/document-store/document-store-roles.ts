@@ -19,6 +19,7 @@ export const getRoleString = async (
   let provider = options?.provider;
 
   if (!provider) {
+    if (!chainId) throw new Error('Either provider or chainId must be provided');
     provider = utils.getProvider({ network: SUPPORTED_CHAINS[chainId].name });
   }
 

@@ -68,8 +68,8 @@ const documentStoreFxnFragments = [
   { type: 'function', format: () => 'issue(bytes32)' },
   { type: 'function', format: () => 'name()' },
   { type: 'function', format: () => 'revoke(bytes32)' },
-  { type: 'function', format: () => 'grantRole(address, bytes32)' },
-  { type: 'function', format: () => 'revokeRole(address, bytes32)' },
+  { type: 'function', format: () => 'grantRole(bytes32, address)' },
+  { type: 'function', format: () => 'revokeRole(bytes32, address)' },
 ];
 
 vi.mock('@trustvc/document-store', () => ({

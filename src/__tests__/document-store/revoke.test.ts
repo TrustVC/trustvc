@@ -55,7 +55,7 @@ describe('Revoke Document', () => {
 
   describe.each(providers)(
     'Revoke Document with $contractType and ethers version $ethersVersion',
-    async ({ Provider, ethersVersion, contractType }) => {
+    ({ Provider, ethersVersion, contractType }) => {
       const isTransferable = contractType === 'TransferableDocumentStore';
       const mockContract = isTransferable
         ? mockTransferableDocumentStoreContract
@@ -79,16 +79,20 @@ describe('Revoke Document', () => {
         ? MOCK_TRANSFERABLE_DOCUMENT_STORE_ADDRESS
         : MOCK_DOCUMENT_STORE_ADDRESS;
 
-      beforeAll(() => {
+      // beforeAll(() => {
+      //   vi.clearAllMocks();
+      //   const mockContractConstructor = (mockContract: any) => vi.fn(() => mockContract);
+      //   vi.mocked(getEthersContractFromProvider).mockReturnValue(
+      //     mockContractConstructor(mockContract),
+      //   );
+      // });
+
+      beforeEach(() => {
         vi.clearAllMocks();
         const mockContractConstructor = (mockContract: any) => vi.fn(() => mockContract);
         vi.mocked(getEthersContractFromProvider).mockReturnValue(
           mockContractConstructor(mockContract),
         );
-      });
-
-      beforeEach(() => {
-        vi.clearAllMocks();
         vi.spyOn(coreModule, 'checkSupportsInterface').mockImplementation(
           async (address, interfaceId) => {
             if (isTransferable) {
@@ -104,8 +108,9 @@ describe('Revoke Document', () => {
       it('should revoke document hash successfully', async () => {
         const result = await documentStoreRevoke(
           mockDocumentStoreAddress,
-          wallet,
           mockDocumentHash,
+          wallet,
+
           {
             chainId: mockChainId,
           },
@@ -117,8 +122,8 @@ describe('Revoke Document', () => {
       it('should revoke document with explicit contract type', async () => {
         const result = await documentStoreRevoke(
           mockDocumentStoreAddress,
-          wallet,
           mockDocumentHash,
+          wallet,
           {
             chainId: mockChainId,
             isTransferable,
@@ -131,8 +136,8 @@ describe('Revoke Document', () => {
       it('should revoke document without chainId option', async () => {
         const result = await documentStoreRevoke(
           mockDocumentStoreAddress,
-          wallet,
           mockDocumentHash,
+          wallet,
           {
             isTransferable,
           },
@@ -143,8 +148,8 @@ describe('Revoke Document', () => {
       it('should revoke document with gas options', async () => {
         const result = await documentStoreRevoke(
           mockDocumentStoreAddress,
-          wallet,
           mockDocumentHash,
+          wallet,
           {
             chainId: mockChainId,
             maxFeePerGas: '1000000000',
@@ -157,14 +162,14 @@ describe('Revoke Document', () => {
 
       it('should throw when document store address is missing', async () => {
         await expect(
-          documentStoreRevoke('', wallet, mockDocumentHash, { chainId: mockChainId }),
+          documentStoreRevoke('', mockDocumentHash, wallet, { chainId: mockChainId }),
         ).rejects.toThrow('Document store address is required');
       });
 
       it('should throw when provider is missing', async () => {
         const signerWithoutProvider = new WalletV5('0x'.padEnd(66, '1'));
         await expect(
-          documentStoreRevoke(mockDocumentStoreAddress, signerWithoutProvider, mockDocumentHash, {
+          documentStoreRevoke(mockDocumentStoreAddress, mockDocumentHash, signerWithoutProvider, {
             chainId: mockChainId,
           }),
         ).rejects.toThrow('Provider is required');
@@ -172,7 +177,7 @@ describe('Revoke Document', () => {
 
       it('should throw when document hash is missing', async () => {
         await expect(
-          documentStoreRevoke(mockDocumentStoreAddress, wallet, '', { chainId: mockChainId }),
+          documentStoreRevoke(mockDocumentStoreAddress, '', wallet, { chainId: mockChainId }),
         ).rejects.toThrow('Document hash is required');
       });
 
@@ -181,7 +186,7 @@ describe('Revoke Document', () => {
         mockContract.callStatic.revoke.mockRejectedValue(mockError);
         mockContract.revoke.staticCall.mockRejectedValue(mockError);
         await expect(
-          documentStoreRevoke(mockDocumentStoreAddress, wallet, mockDocumentHash, {
+          documentStoreRevoke(mockDocumentStoreAddress, mockDocumentHash, wallet, {
             chainId: mockChainId,
             isTransferable,
           }),
@@ -196,8 +201,9 @@ describe('Revoke Document', () => {
         );
         const result = await documentStoreRevoke(
           mockDocumentStoreAddress,
-          wallet,
           mockDocumentHash,
+          wallet,
+
           {
             chainId: mockChainId,
           },
@@ -211,7 +217,7 @@ describe('Revoke Document', () => {
         mockContract.callStatic.revoke.mockRejectedValue(new Error('Invalid hash format'));
         mockContract.revoke.staticCall.mockRejectedValue(new Error('Invalid hash format'));
         await expect(
-          documentStoreRevoke(mockDocumentStoreAddress, wallet, invalidHash, {
+          documentStoreRevoke(mockDocumentStoreAddress, invalidHash, wallet, {
             chainId: mockChainId,
             isTransferable,
           }),
@@ -222,7 +228,7 @@ describe('Revoke Document', () => {
         mockContract.callStatic.revoke.mockRejectedValue(new Error('Document already revoked'));
         mockContract.revoke.staticCall.mockRejectedValue(new Error('Document already revoked'));
         await expect(
-          documentStoreRevoke(mockDocumentStoreAddress, wallet, mockDocumentHash, {
+          documentStoreRevoke(mockDocumentStoreAddress, mockDocumentHash, wallet, {
             chainId: mockChainId,
             isTransferable,
           }),
@@ -231,7 +237,7 @@ describe('Revoke Document', () => {
 
       it('should work with different document hash formats', async () => {
         const differentHash = '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890';
-        const result = await documentStoreRevoke(mockDocumentStoreAddress, wallet, differentHash, {
+        const result = await documentStoreRevoke(mockDocumentStoreAddress, differentHash, wallet, {
           chainId: mockChainId,
           isTransferable,
         });
@@ -259,8 +265,8 @@ describe('Revoke Document', () => {
       vi.spyOn(coreModule, 'checkSupportsInterface').mockResolvedValue(false);
       const result = await documentStoreRevoke(
         MOCK_TT_DOCUMENT_STORE_ADDRESS,
-        wallet,
         mockDocumentHash,
+        wallet,
         {
           chainId: mockChainId,
         },
@@ -282,8 +288,8 @@ describe('Revoke Document', () => {
       vi.spyOn(coreModule, 'checkSupportsInterface').mockResolvedValue(false);
       const result = await documentStoreRevoke(
         MOCK_TT_DOCUMENT_STORE_ADDRESS,
-        wallet,
         mockDocumentHash,
+        wallet,
         {
           chainId: mockChainId,
         },
@@ -299,8 +305,8 @@ describe('Revoke Document', () => {
       vi.spyOn(coreModule, 'checkSupportsInterface').mockResolvedValue(false);
       const result = await documentStoreRevoke(
         MOCK_TT_DOCUMENT_STORE_ADDRESS,
-        walletV6,
         mockDocumentHash,
+        walletV6,
         {
           chainId: mockChainId,
         },
@@ -314,7 +320,7 @@ describe('Revoke Document', () => {
       mockTTDocumentStoreContract.callStatic.revoke.mockRejectedValue(mockError);
       mockTTDocumentStoreContract.revoke.staticCall.mockRejectedValue(mockError);
       await expect(
-        documentStoreRevoke(MOCK_TT_DOCUMENT_STORE_ADDRESS, wallet, mockDocumentHash, {
+        documentStoreRevoke(MOCK_TT_DOCUMENT_STORE_ADDRESS, mockDocumentHash, wallet, {
           chainId: mockChainId,
         }),
       ).rejects.toThrow('Pre-check (callStatic) for revoke failed');
@@ -324,8 +330,8 @@ describe('Revoke Document', () => {
       vi.spyOn(coreModule, 'checkSupportsInterface').mockResolvedValue(false);
       const result = await documentStoreRevoke(
         MOCK_TT_DOCUMENT_STORE_ADDRESS,
-        wallet,
         mockDocumentHash,
+        wallet,
         {
           chainId: mockChainId,
           maxFeePerGas: '2000000000',
@@ -344,7 +350,7 @@ describe('Revoke Document', () => {
         new Error('Document already revoked'),
       );
       await expect(
-        documentStoreRevoke(MOCK_TT_DOCUMENT_STORE_ADDRESS, wallet, mockDocumentHash, {
+        documentStoreRevoke(MOCK_TT_DOCUMENT_STORE_ADDRESS, mockDocumentHash, wallet, {
           chainId: mockChainId,
         }),
       ).rejects.toThrow('Pre-check (callStatic) for revoke failed');

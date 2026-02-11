@@ -69,7 +69,7 @@ const deployDocumentStore = async (
         signer as any,
       );
       const contract = await ContractFactory.deploy(storeName, owner, txOptions);
-      const receipt = await contract.deploymentTransaction().wait();
+      const receipt = await contract.deploymentTransaction()?.wait();
 
       return receipt;
     } else {
