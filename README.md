@@ -26,6 +26,7 @@ TrustVC is a comprehensive wrapper library designed to simplify the signing and 
       - [a) Token Registry v4](#a-token-registry-v4)
       - [b) Token Registry V5](#b-token-registry-v5)
     - [8. **Document Builder**](#8-document-builder)
+    - [9. **Document Store**](#9-document-store)
 
 ## Installation
 
@@ -889,4 +890,220 @@ To get the current state of the document as a JSON string:
 ```ts
 const documentJson = builder.toString();
 console.log(documentJson);
+```
+
+## 9. Document Store
+
+> TrustVC provides comprehensive Document Store functionality for managing blockchain-based document storage and verification. The Document Store module supports both standard DocumentStore and TransferableDocumentStore contracts, enabling secure document issuance, revocation, and role management on various blockchain networks.
+
+### Key Features
+
+- **Dual Contract Support**: Works with both DocumentStore and TransferableDocumentStore contracts
+- **Automatic Contract Detection**: Uses ERC-165 interface checking to automatically identify contract types
+- **Ethers Compatibility**: Full support for both ethers v5 and v6
+- **Type Safety**: Full TypeScript support with comprehensive type definitions
+
+### Functions
+
+#### deployDocumentStore
+
+Deploys a new DocumentStore contract to the blockchain.
+
+**Parameters:**
+- `storeName` (string): The name of the document store
+- `owner` (string): The owner address of the document store
+- `signer` (Signer): Ethers v5 or v6 signer instance
+- `options` (DeployOptions, optional): Deployment configuration
+
+**DeployOptions:**
+- `chainId` (CHAIN_ID, optional): Target blockchain network
+- `maxFeePerGas` (GasValue, optional): Maximum fee per gas
+- `maxPriorityFeePerGas` (GasValue, optional): Maximum priority fee per gas
+- `isTransferable` (boolean, optional): Whether to deploy TransferableDocumentStore
+
+**Returns:** `Promise<TransactionReceipt>` - The deployment transaction receipt
+
+**Example:**
+
+```ts
+import { deployDocumentStore } from '@trustvc/trustvc';
+
+const receipt = await deployDocumentStore(
+  'My Document Store',
+  '0x1234567890123456789012345678901234567890',
+  signer,
+  {
+    chainId: CHAIN_ID.sepolia,
+    isTransferable: true,
+  }
+);
+
+console.log('Contract deployed at:', receipt.contractAddress);
+```
+
+#### documentStoreIssue
+
+Issues a document to the Document Store.
+
+**Parameters:**
+- `documentStoreAddress` (string): Address of the Document Store contract
+- `documentHash` (string): Hash of the document to issue
+- `signer` (Signer): Ethers v5 or v6 signer instance
+- `options` (IssueOptions, optional): Issuance configuration
+
+**IssueOptions:**
+- `chainId` (CHAIN_ID, optional): Target blockchain network
+- `maxFeePerGas` (GasValue, optional): Maximum fee per gas
+- `maxPriorityFeePerGas` (GasValue, optional): Maximum priority fee per gas
+- `isTransferable` (boolean, optional): Whether the contract is TransferableDocumentStore
+
+**Returns:** `Promise<string>` - Transaction hash of the issuance
+
+**Example:**
+
+```ts
+import { documentStoreIssue } from '@trustvc/trustvc';
+
+const txHash = await documentStoreIssue(
+  '0x1234567890123456789012345678901234567890',
+  '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
+  signer,
+  {
+    chainId: CHAIN_ID.sepolia,
+    isTransferable: false,
+  }
+);
+
+console.log('Document issued, transaction:', txHash);
+```
+
+#### documentStoreRevoke
+
+Revokes a document from the Document Store.
+
+**Parameters:**
+- `documentStoreAddress` (string): Address of the Document Store contract
+- `documentHash` (string): Hash of the document to revoke
+- `signer` (Signer): Ethers v5 or v6 signer instance
+- `options` (RevokeOptions, optional): Revocation configuration
+
+**RevokeOptions:**
+- `chainId` (CHAIN_ID, optional): Target blockchain network
+- `maxFeePerGas` (GasValue, optional): Maximum fee per gas
+- `maxPriorityFeePerGas` (GasValue, optional): Maximum priority fee per gas
+- `isTransferable` (boolean, optional): Whether the contract is TransferableDocumentStore
+
+**Returns:** `Promise<string>` - Transaction hash of the revocation
+
+**Example:**
+
+```ts
+import { documentStoreRevoke } from '@trustvc/trustvc';
+
+const txHash = await documentStoreRevoke(
+  '0x1234567890123456789012345678901234567890',
+  '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
+  signer,
+  {
+    chainId: CHAIN_ID.sepolia,
+    isTransferable: false,
+  }
+);
+
+console.log('Document revoked, transaction:', txHash);
+```
+
+### Contract Types
+
+#### DocumentStore
+- Basic document store functionality
+- Supports document issuance and revocation
+- ERC-165 interface: `0x01ffc9a7` (IDocumentStore)
+
+#### TransferableDocumentStore
+- Extended document store with transfer capabilities
+- All DocumentStore functionality plus transfer features
+- ERC-165 interface: `0x8c5a6b8a` (ITransferableDocumentStore)
+
+### Error Handling
+
+All functions include comprehensive error handling:
+
+- **Validation Errors**: Invalid addresses, missing parameters, provider issues
+- **Contract Errors**: Pre-check failures, insufficient permissions, contract reverts
+- **Network Errors**: Connection issues, transaction failures
+- **Interface Detection**: Automatic fallback when ERC-165 interfaces are not supported
+
+### Gas Optimization
+
+The Document Store functions support gas optimization through configurable transaction options:
+
+```ts
+const options = {
+  maxFeePerGas: '50000000000', // 50 gwei
+  maxPriorityFeePerGas: '2000000000', // 2 gwei
+  chainId: CHAIN_ID.mainnet,
+};
+```
+
+### Usage Patterns
+
+#### Basic Usage
+
+```ts
+import { deployDocumentStore, documentStoreIssue, documentStoreRevoke } from '@trustvc/trustvc';
+
+// Deploy a new document store
+const receipt = await deployDocumentStore('My Store', ownerAddress, signer);
+
+// Issue a document
+await documentStoreIssue(receipt.contractAddress, documentHash, signer);
+
+// Revoke if needed
+await documentStoreRevoke(receipt.contractAddress, documentHash, signer);
+```
+
+#### Advanced Usage with Options
+
+```ts
+import { CHAIN_ID } from '@trustvc/trustvc';
+
+// Deploy with specific network and gas settings
+const receipt = await deployDocumentStore(
+  'Production Store',
+  ownerAddress,
+  signer,
+  {
+    chainId: CHAIN_ID.mainnet,
+    maxFeePerGas: '100000000000', // 100 gwei
+    maxPriorityFeePerGas: '5000000000', // 5 gwei
+    isTransferable: true,
+  }
+);
+
+// Issue with explicit contract type detection
+await documentStoreIssue(
+  receipt.contractAddress,
+  documentHash,
+  signer,
+  {
+    chainId: CHAIN_ID.mainnet,
+    isTransferable: true, // Explicit type detection
+  }
+);
+```
+
+#### Batch Operations
+
+```ts
+// Issue multiple documents
+const documentHashes = [
+  '0xhash1...',
+  '0xhash2...',
+  '0xhash3...',
+];
+
+for (const hash of documentHashes) {
+  await documentStoreIssue(storeAddress, hash, signer);
+}
 ```
