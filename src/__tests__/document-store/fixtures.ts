@@ -61,6 +61,17 @@ vi.mock('../../core', () => ({
   checkSupportsInterface: vi.fn(),
 }));
 
+const documentStoreFxnFragments = [
+  { type: 'function', format: () => 'isActive(bytes32)' },
+  { type: 'function', format: () => 'isIssued(bytes32)' },
+  { type: 'function', format: () => 'isRevoked(bytes32)' },
+  { type: 'function', format: () => 'issue(bytes32)' },
+  { type: 'function', format: () => 'name()' },
+  { type: 'function', format: () => 'revoke(bytes32)' },
+  { type: 'function', format: () => 'grantRole(address, bytes32)' },
+  { type: 'function', format: () => 'revokeRole(address, bytes32)' },
+];
+
 vi.mock('@trustvc/document-store', () => ({
   DocumentStore__factory: class {
     static abi = ['constructor(string storeName, address owner)'];
@@ -100,42 +111,31 @@ vi.mock('@trustvc/document-store', () => ({
   },
   IDocumentStore__factory: {
     createInterface: vi.fn(() => ({
-      fragments: [
-        { type: 'function', format: () => 'isActive(bytes32)' },
-        { type: 'function', format: () => 'isIssued(bytes32)' },
-        { type: 'function', format: () => 'isRevoked(bytes32)' },
-        { type: 'function', format: () => 'name()' },
-        { type: 'function', format: () => 'revoke(bytes32)' },
-      ],
+      fragments: documentStoreFxnFragments,
     })),
   },
   ITransferableDocumentStore__factory: {
     createInterface: vi.fn(() => ({
-      fragments: [
-        { type: 'function', format: () => 'isActive(bytes32)' },
-        { type: 'function', format: () => 'isIssued(bytes32)' },
-        { type: 'function', format: () => 'isRevoked(bytes32)' },
-        { type: 'function', format: () => 'issue(bytes32)' },
-        { type: 'function', format: () => 'name()' },
-        { type: 'function', format: () => 'revoke(bytes32)' },
-      ],
+      fragments: documentStoreFxnFragments,
     })),
   },
 }));
-
+const promiseResolveTrue = vi.fn(() => Promise.resolve(true));
+const promiseResolveFalse = vi.fn(() => Promise.resolve(false));
+const callStaticFxn = {
+  issue: vi.fn(),
+  revoke: vi.fn(),
+  grantRole: vi.fn(),
+  revokeRole: vi.fn(),
+};
 export const mockDocumentStoreContract = {
-  callStatic: {
-    issue: vi.fn(),
-    revoke: vi.fn(),
-    grantRole: vi.fn(),
-    revokeRole: vi.fn(),
-  },
+  callStatic: callStaticFxn,
   issue: Object.assign(
     // Direct call returns transaction response
     vi.fn(() => Promise.resolve('document_store_issue_tx_hash')),
     {
       // Static call returns boolean
-      staticCall: vi.fn(() => Promise.resolve(true)),
+      staticCall: promiseResolveTrue,
     },
   ),
   revoke: Object.assign(
@@ -143,7 +143,7 @@ export const mockDocumentStoreContract = {
     vi.fn(() => Promise.resolve('document_store_revoke_tx_hash')),
     {
       // Static call returns boolean
-      staticCall: vi.fn(() => Promise.resolve(true)),
+      staticCall: promiseResolveTrue,
     },
   ),
   grantRole: Object.assign(
@@ -151,7 +151,7 @@ export const mockDocumentStoreContract = {
     vi.fn(() => Promise.resolve('document_store_grant_role_tx_hash')),
     {
       // Static call returns boolean
-      staticCall: vi.fn(() => Promise.resolve(true)),
+      staticCall: promiseResolveTrue,
     },
   ),
   revokeRole: Object.assign(
@@ -159,28 +159,23 @@ export const mockDocumentStoreContract = {
     vi.fn(() => Promise.resolve('document_store_revoke_role_tx_hash')),
     {
       // Static call returns boolean
-      staticCall: vi.fn(() => Promise.resolve(true)),
+      staticCall: promiseResolveTrue,
     },
   ),
-  isIssued: vi.fn(() => Promise.resolve(true)),
-  isRevoked: vi.fn(() => Promise.resolve(false)),
-  isActive: vi.fn(() => Promise.resolve(true)),
+  isIssued: promiseResolveTrue,
+  isRevoked: promiseResolveFalse,
+  isActive: promiseResolveTrue,
   name: vi.fn(() => Promise.resolve('Test Document Store')),
 };
 
 export const mockTransferableDocumentStoreContract = {
-  callStatic: {
-    issue: vi.fn(),
-    revoke: vi.fn(),
-    grantRole: vi.fn(),
-    revokeRole: vi.fn(),
-  },
+  callStatic: callStaticFxn,
   issue: Object.assign(
     // Direct call returns transaction response
     vi.fn(() => Promise.resolve('transferable_document_store_issue_tx_hash')),
     {
       // Static call returns boolean
-      staticCall: vi.fn(() => Promise.resolve(true)),
+      staticCall: promiseResolveTrue,
     },
   ),
   revoke: Object.assign(
@@ -188,7 +183,7 @@ export const mockTransferableDocumentStoreContract = {
     vi.fn(() => Promise.resolve('transferable_document_store_revoke_tx_hash')),
     {
       // Static call returns boolean
-      staticCall: vi.fn(() => Promise.resolve(true)),
+      staticCall: promiseResolveTrue,
     },
   ),
   grantRole: Object.assign(
@@ -196,7 +191,7 @@ export const mockTransferableDocumentStoreContract = {
     vi.fn(() => Promise.resolve('transferable_document_store_grant_role_tx_hash')),
     {
       // Static call returns boolean
-      staticCall: vi.fn(() => Promise.resolve(true)),
+      staticCall: promiseResolveTrue,
     },
   ),
   revokeRole: Object.assign(
@@ -204,28 +199,23 @@ export const mockTransferableDocumentStoreContract = {
     vi.fn(() => Promise.resolve('transferable_document_store_revoke_role_tx_hash')),
     {
       // Static call returns boolean
-      staticCall: vi.fn(() => Promise.resolve(true)),
+      staticCall: promiseResolveTrue,
     },
   ),
-  isIssued: vi.fn(() => Promise.resolve(true)),
-  isRevoked: vi.fn(() => Promise.resolve(false)),
-  isActive: vi.fn(() => Promise.resolve(true)),
+  isIssued: promiseResolveTrue,
+  isRevoked: promiseResolveFalse,
+  isActive: promiseResolveTrue,
   name: vi.fn(() => Promise.resolve('Test Transferable Document Store')),
 };
 
 export const mockTTDocumentStoreContract = {
-  callStatic: {
-    issue: vi.fn(),
-    revoke: vi.fn(),
-    grantRole: vi.fn(),
-    revokeRole: vi.fn(),
-  },
+  callStatic: callStaticFxn,
   issue: Object.assign(
     // Direct call returns transaction response
     vi.fn(() => Promise.resolve('tt_document_store_issue_tx_hash')),
     {
       // Static call returns boolean
-      staticCall: vi.fn(() => Promise.resolve(true)),
+      staticCall: promiseResolveFalse,
     },
   ),
   revoke: Object.assign(
@@ -233,7 +223,7 @@ export const mockTTDocumentStoreContract = {
     vi.fn(() => Promise.resolve('tt_document_store_revoke_tx_hash')),
     {
       // Static call returns boolean
-      staticCall: vi.fn(() => Promise.resolve(true)),
+      staticCall: promiseResolveFalse,
     },
   ),
   grantRole: Object.assign(
@@ -241,7 +231,7 @@ export const mockTTDocumentStoreContract = {
     vi.fn(() => Promise.resolve('tt_document_store_grant_role_tx_hash')),
     {
       // Static call returns boolean
-      staticCall: vi.fn(() => Promise.resolve(true)),
+      staticCall: promiseResolveFalse,
     },
   ),
   revokeRole: Object.assign(
@@ -249,12 +239,12 @@ export const mockTTDocumentStoreContract = {
     vi.fn(() => Promise.resolve('tt_document_store_revoke_role_tx_hash')),
     {
       // Static call returns boolean
-      staticCall: vi.fn(() => Promise.resolve(true)),
+      staticCall: promiseResolveFalse,
     },
   ),
-  isIssued: vi.fn(() => Promise.resolve(true)),
-  isRevoked: vi.fn(() => Promise.resolve(false)),
-  isActive: vi.fn(() => Promise.resolve(true)),
+  isIssued: promiseResolveFalse,
+  isRevoked: promiseResolveFalse,
+  isActive: promiseResolveTrue,
   name: vi.fn(() => Promise.resolve('Test TT Document Store')),
 };
 
