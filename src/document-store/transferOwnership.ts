@@ -15,7 +15,7 @@ export interface IssueOptions {
 }
 
 /**
- * Revokes a role from an account on the DocumentStore contract.
+ * Transfers ownership of a DocumentStore contract to a new owner.
  * Supports both Ethers v5 and v6 signers.
  * Supports three types of document stores:
  * 1. DocumentStore (ERC-165 compliant)
@@ -55,6 +55,14 @@ export const transferOwnershipDocumentStore = async (
     signer,
     options,
   );
+  //check if the grant transaction is successful
+  const grantTransactionResult = await grantTransaction;
+  if (!grantTransactionResult) {
+    //add custom error message not proceeding eith the revoke transaction
+    throw new Error('Grant transaction failed, not proceeding with revoke transaction');
+    //return the grant transaction result
+  }
+  //call revoke function here
   const revokeTransaction = revokeDocumentStoreRole(
     documentStoreAddress,
     roleString,
@@ -62,5 +70,11 @@ export const transferOwnershipDocumentStore = async (
     signer,
     options,
   );
+  //check if the revoke transaction is successful
+  const revokeTransactionResult = await revokeTransaction;
+  if (!revokeTransactionResult) {
+    throw new Error('Revoke transaction failed');
+    //return the revoke transaction result
+  }
   return { grantTransaction, revokeTransaction };
 };

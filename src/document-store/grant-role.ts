@@ -121,7 +121,7 @@ export const grantDocumentStoreRole = async (
     }
   } catch (e) {
     console.error('callStatic failed:', e);
-    throw new Error('Pre-check (callStatic) for issue failed');
+    throw new Error('Pre-check (callStatic) for grant-role failed');
   }
 
   // Get transaction options (gas settings)

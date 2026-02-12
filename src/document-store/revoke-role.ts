@@ -121,7 +121,7 @@ export const revokeDocumentStoreRole = async (
     }
   } catch (e) {
     console.error('callStatic failed:', e);
-    throw new Error('Pre-check (callStatic) for issue failed');
+    throw new Error('Pre-check (callStatic) for revoke-role failed');
   }
 
   // Get transaction options (gas settings)

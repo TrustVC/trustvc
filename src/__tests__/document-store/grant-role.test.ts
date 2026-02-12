@@ -65,23 +65,13 @@ describe('Grant Document Store Role', () => {
         ? 'transferable_document_store_grant_role_tx_hash'
         : 'document_store_grant_role_tx_hash';
 
-      let wallet: ethersV5.Wallet | ethersV6.Wallet;
-      if (ethersVersion === 'v5') {
-        wallet = new WalletV5(PRIVATE_KEY, Provider as any) as ethersV5.Wallet;
-        vi.spyOn(wallet, 'getChainId').mockResolvedValue(mockChainId as unknown as number);
-      } else {
-        wallet = new WalletV6(PRIVATE_KEY, Provider as any);
-        vi.spyOn(Provider, 'getNetwork').mockResolvedValue({
-          chainId: mockChainId,
-        } as unknown as Network);
-      }
-
       const mockDocumentStoreAddress = isTransferable
         ? MOCK_TRANSFERABLE_DOCUMENT_STORE_ADDRESS
         : MOCK_DOCUMENT_STORE_ADDRESS;
 
+      let wallet: ethersV5.Wallet | ethersV6.Wallet;
+
       beforeAll(() => {
-        vi.clearAllMocks();
         const mockContractConstructor = (mockContract: any) => vi.fn(() => mockContract);
         vi.mocked(getEthersContractFromProvider).mockReturnValue(
           mockContractConstructor(mockContract),
@@ -100,6 +90,16 @@ describe('Grant Document Store Role', () => {
         );
         mockContract.callStatic.grantRole.mockResolvedValue(true);
         mockContract.grantRole.staticCall.mockResolvedValue(true);
+
+        if (ethersVersion === 'v5') {
+          wallet = new WalletV5(PRIVATE_KEY, Provider as any) as ethersV5.Wallet;
+          vi.spyOn(wallet, 'getChainId').mockResolvedValue(mockChainId as unknown as number);
+        } else {
+          wallet = new WalletV6(PRIVATE_KEY, Provider as any);
+          vi.spyOn(Provider, 'getNetwork').mockResolvedValue({
+            chainId: mockChainId,
+          } as unknown as Network);
+        }
       });
 
       it('should grant role successfully', async () => {
@@ -167,7 +167,9 @@ describe('Grant Document Store Role', () => {
       });
 
       it('should throw when provider is missing', async () => {
-        const signerWithoutProvider = new WalletV5('0x'.padEnd(66, '1'));
+        const signerWithoutProvider = new (ethersVersion === 'v5' ? WalletV5 : WalletV6)(
+          '0x'.padEnd(66, '1'),
+        );
         await expect(
           grantDocumentStoreRole(
             mockDocumentStoreAddress,
@@ -206,7 +208,7 @@ describe('Grant Document Store Role', () => {
             chainId: mockChainId,
             isTransferable,
           }),
-        ).rejects.toThrow('Pre-check (callStatic) for issue failed');
+        ).rejects.toThrow('Pre-check (callStatic) for grant-role failed');
       });
 
       it('should fallback to TT Document Store when ERC-165 interfaces not supported', async () => {
@@ -237,7 +239,7 @@ describe('Grant Document Store Role', () => {
             chainId: mockChainId,
             isTransferable,
           }),
-        ).rejects.toThrow('Pre-check (callStatic) for issue failed');
+        ).rejects.toThrow('Pre-check (callStatic) for grant-role failed');
       });
 
       it('should handle already granted role', async () => {
@@ -248,7 +250,7 @@ describe('Grant Document Store Role', () => {
             chainId: mockChainId,
             isTransferable,
           }),
-        ).rejects.toThrow('Pre-check (callStatic) for issue failed');
+        ).rejects.toThrow('Pre-check (callStatic) for grant-role failed');
       });
 
       it('should work with different role and account addresses', async () => {
@@ -349,7 +351,7 @@ describe('Grant Document Store Role', () => {
         grantDocumentStoreRole(MOCK_TT_DOCUMENT_STORE_ADDRESS, mockRole, mockAccount, wallet, {
           chainId: mockChainId,
         }),
-      ).rejects.toThrow('Pre-check (callStatic) for issue failed');
+      ).rejects.toThrow('Pre-check (callStatic) for grant-role failed');
     });
 
     it('should grant role TT Document Store with gas options', async () => {
@@ -380,7 +382,7 @@ describe('Grant Document Store Role', () => {
         grantDocumentStoreRole(MOCK_TT_DOCUMENT_STORE_ADDRESS, mockRole, mockAccount, wallet, {
           chainId: mockChainId,
         }),
-      ).rejects.toThrow('Pre-check (callStatic) for issue failed');
+      ).rejects.toThrow('Pre-check (callStatic) for grant-role failed');
     });
   });
 });

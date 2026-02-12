@@ -66,15 +66,6 @@ describe('Revoke Document Store Role', () => {
         : 'document_store_revoke_role_tx_hash';
 
       let wallet: ethersV5.Wallet | ethersV6.Wallet;
-      if (ethersVersion === 'v5') {
-        wallet = new WalletV5(PRIVATE_KEY, Provider as any) as ethersV5.Wallet;
-        vi.spyOn(wallet, 'getChainId').mockResolvedValue(mockChainId as unknown as number);
-      } else {
-        wallet = new WalletV6(PRIVATE_KEY, Provider as any);
-        vi.spyOn(Provider, 'getNetwork').mockResolvedValue({
-          chainId: mockChainId,
-        } as unknown as Network);
-      }
 
       const mockDocumentStoreAddress = isTransferable
         ? MOCK_TRANSFERABLE_DOCUMENT_STORE_ADDRESS
@@ -100,6 +91,16 @@ describe('Revoke Document Store Role', () => {
         );
         mockContract.callStatic.revokeRole.mockResolvedValue(true);
         mockContract.revokeRole.staticCall.mockResolvedValue(true);
+
+        if (ethersVersion === 'v5') {
+          wallet = new WalletV5(PRIVATE_KEY, Provider as any) as ethersV5.Wallet;
+          vi.spyOn(wallet, 'getChainId').mockResolvedValue(mockChainId as unknown as number);
+        } else {
+          wallet = new WalletV6(PRIVATE_KEY, Provider as any);
+          vi.spyOn(Provider, 'getNetwork').mockResolvedValue({
+            chainId: mockChainId,
+          } as unknown as Network);
+        }
       });
 
       it('should revoke role successfully', async () => {
@@ -208,7 +209,7 @@ describe('Revoke Document Store Role', () => {
             chainId: mockChainId,
             isTransferable,
           }),
-        ).rejects.toThrow('Pre-check (callStatic) for issue failed');
+        ).rejects.toThrow('Pre-check (callStatic) for revoke-role failed');
       });
 
       it('should fallback to TT Document Store when ERC-165 interfaces not supported', async () => {
@@ -242,7 +243,7 @@ describe('Revoke Document Store Role', () => {
             chainId: mockChainId,
             isTransferable,
           }),
-        ).rejects.toThrow('Pre-check (callStatic) for issue failed');
+        ).rejects.toThrow('Pre-check (callStatic) for revoke-role failed');
       });
 
       it('should handle role not granted error', async () => {
@@ -253,11 +254,11 @@ describe('Revoke Document Store Role', () => {
             chainId: mockChainId,
             isTransferable,
           }),
-        ).rejects.toThrow('Pre-check (callStatic) for issue failed');
+        ).rejects.toThrow('Pre-check (callStatic) for revoke-role failed');
       });
 
       it('should work with different role and account addresses', async () => {
-        const differentRole = '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890';
+        const differentRole = '0x1111111111111111111111111111111111111111111111111111111111111111';
         const differentAccount = '0x9876543210987654321098765432109876543210';
         const result = await revokeDocumentStoreRole(
           mockDocumentStoreAddress,
@@ -354,7 +355,7 @@ describe('Revoke Document Store Role', () => {
         revokeDocumentStoreRole(MOCK_TT_DOCUMENT_STORE_ADDRESS, mockRole, mockAccount, wallet, {
           chainId: mockChainId,
         }),
-      ).rejects.toThrow('Pre-check (callStatic) for issue failed');
+      ).rejects.toThrow('Pre-check (callStatic) for revoke-role failed');
     });
 
     it('should revoke role TT Document Store with gas options', async () => {
@@ -385,7 +386,7 @@ describe('Revoke Document Store Role', () => {
         revokeDocumentStoreRole(MOCK_TT_DOCUMENT_STORE_ADDRESS, mockRole, mockAccount, wallet, {
           chainId: mockChainId,
         }),
-      ).rejects.toThrow('Pre-check (callStatic) for issue failed');
+      ).rejects.toThrow('Pre-check (callStatic) for revoke-role failed');
     });
   });
 });
