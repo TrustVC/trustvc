@@ -21,8 +21,8 @@ import {
 } from './token-registry-v5';
 import {
   deployDocumentStore,
-  // grantDocumentStoreRole,
-  // revokeDocumentStoreRole,
+  grantDocumentStoreRole,
+  revokeDocumentStoreRole,
   documentStoreIssue,
   documentStoreRevoke,
   DocumentStore__factory,
@@ -57,8 +57,8 @@ export {
   v5GetEventFromReceipt,
   v5ComputeInterfaceId,
   deployDocumentStore,
-  // grantDocumentStoreRole,
-  // revokeDocumentStoreRole,
+  grantDocumentStoreRole,
+  revokeDocumentStoreRole,
   documentStoreIssue,
   documentStoreRevoke,
   DocumentStore__factory,

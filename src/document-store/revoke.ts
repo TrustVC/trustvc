@@ -82,12 +82,6 @@ const documentStoreRevoke = async (
     }
   }
 
-  if (!isDocumentStore && !isTransferableDocumentStore && !isTTDocumentStore) {
-    throw new Error(
-      'Contract does not support DocumentStore, TransferableDocumentStore, or TT Document Store interface',
-    );
-  }
-
   // Get the appropriate Contract class based on provider version
   const Contract = getEthersContractFromProvider(signer.provider);
 

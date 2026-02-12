@@ -1,18 +1,10 @@
 import { Signer as SignerV6, ContractTransaction as ContractTransactionV6 } from 'ethersV6';
 import { ContractTransaction as ContractTransactionV5, Signer as SignerV5 } from 'ethers';
-import { CHAIN_ID } from '../utils';
-import { GasValue } from '../token-registry-functions/types';
 import { revokeDocumentStoreRole } from './revoke-role';
 
 import { grantDocumentStoreRole } from './grant-role';
 import { getRoleString } from './document-store-roles';
-
-export interface IssueOptions {
-  chainId?: CHAIN_ID;
-  maxFeePerGas?: GasValue;
-  maxPriorityFeePerGas?: GasValue;
-  isTransferable?: boolean;
-}
+import { CommandOptions } from './types';
 
 /**
  * Transfers ownership of a DocumentStore contract to a new owner.
@@ -24,7 +16,7 @@ export interface IssueOptions {
  * @param {string} documentStoreAddress - The address of the DocumentStore contract.
  * @param {string} account - The account to revoke the role from.
  * @param {SignerV5 | SignerV6} signer - Signer instance (Ethers v5 or v6) that authorizes the revoke role transaction.
- * @param {IssueOptions} options - Optional transaction metadata including gas values and chain ID.
+ * @param {CommandOptions} options - Optional transaction metadata including gas values and chain ID.
  * @returns {Promise<{grantTransaction: Promise<ContractTransactionV5 | ContractTransactionV6>; revokeTransaction: Promise<ContractTransactionV5 | ContractTransactionV6>}>} A promise resolving to the transaction result from the revoke role call.
  * @throws {Error} If the document store address or signer provider is not provided.
  * @throws {Error} If the role is invalid.
@@ -34,7 +26,7 @@ export const transferOwnershipDocumentStore = async (
   documentStoreAddress: string,
   account: string,
   signer: SignerV5 | SignerV6,
-  options: IssueOptions = {},
+  options: CommandOptions = {},
 ): Promise<{
   grantTransaction: Promise<ContractTransactionV5 | ContractTransactionV6>;
   revokeTransaction: Promise<ContractTransactionV5 | ContractTransactionV6>;

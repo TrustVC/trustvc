@@ -8,8 +8,6 @@ import {
   ContractTransaction as ContractTransactionV5,
   Signer as SignerV5,
 } from 'ethers';
-import { CHAIN_ID } from '../utils';
-import { GasValue } from '../token-registry-functions/types';
 import { checkSupportsInterface } from '../core';
 import { supportInterfaceIds } from './supportInterfaceIds';
 import { TT_DOCUMENT_STORE_ABI } from './tt-document-store-abi';
@@ -19,13 +17,7 @@ import {
   TransferableDocumentStore__factory,
 } from '@trustvc/document-store';
 import { getTxOptions } from '../token-registry-functions/utils';
-
-export interface IssueOptions {
-  chainId?: CHAIN_ID;
-  maxFeePerGas?: GasValue;
-  maxPriorityFeePerGas?: GasValue;
-  isTransferable?: boolean;
-}
+import { CommandOptions } from './types';
 
 /**
  * Revokes a role from an account on the DocumentStore contract.
@@ -38,7 +30,7 @@ export interface IssueOptions {
  * @param {string} role - The role to revoke (e.g., 'ISSUER', 'REVOKER', 'ADMIN').
  * @param {string} account - The account to revoke the role from.
  * @param {SignerV5 | SignerV6} signer - Signer instance (Ethers v5 or v6) that authorizes the revoke role transaction.
- * @param {IssueOptions} options - Optional transaction metadata including gas values and chain ID.
+ * @param {CommandOptions} options - Optional transaction metadata including gas values and chain ID.
  * @returns {Promise<ContractTransactionV5 | ContractTransactionV6>} A promise resolving to the transaction result from the revoke role call.
  * @throws {Error} If the document store address or signer provider is not provided.
  * @throws {Error} If the role is invalid.
@@ -49,7 +41,7 @@ export const revokeDocumentStoreRole = async (
   role: string,
   account: string,
   signer: SignerV5 | SignerV6,
-  options: IssueOptions = {},
+  options: CommandOptions = {},
 ): Promise<ContractTransactionV5 | ContractTransactionV6> => {
   if (!documentStoreAddress) throw new Error('Document store address is required');
   if (!signer.provider) throw new Error('Provider is required');
@@ -82,12 +74,6 @@ export const revokeDocumentStoreRole = async (
     if (!isDocumentStore && !isTransferableDocumentStore) {
       isTTDocumentStore = true;
     }
-  }
-
-  if (!isDocumentStore && !isTransferableDocumentStore && !isTTDocumentStore) {
-    throw new Error(
-      'Contract does not support DocumentStore, TransferableDocumentStore, or TT Document Store interface',
-    );
   }
 
   // Get the appropriate Contract class based on provider version
