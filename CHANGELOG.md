@@ -1,3 +1,10 @@
+## [2.7.0](https://github.com/TrustVC/trustvc/compare/v2.6.1...v2.7.0) (2026-02-12)
+
+
+### Features
+
+* deploy issue revoke functions ([#128](https://github.com/TrustVC/trustvc/issues/128)) ([ba89e9c](https://github.com/TrustVC/trustvc/commit/ba89e9ca095dfb2386a47f48c685ba9b6734192a))
+
 ## [2.6.1](https://github.com/TrustVC/trustvc/compare/v2.6.0...v2.6.1) (2026-02-10)
 
 
