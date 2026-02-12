@@ -208,7 +208,7 @@ describe('Issue Document', () => {
         // Mock the contract to use TT Document Store
         const mockContractConstructor = (mockContract: any) => vi.fn(() => mockContract);
         vi.mocked(getEthersContractFromProvider).mockReturnValue(
-          mockContractConstructor(mockContract),
+          mockContractConstructor(mockTTDocumentStoreContract),
         );
 
         const result = await documentStoreIssue(
@@ -227,6 +227,10 @@ describe('Issue Document', () => {
       });
 
       it('should handle invalid document hash format gracefully', async () => {
+        const mockContractConstructor = (mockContract: any) => vi.fn(() => mockContract);
+        vi.mocked(getEthersContractFromProvider).mockReturnValue(
+          mockContractConstructor(mockContract),
+        );
         const invalidHash = '0xinvalid';
         mockContract.callStatic.issue.mockRejectedValue(new Error('Invalid hash format'));
         mockContract.issue.staticCall.mockRejectedValue(new Error('Invalid hash format'));

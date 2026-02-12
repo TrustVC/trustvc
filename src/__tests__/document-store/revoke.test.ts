@@ -197,7 +197,7 @@ describe('Revoke Document', () => {
         vi.spyOn(coreModule, 'checkSupportsInterface').mockResolvedValue(false);
         const mockContractConstructor = (mockContract: any) => vi.fn(() => mockContract);
         vi.mocked(getEthersContractFromProvider).mockReturnValue(
-          mockContractConstructor(mockContract),
+          mockContractConstructor(mockTTDocumentStoreContract),
         );
         const result = await documentStoreRevoke(
           mockDocumentStoreAddress,
@@ -210,6 +210,9 @@ describe('Revoke Document', () => {
         );
         expect(result).toBeDefined();
         expect(coreModule.checkSupportsInterface).toHaveBeenCalledTimes(2);
+        vi.mocked(getEthersContractFromProvider).mockReturnValue(
+          mockContractConstructor(mockContract),
+        );
       });
 
       it('should handle invalid document hash format gracefully', async () => {
