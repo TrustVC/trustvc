@@ -167,7 +167,9 @@ describe('Revoke Document', () => {
       });
 
       it('should throw when provider is missing', async () => {
-        const signerWithoutProvider = new WalletV5('0x'.padEnd(66, '1'));
+        const signerWithoutProvider = new (ethersVersion === 'v5' ? WalletV5 : WalletV6)(
+          '0x'.padEnd(66, '1'),
+        );
         await expect(
           documentStoreRevoke(mockDocumentStoreAddress, mockDocumentHash, signerWithoutProvider, {
             chainId: mockChainId,
