@@ -114,9 +114,9 @@ const documentStoreRevoke = async (
     const isV6 = isV6EthersProvider(signer.provider);
 
     if (isV6) {
-      await (documentStoreContract as ContractV6).revoke.staticCall(documentHash);
+      await (documentStoreContract as ContractV6)['revoke(bytes32)'].staticCall(documentHash);
     } else {
-      await (documentStoreContract as ContractV5).callStatic.revoke(documentHash);
+      await (documentStoreContract as ContractV5).callStatic['revoke(bytes32)'](documentHash);
     }
   } catch (e) {
     console.error('callStatic failed:', e);
@@ -125,9 +125,8 @@ const documentStoreRevoke = async (
 
   // Get transaction options (gas settings)
   const txOptions = await getTxOptions(signer, chainId, maxFeePerGas, maxPriorityFeePerGas);
-
   // Send the actual transaction
-  return await documentStoreContract.revoke(documentHash, txOptions);
+  return await documentStoreContract['revoke(bytes32)'](documentHash, txOptions);
 };
 
 export { documentStoreRevoke };
