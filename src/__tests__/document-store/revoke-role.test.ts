@@ -56,7 +56,7 @@ describe('Revoke Document Store Role', () => {
 
   describe.each(providers)(
     'Revoke role with $contractType and ethers version $ethersVersion',
-    async ({ Provider, ethersVersion, contractType }) => {
+    ({ Provider, ethersVersion, contractType }) => {
       const isTransferable = contractType === 'TransferableDocumentStore';
       const mockContract = isTransferable
         ? mockTransferableDocumentStoreContract

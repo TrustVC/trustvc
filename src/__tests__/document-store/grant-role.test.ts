@@ -56,7 +56,7 @@ describe('Grant Document Store Role', () => {
 
   describe.each(providers)(
     'Grant role with $contractType and ethers version $ethersVersion',
-    async ({ Provider, ethersVersion, contractType }) => {
+    ({ Provider, ethersVersion, contractType }) => {
       const isTransferable = contractType === 'TransferableDocumentStore';
       const mockContract = isTransferable
         ? mockTransferableDocumentStoreContract
