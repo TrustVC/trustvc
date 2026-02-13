@@ -1,3 +1,10 @@
+## [2.8.0](https://github.com/TrustVC/trustvc/compare/v2.7.0...v2.8.0) (2026-02-13)
+
+
+### Features
+
+* role transfer function ([#129](https://github.com/TrustVC/trustvc/issues/129)) ([c600562](https://github.com/TrustVC/trustvc/commit/c600562dcabca7275e6cfea18e579a94cef77c1a))
+
 ## [2.7.0](https://github.com/TrustVC/trustvc/compare/v2.6.1...v2.7.0) (2026-02-12)
 
 
