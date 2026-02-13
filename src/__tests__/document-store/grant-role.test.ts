@@ -4,7 +4,7 @@ import { ethers as ethersV5, Wallet as WalletV5 } from 'ethers';
 import { Wallet as WalletV6, Network, ethers as ethersV6 } from 'ethersV6';
 import * as coreModule from '../../core';
 
-import { grantDocumentStoreRole } from '../../document-store/grant-role';
+import { documentStoreGrantRole } from '../../document-store/grant-role';
 import {
   MOCK_DOCUMENT_STORE_ADDRESS,
   MOCK_TRANSFERABLE_DOCUMENT_STORE_ADDRESS,
@@ -103,7 +103,7 @@ describe('Grant Document Store Role', () => {
       });
 
       it('should grant role successfully', async () => {
-        const result = await grantDocumentStoreRole(
+        const result = await documentStoreGrantRole(
           mockDocumentStoreAddress,
           mockRole,
           mockAccount,
@@ -117,7 +117,7 @@ describe('Grant Document Store Role', () => {
       });
 
       it('should grant role with explicit contract type', async () => {
-        const result = await grantDocumentStoreRole(
+        const result = await documentStoreGrantRole(
           mockDocumentStoreAddress,
           mockRole,
           mockAccount,
@@ -132,7 +132,7 @@ describe('Grant Document Store Role', () => {
       });
 
       it('should grant role without chainId option', async () => {
-        const result = await grantDocumentStoreRole(
+        const result = await documentStoreGrantRole(
           mockDocumentStoreAddress,
           mockRole,
           mockAccount,
@@ -145,7 +145,7 @@ describe('Grant Document Store Role', () => {
       });
 
       it('should grant role with gas options', async () => {
-        const result = await grantDocumentStoreRole(
+        const result = await documentStoreGrantRole(
           mockDocumentStoreAddress,
           mockRole,
           mockAccount,
@@ -162,7 +162,7 @@ describe('Grant Document Store Role', () => {
 
       it('should throw when document store address is missing', async () => {
         await expect(
-          grantDocumentStoreRole('', mockRole, mockAccount, wallet, { chainId: mockChainId }),
+          documentStoreGrantRole('', mockRole, mockAccount, wallet, { chainId: mockChainId }),
         ).rejects.toThrow('Document store address is required');
       });
 
@@ -171,7 +171,7 @@ describe('Grant Document Store Role', () => {
           '0x'.padEnd(66, '1'),
         );
         await expect(
-          grantDocumentStoreRole(
+          documentStoreGrantRole(
             mockDocumentStoreAddress,
             mockRole,
             mockAccount,
@@ -185,7 +185,7 @@ describe('Grant Document Store Role', () => {
 
       it('should throw when role is missing', async () => {
         await expect(
-          grantDocumentStoreRole(mockDocumentStoreAddress, '', mockAccount, wallet, {
+          documentStoreGrantRole(mockDocumentStoreAddress, '', mockAccount, wallet, {
             chainId: mockChainId,
           }),
         ).rejects.toThrow('Role is required');
@@ -193,7 +193,7 @@ describe('Grant Document Store Role', () => {
 
       it('should throw when account is missing', async () => {
         await expect(
-          grantDocumentStoreRole(mockDocumentStoreAddress, mockRole, '', wallet, {
+          documentStoreGrantRole(mockDocumentStoreAddress, mockRole, '', wallet, {
             chainId: mockChainId,
           }),
         ).rejects.toThrow('Account is required');
@@ -204,7 +204,7 @@ describe('Grant Document Store Role', () => {
         mockContract.callStatic.grantRole.mockRejectedValue(mockError);
         mockContract.grantRole.staticCall.mockRejectedValue(mockError);
         await expect(
-          grantDocumentStoreRole(mockDocumentStoreAddress, mockRole, mockAccount, wallet, {
+          documentStoreGrantRole(mockDocumentStoreAddress, mockRole, mockAccount, wallet, {
             chainId: mockChainId,
             isTransferable,
           }),
@@ -217,7 +217,7 @@ describe('Grant Document Store Role', () => {
         vi.mocked(getEthersContractFromProvider).mockReturnValue(
           mockContractConstructor(mockContract),
         );
-        const result = await grantDocumentStoreRole(
+        const result = await documentStoreGrantRole(
           mockDocumentStoreAddress,
           mockRole,
           mockAccount,
@@ -235,7 +235,7 @@ describe('Grant Document Store Role', () => {
         mockContract.callStatic.grantRole.mockRejectedValue(new Error('Invalid role format'));
         mockContract.grantRole.staticCall.mockRejectedValue(new Error('Invalid role format'));
         await expect(
-          grantDocumentStoreRole(mockDocumentStoreAddress, invalidRole, mockAccount, wallet, {
+          documentStoreGrantRole(mockDocumentStoreAddress, invalidRole, mockAccount, wallet, {
             chainId: mockChainId,
             isTransferable,
           }),
@@ -246,7 +246,7 @@ describe('Grant Document Store Role', () => {
         mockContract.callStatic.grantRole.mockRejectedValue(new Error('Role already granted'));
         mockContract.grantRole.staticCall.mockRejectedValue(new Error('Role already granted'));
         await expect(
-          grantDocumentStoreRole(mockDocumentStoreAddress, mockRole, mockAccount, wallet, {
+          documentStoreGrantRole(mockDocumentStoreAddress, mockRole, mockAccount, wallet, {
             chainId: mockChainId,
             isTransferable,
           }),
@@ -256,7 +256,7 @@ describe('Grant Document Store Role', () => {
       it('should work with different role and account addresses', async () => {
         const differentRole = '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890';
         const differentAccount = '0x9876543210987654321098765432109876543210';
-        const result = await grantDocumentStoreRole(
+        const result = await documentStoreGrantRole(
           mockDocumentStoreAddress,
           differentRole,
           differentAccount,
@@ -288,7 +288,7 @@ describe('Grant Document Store Role', () => {
 
     it('should auto-detect TT Document Store as fallback when ERC-165 interfaces not supported', async () => {
       vi.spyOn(coreModule, 'checkSupportsInterface').mockResolvedValue(false);
-      const result = await grantDocumentStoreRole(
+      const result = await documentStoreGrantRole(
         MOCK_TT_DOCUMENT_STORE_ADDRESS,
         mockRole,
         mockAccount,
@@ -312,7 +312,7 @@ describe('Grant Document Store Role', () => {
 
     it('should grant role with TT Document Store (ethers v5)', async () => {
       vi.spyOn(coreModule, 'checkSupportsInterface').mockResolvedValue(false);
-      const result = await grantDocumentStoreRole(
+      const result = await documentStoreGrantRole(
         MOCK_TT_DOCUMENT_STORE_ADDRESS,
         mockRole,
         mockAccount,
@@ -330,7 +330,7 @@ describe('Grant Document Store Role', () => {
         chainId: mockChainId,
       } as unknown as Network);
       vi.spyOn(coreModule, 'checkSupportsInterface').mockResolvedValue(false);
-      const result = await grantDocumentStoreRole(
+      const result = await documentStoreGrantRole(
         MOCK_TT_DOCUMENT_STORE_ADDRESS,
         mockRole,
         mockAccount,
@@ -348,7 +348,7 @@ describe('Grant Document Store Role', () => {
       mockTTDocumentStoreContract.callStatic.grantRole.mockRejectedValue(mockError);
       mockTTDocumentStoreContract.grantRole.staticCall.mockRejectedValue(mockError);
       await expect(
-        grantDocumentStoreRole(MOCK_TT_DOCUMENT_STORE_ADDRESS, mockRole, mockAccount, wallet, {
+        documentStoreGrantRole(MOCK_TT_DOCUMENT_STORE_ADDRESS, mockRole, mockAccount, wallet, {
           chainId: mockChainId,
         }),
       ).rejects.toThrow('Pre-check (callStatic) for grant-role failed');
@@ -356,7 +356,7 @@ describe('Grant Document Store Role', () => {
 
     it('should grant role TT Document Store with gas options', async () => {
       vi.spyOn(coreModule, 'checkSupportsInterface').mockResolvedValue(false);
-      const result = await grantDocumentStoreRole(
+      const result = await documentStoreGrantRole(
         MOCK_TT_DOCUMENT_STORE_ADDRESS,
         mockRole,
         mockAccount,
@@ -379,7 +379,7 @@ describe('Grant Document Store Role', () => {
         new Error('Role already granted'),
       );
       await expect(
-        grantDocumentStoreRole(MOCK_TT_DOCUMENT_STORE_ADDRESS, mockRole, mockAccount, wallet, {
+        documentStoreGrantRole(MOCK_TT_DOCUMENT_STORE_ADDRESS, mockRole, mockAccount, wallet, {
           chainId: mockChainId,
         }),
       ).rejects.toThrow('Pre-check (callStatic) for grant-role failed');

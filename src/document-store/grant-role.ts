@@ -36,7 +36,7 @@ import { CommandOptions } from './types';
  * @throws {Error} If the role is invalid.
  * @throws {Error} If the `callStatic.grantRole` fails as a pre-check.
  */
-export const grantDocumentStoreRole = async (
+export const documentStoreGrantRole = async (
   documentStoreAddress: string,
   role: string,
   account: string,

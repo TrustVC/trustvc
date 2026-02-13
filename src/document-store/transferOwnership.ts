@@ -1,8 +1,8 @@
 import { Signer as SignerV6, ContractTransaction as ContractTransactionV6 } from 'ethersV6';
 import { ContractTransaction as ContractTransactionV5, Signer as SignerV5 } from 'ethers';
-import { revokeDocumentStoreRole } from './revoke-role';
+import { documentStoreRevokeRole } from './revoke-role';
 
-import { grantDocumentStoreRole } from './grant-role';
+import { documentStoreGrantRole } from './grant-role';
 import { getRoleString } from './document-store-roles';
 import { CommandOptions } from './types';
 
@@ -14,15 +14,15 @@ import { CommandOptions } from './types';
  * 2. TransferableDocumentStore (ERC-165 compliant)
  * 3. TT Document Store (legacy, no ERC-165 support - used as fallback)
  * @param {string} documentStoreAddress - The address of the DocumentStore contract.
- * @param {string} account - The account to revoke the role from.
- * @param {SignerV5 | SignerV6} signer - Signer instance (Ethers v5 or v6) that authorizes the revoke role transaction.
+ * @param {string} account - The account to transfer ownership to.
+ * @param {SignerV5 | SignerV6} signer - Signer instance (Ethers v5 or v6) that authorizes the transfer ownership transaction.
  * @param {CommandOptions} options - Optional transaction metadata including gas values and chain ID.
- * @returns {Promise<{grantTransaction: Promise<ContractTransactionV5 | ContractTransactionV6>; revokeTransaction: Promise<ContractTransactionV5 | ContractTransactionV6>}>} A promise resolving to the transaction result from the revoke role call.
+ * @returns {Promise<{grantTransaction: Promise<ContractTransactionV5 | ContractTransactionV6>; revokeTransaction: Promise<ContractTransactionV5 | ContractTransactionV6>}>} A promise resolving to the transaction result from the grant and revoke role calls.
  * @throws {Error} If the document store address or signer provider is not provided.
  * @throws {Error} If the role is invalid.
  * @throws {Error} If the `callStatic.revokeRole` fails as a pre-check.
  */
-export const transferOwnershipDocumentStore = async (
+export const documentStoreTransferOwnership = async (
   documentStoreAddress: string,
   account: string,
   signer: SignerV5 | SignerV6,
@@ -36,11 +36,13 @@ export const transferOwnershipDocumentStore = async (
   if (!account) throw new Error('Account is required');
 
   const ownerAddress = await signer.getAddress();
-  const roleString = await getRoleString(documentStoreAddress, 'admin');
+  const roleString = await getRoleString(documentStoreAddress, 'admin', {
+    provider: signer.provider,
+  });
   //call the transferOwnership function of the document store contract
 
   //call grant and revoke function here
-  const grantTransaction = grantDocumentStoreRole(
+  const grantTransaction = documentStoreGrantRole(
     documentStoreAddress,
     roleString,
     account,
@@ -55,7 +57,7 @@ export const transferOwnershipDocumentStore = async (
     //return the grant transaction result
   }
   //call revoke function here
-  const revokeTransaction = revokeDocumentStoreRole(
+  const revokeTransaction = documentStoreRevokeRole(
     documentStoreAddress,
     roleString,
     ownerAddress,

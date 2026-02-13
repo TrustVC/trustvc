@@ -4,7 +4,7 @@ import { ethers as ethersV5, Wallet as WalletV5 } from 'ethers';
 import { Wallet as WalletV6, Network, ethers as ethersV6 } from 'ethersV6';
 import * as coreModule from '../../core';
 
-import { revokeDocumentStoreRole } from '../../document-store/revoke-role';
+import { documentStoreRevokeRole } from '../../document-store/revoke-role';
 import {
   MOCK_DOCUMENT_STORE_ADDRESS,
   MOCK_TRANSFERABLE_DOCUMENT_STORE_ADDRESS,
@@ -104,7 +104,7 @@ describe('Revoke Document Store Role', () => {
       });
 
       it('should revoke role successfully', async () => {
-        const result = await revokeDocumentStoreRole(
+        const result = await documentStoreRevokeRole(
           mockDocumentStoreAddress,
           mockRole,
           mockAccount,
@@ -118,7 +118,7 @@ describe('Revoke Document Store Role', () => {
       });
 
       it('should revoke role with explicit contract type', async () => {
-        const result = await revokeDocumentStoreRole(
+        const result = await documentStoreRevokeRole(
           mockDocumentStoreAddress,
           mockRole,
           mockAccount,
@@ -133,7 +133,7 @@ describe('Revoke Document Store Role', () => {
       });
 
       it('should revoke role without chainId option', async () => {
-        const result = await revokeDocumentStoreRole(
+        const result = await documentStoreRevokeRole(
           mockDocumentStoreAddress,
           mockRole,
           mockAccount,
@@ -146,7 +146,7 @@ describe('Revoke Document Store Role', () => {
       });
 
       it('should revoke role with gas options', async () => {
-        const result = await revokeDocumentStoreRole(
+        const result = await documentStoreRevokeRole(
           mockDocumentStoreAddress,
           mockRole,
           mockAccount,
@@ -163,7 +163,7 @@ describe('Revoke Document Store Role', () => {
 
       it('should throw when document store address is missing', async () => {
         await expect(
-          revokeDocumentStoreRole('', mockRole, mockAccount, wallet, { chainId: mockChainId }),
+          documentStoreRevokeRole('', mockRole, mockAccount, wallet, { chainId: mockChainId }),
         ).rejects.toThrow('Document store address is required');
       });
 
@@ -172,7 +172,7 @@ describe('Revoke Document Store Role', () => {
           '0x'.padEnd(66, '1'),
         );
         await expect(
-          revokeDocumentStoreRole(
+          documentStoreRevokeRole(
             mockDocumentStoreAddress,
             mockRole,
             mockAccount,
@@ -186,7 +186,7 @@ describe('Revoke Document Store Role', () => {
 
       it('should throw when role is missing', async () => {
         await expect(
-          revokeDocumentStoreRole(mockDocumentStoreAddress, '', mockAccount, wallet, {
+          documentStoreRevokeRole(mockDocumentStoreAddress, '', mockAccount, wallet, {
             chainId: mockChainId,
           }),
         ).rejects.toThrow('Role is required');
@@ -194,7 +194,7 @@ describe('Revoke Document Store Role', () => {
 
       it('should throw when account is missing', async () => {
         await expect(
-          revokeDocumentStoreRole(mockDocumentStoreAddress, mockRole, '', wallet, {
+          documentStoreRevokeRole(mockDocumentStoreAddress, mockRole, '', wallet, {
             chainId: mockChainId,
           }),
         ).rejects.toThrow('Account is required');
@@ -205,7 +205,7 @@ describe('Revoke Document Store Role', () => {
         mockContract.callStatic.revokeRole.mockRejectedValue(mockError);
         mockContract.revokeRole.staticCall.mockRejectedValue(mockError);
         await expect(
-          revokeDocumentStoreRole(mockDocumentStoreAddress, mockRole, mockAccount, wallet, {
+          documentStoreRevokeRole(mockDocumentStoreAddress, mockRole, mockAccount, wallet, {
             chainId: mockChainId,
             isTransferable,
           }),
@@ -218,7 +218,7 @@ describe('Revoke Document Store Role', () => {
         vi.mocked(getEthersContractFromProvider).mockReturnValue(
           mockContractConstructor(mockTTDocumentStoreContract),
         );
-        const result = await revokeDocumentStoreRole(
+        const result = await documentStoreRevokeRole(
           mockDocumentStoreAddress,
           mockRole,
           mockAccount,
@@ -239,7 +239,7 @@ describe('Revoke Document Store Role', () => {
         mockContract.callStatic.revokeRole.mockRejectedValue(new Error('Invalid role format'));
         mockContract.revokeRole.staticCall.mockRejectedValue(new Error('Invalid role format'));
         await expect(
-          revokeDocumentStoreRole(mockDocumentStoreAddress, invalidRole, mockAccount, wallet, {
+          documentStoreRevokeRole(mockDocumentStoreAddress, invalidRole, mockAccount, wallet, {
             chainId: mockChainId,
             isTransferable,
           }),
@@ -250,7 +250,7 @@ describe('Revoke Document Store Role', () => {
         mockContract.callStatic.revokeRole.mockRejectedValue(new Error('Role not granted'));
         mockContract.revokeRole.staticCall.mockRejectedValue(new Error('Role not granted'));
         await expect(
-          revokeDocumentStoreRole(mockDocumentStoreAddress, mockRole, mockAccount, wallet, {
+          documentStoreRevokeRole(mockDocumentStoreAddress, mockRole, mockAccount, wallet, {
             chainId: mockChainId,
             isTransferable,
           }),
@@ -260,7 +260,7 @@ describe('Revoke Document Store Role', () => {
       it('should work with different role and account addresses', async () => {
         const differentRole = '0x1111111111111111111111111111111111111111111111111111111111111111';
         const differentAccount = '0x9876543210987654321098765432109876543210';
-        const result = await revokeDocumentStoreRole(
+        const result = await documentStoreRevokeRole(
           mockDocumentStoreAddress,
           differentRole,
           differentAccount,
@@ -292,7 +292,7 @@ describe('Revoke Document Store Role', () => {
 
     it('should auto-detect TT Document Store as fallback when ERC-165 interfaces not supported', async () => {
       vi.spyOn(coreModule, 'checkSupportsInterface').mockResolvedValue(false);
-      const result = await revokeDocumentStoreRole(
+      const result = await documentStoreRevokeRole(
         MOCK_TT_DOCUMENT_STORE_ADDRESS,
         mockRole,
         mockAccount,
@@ -316,7 +316,7 @@ describe('Revoke Document Store Role', () => {
 
     it('should revoke role with TT Document Store (ethers v5)', async () => {
       vi.spyOn(coreModule, 'checkSupportsInterface').mockResolvedValue(false);
-      const result = await revokeDocumentStoreRole(
+      const result = await documentStoreRevokeRole(
         MOCK_TT_DOCUMENT_STORE_ADDRESS,
         mockRole,
         mockAccount,
@@ -334,7 +334,7 @@ describe('Revoke Document Store Role', () => {
         chainId: mockChainId,
       } as unknown as Network);
       vi.spyOn(coreModule, 'checkSupportsInterface').mockResolvedValue(false);
-      const result = await revokeDocumentStoreRole(
+      const result = await documentStoreRevokeRole(
         MOCK_TT_DOCUMENT_STORE_ADDRESS,
         mockRole,
         mockAccount,
@@ -352,7 +352,7 @@ describe('Revoke Document Store Role', () => {
       mockTTDocumentStoreContract.callStatic.revokeRole.mockRejectedValue(mockError);
       mockTTDocumentStoreContract.revokeRole.staticCall.mockRejectedValue(mockError);
       await expect(
-        revokeDocumentStoreRole(MOCK_TT_DOCUMENT_STORE_ADDRESS, mockRole, mockAccount, wallet, {
+        documentStoreRevokeRole(MOCK_TT_DOCUMENT_STORE_ADDRESS, mockRole, mockAccount, wallet, {
           chainId: mockChainId,
         }),
       ).rejects.toThrow('Pre-check (callStatic) for revoke-role failed');
@@ -360,7 +360,7 @@ describe('Revoke Document Store Role', () => {
 
     it('should revoke role TT Document Store with gas options', async () => {
       vi.spyOn(coreModule, 'checkSupportsInterface').mockResolvedValue(false);
-      const result = await revokeDocumentStoreRole(
+      const result = await documentStoreRevokeRole(
         MOCK_TT_DOCUMENT_STORE_ADDRESS,
         mockRole,
         mockAccount,
@@ -383,7 +383,7 @@ describe('Revoke Document Store Role', () => {
         new Error('Role not granted'),
       );
       await expect(
-        revokeDocumentStoreRole(MOCK_TT_DOCUMENT_STORE_ADDRESS, mockRole, mockAccount, wallet, {
+        documentStoreRevokeRole(MOCK_TT_DOCUMENT_STORE_ADDRESS, mockRole, mockAccount, wallet, {
           chainId: mockChainId,
         }),
       ).rejects.toThrow('Pre-check (callStatic) for revoke-role failed');

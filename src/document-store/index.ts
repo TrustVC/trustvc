@@ -1,7 +1,8 @@
 export { documentStoreIssue } from './issue';
 export { documentStoreRevoke } from './revoke';
-export { revokeDocumentStoreRole } from './revoke-role';
-export { grantDocumentStoreRole } from './grant-role';
+export { documentStoreRevokeRole } from './revoke-role';
+export { documentStoreGrantRole } from './grant-role';
+export { documentStoreTransferOwnership } from './transferOwnership';
 export { deployDocumentStore } from './deploy';
 export { supportInterfaceIds } from './supportInterfaceIds';
 export {

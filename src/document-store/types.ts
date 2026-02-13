@@ -1,4 +1,4 @@
-import { CHAIN_ID } from 'src/utils';
+import { CHAIN_ID } from '../utils';
 import { GasValue } from '../token-registry-functions/types';
 
 export interface CommandOptions {
