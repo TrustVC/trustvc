@@ -1,8 +1,4 @@
 import {
-  DocumentStore__factory,
-  TransferableDocumentStore__factory,
-} from '@trustvc/document-store';
-import {
   Signer as SignerV6,
   Contract as ContractV6,
   ContractTransactionResponse as ContractTransactionV6,
@@ -12,47 +8,45 @@ import {
   ContractTransaction as ContractTransactionV5,
   Signer as SignerV5,
 } from 'ethers';
-import { getEthersContractFromProvider, isV6EthersProvider } from '../utils/ethers';
-import { CHAIN_ID } from '../utils';
-import { GasValue } from '../token-registry-functions/types';
-import { getTxOptions } from '../token-registry-functions/utils';
 import { checkSupportsInterface } from '../core';
 import { supportInterfaceIds } from './supportInterfaceIds';
 import { TT_DOCUMENT_STORE_ABI } from './tt-document-store-abi';
+import { getEthersContractFromProvider, isV6EthersProvider } from '../utils/ethers';
+import {
+  DocumentStore__factory,
+  TransferableDocumentStore__factory,
+} from '@trustvc/document-store';
+import { getTxOptions } from '../token-registry-functions/utils';
+import { CommandOptions } from './types';
 
 /**
- * Revokes a document hash from the DocumentStore contract.
+ * Revokes a role from an account on the DocumentStore contract.
  * Supports both Ethers v5 and v6 signers.
  * Supports three types of document stores:
  * 1. DocumentStore (ERC-165 compliant)
  * 2. TransferableDocumentStore (ERC-165 compliant)
  * 3. TT Document Store (legacy, no ERC-165 support - used as fallback)
  * @param {string} documentStoreAddress - The address of the DocumentStore contract.
- * @param {string} documentHash - The hash of the document to revoke (must be a valid hex string).
- * @param {SignerV5 | SignerV6} signer - Signer instance (Ethers v5 or v6) that authorizes the revoke transaction.
- * @param {RevokeOptions} options - Optional transaction metadata including gas values and chain ID.
- * @returns {Promise<ContractTransactionV5 | ContractTransactionV6>} A promise resolving to the transaction result from the revoke call.
+ * @param {string} role - The role to revoke (e.g., 'ISSUER', 'REVOKER', 'ADMIN').
+ * @param {string} account - The account to revoke the role from.
+ * @param {SignerV5 | SignerV6} signer - Signer instance (Ethers v5 or v6) that authorizes the revoke role transaction.
+ * @param {CommandOptions} options - Optional transaction metadata including gas values and chain ID.
+ * @returns {Promise<ContractTransactionV5 | ContractTransactionV6>} A promise resolving to the transaction result from the revoke role call.
  * @throws {Error} If the document store address or signer provider is not provided.
- * @throws {Error} If the document hash is invalid.
- * @throws {Error} If the `callStatic.revoke` fails as a pre-check.
+ * @throws {Error} If the role is invalid.
+ * @throws {Error} If the `callStatic.revokeRole` fails as a pre-check.
  */
-
-export interface RevokeOptions {
-  chainId?: CHAIN_ID;
-  maxFeePerGas?: GasValue;
-  maxPriorityFeePerGas?: GasValue;
-  isTransferable?: boolean;
-}
-
-const documentStoreRevoke = async (
+export const documentStoreRevokeRole = async (
   documentStoreAddress: string,
-  documentHash: string,
+  role: string,
+  account: string,
   signer: SignerV5 | SignerV6,
-  options: RevokeOptions = {},
+  options: CommandOptions = {},
 ): Promise<ContractTransactionV5 | ContractTransactionV6> => {
   if (!documentStoreAddress) throw new Error('Document store address is required');
   if (!signer.provider) throw new Error('Provider is required');
-  if (!documentHash) throw new Error('Document hash is required');
+  if (!role) throw new Error('Role is required');
+  if (!account) throw new Error('Account is required');
 
   const { chainId, maxFeePerGas, maxPriorityFeePerGas, isTransferable } = options;
 
@@ -102,25 +96,23 @@ const documentStoreRevoke = async (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     signer as any,
   );
-
   // Check callStatic (dry run) to ensure transaction will succeed
   try {
     const isV6 = isV6EthersProvider(signer.provider);
 
     if (isV6) {
-      await (documentStoreContract as ContractV6).revoke.staticCall(documentHash);
+      await (documentStoreContract as ContractV6).revokeRole.staticCall(role, account);
     } else {
-      await (documentStoreContract as ContractV5).callStatic.revoke(documentHash);
+      await (documentStoreContract as ContractV5).callStatic.revokeRole(role, account);
     }
   } catch (e) {
     console.error('callStatic failed:', e);
-    throw new Error('Pre-check (callStatic) for revoke failed');
+    throw new Error('Pre-check (callStatic) for revoke-role failed');
   }
 
   // Get transaction options (gas settings)
   const txOptions = await getTxOptions(signer, chainId, maxFeePerGas, maxPriorityFeePerGas);
-  // Send the actual transaction
-  return await documentStoreContract.revoke(documentHash, txOptions);
-};
 
-export { documentStoreRevoke };
+  // Send the actual transaction
+  return await documentStoreContract.revokeRole(role, account, txOptions);
+};

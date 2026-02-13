@@ -13,12 +13,11 @@ import {
   Signer as SignerV5,
 } from 'ethers';
 import { getEthersContractFromProvider, isV6EthersProvider } from '../utils/ethers';
-import { CHAIN_ID } from '../utils';
-import { GasValue } from '../token-registry-functions/types';
 import { getTxOptions } from '../token-registry-functions/utils';
 import { checkSupportsInterface } from '../core';
 import { supportInterfaceIds } from './supportInterfaceIds';
 import { TT_DOCUMENT_STORE_ABI } from './tt-document-store-abi';
+import { CommandOptions } from './types';
 
 /**
  * Issues a document hash to the DocumentStore contract.
@@ -30,25 +29,18 @@ import { TT_DOCUMENT_STORE_ABI } from './tt-document-store-abi';
  * @param {string} documentStoreAddress - The address of the DocumentStore contract.
  * @param {string} documentHash - The hash of the document to issue (must be a valid hex string).
  * @param {SignerV5 | SignerV6} signer - Signer instance (Ethers v5 or v6) that authorizes the issue transaction.
- * @param {IssueOptions} options - Optional transaction metadata including gas values and chain ID.
+ * @param {CommandOptions} options - Optional transaction metadata including gas values and chain ID.
  * @returns {Promise<ContractTransactionV5 | ContractTransactionV6>} A promise resolving to the transaction result from the issue call.
  * @throws {Error} If the document store address or signer provider is not provided.
  * @throws {Error} If the document hash is invalid.
  * @throws {Error} If the `callStatic.issue` fails as a pre-check.
  */
 
-export interface IssueOptions {
-  chainId?: CHAIN_ID;
-  maxFeePerGas?: GasValue;
-  maxPriorityFeePerGas?: GasValue;
-  isTransferable?: boolean;
-}
-
 const documentStoreIssue = async (
   documentStoreAddress: string,
   documentHash: string,
   signer: SignerV5 | SignerV6,
-  options: IssueOptions = {},
+  options: CommandOptions = {},
 ): Promise<ContractTransactionV5 | ContractTransactionV6> => {
   if (!documentStoreAddress) throw new Error('Document store address is required');
   if (!signer.provider) throw new Error('Provider is required');
@@ -80,12 +72,6 @@ const documentStoreIssue = async (
     if (!isDocumentStore && !isTransferableDocumentStore) {
       isTTDocumentStore = true;
     }
-  }
-
-  if (!isDocumentStore && !isTransferableDocumentStore && !isTTDocumentStore) {
-    throw new Error(
-      'Contract does not support DocumentStore, TransferableDocumentStore, or TT Document Store interface',
-    );
   }
 
   // Get the appropriate Contract class based on provider version
