@@ -1,6 +1,13 @@
 import { CHAIN_ID } from '../utils';
-import { BigNumber, providers as providersV5 } from 'ethers';
-import { BigNumberish, Provider as ProviderV6 } from 'ethersV6';
+import { BigNumber, providers as providersV5, Signer as SignerV5 } from 'ethers';
+import { BigNumberish, Provider as ProviderV6, Signer as SignerV6 } from 'ethersV6';
+
+export interface GasPriceScale {
+  maxPriorityFeePerGasScale: number;
+}
+export interface GasOption extends GasPriceScale {
+  dryRun: boolean;
+}
 
 export type GasValue = BigNumber | BigNumberish | string | number;
 
@@ -86,4 +93,42 @@ export interface ProviderInfo {
   Provider: providersV5.Provider | ProviderV6;
   ethersVersion: 'v5' | 'v6';
   titleEscrowVersion: 'v4' | 'v5';
+}
+
+export interface NetworkOption {
+  network: string;
+}
+
+export type WalletOption = {
+  encryptedWalletPath: string;
+};
+
+export type PrivateKeyOption =
+  | {
+      key?: string;
+      keyFile?: never;
+    }
+  | {
+      key?: never;
+      keyFile?: string;
+    };
+
+export type NetworkAndWalletSignerOption = NetworkOption &
+  (Partial<WalletOption> | Partial<PrivateKeyOption>);
+
+export type DeployTokenRegistryCommand = NetworkAndWalletSignerOption &
+  GasOption & {
+    registryName: string;
+    registrySymbol: string;
+    signer?: SignerV5 | SignerV6;
+    standalone?: boolean;
+    factory?: string;
+    token?: string;
+    deployer?: string;
+  };
+
+export interface DeployContractAddress {
+  TitleEscrowFactory?: string;
+  TokenImplementation?: string;
+  Deployer?: string;
 }
