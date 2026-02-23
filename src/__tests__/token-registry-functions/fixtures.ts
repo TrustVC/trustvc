@@ -23,6 +23,7 @@ vi.mock('../../token-registry-functions/utils', async (importOriginal) => {
 
   return {
     ...original,
+    getChainIdSafe: vi.fn().mockImplementation(original.getChainIdSafe),
     getDefaultContractAddress: vi.fn().mockReturnValue({
       TitleEscrowFactory: '0x1234567890123456789012345678901234567890',
       TokenImplementation: '0x2234567890123456789012345678901234567890',
@@ -36,10 +37,17 @@ vi.mock('../../token-registry-functions/utils', async (importOriginal) => {
 vi.mock('../../utils/ethers', async (importOriginal) => {
   const original = (await importOriginal()) as typeof originalModule;
 
+  // Mock contract constructor that returns contract with ownerOf method
+  const MockContractConstructor = vi.fn((address: string, abi: string) => {
+    // Determine which mock to return based on the address or ABI
+    const isV5 = address === MOCK_V5_ADDRESS || abi === 'TradeTrustToken';
+    return isV5 ? mockV5TradeTrustTokenContract : mockV4TradeTrustTokenContract;
+  });
+
   return {
     ...original, // Keep all original exports
-    getEthersContractFromProvider: vi.fn(() => vi.fn()), // Only mock this function
-    getEthersContractFactoryFromProvider: vi.fn(() => vi.fn()), // Only mock this function
+    getEthersContractFromProvider: vi.fn(() => MockContractConstructor),
+    getEthersContractFactoryFromProvider: vi.fn(() => vi.fn()),
     isV6EthersProvider: vi.fn(() => true),
   };
 });
