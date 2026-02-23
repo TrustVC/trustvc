@@ -63,7 +63,7 @@ const isValidAddress = (address?: string): boolean => {
 
 export const isSupportedTitleEscrowFactory = async (
   factoryAddress: string,
-  provider?: providers.Provider | ProviderV6,
+  provider: providers.Provider | ProviderV6,
 ): Promise<boolean> => {
   const Contract = getEthersContractFromProvider(provider);
   const titleEscrowFactoryContract = new Contract(

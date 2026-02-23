@@ -36,17 +36,20 @@ import {
   Signer as SignerV6,
   ContractTransactionReceipt as ContractReceiptV6,
   ContractFactory as ContractFactoryV6,
+  ContractTransactionResponse as ContractTransactionV6,
 } from 'ethersV6';
 import {
   Signer as SignerV5,
   ContractReceipt as ContractReceiptV5,
   ContractFactory as ContractFactoryV5,
+  ContractTransaction as ContractTransactionV5,
 } from 'ethers';
 
 /**
  * Union type for transaction receipts from both ethers v5 and v6
  */
-export type TransactionReceipt = ContractReceiptV5 | ContractReceiptV6;
+type ContractTransaction = ContractTransactionV5 | ContractTransactionV6;
+export type TransactionReceipt = ContractReceiptV5 | ContractReceiptV6 | ContractTransaction;
 
 /**
  * Configuration options for Token Registry deployment
@@ -176,12 +179,7 @@ export const deployTokenRegistry = async (
     });
 
     // Get transaction options (gas settings)
-    const txOptions = await getTxOptions(
-      signer,
-      chainId as unknown as CHAIN_ID,
-      maxFeePerGas,
-      maxPriorityFeePerGas,
-    );
+    const txOptions = await getTxOptions(signer, chainId, maxFeePerGas, maxPriorityFeePerGas);
 
     // Deploy using the deployer contract (creates a minimal proxy)
     return await deployerContract.deploy(tokenRegistryImplAddress, initParam, txOptions);
@@ -227,7 +225,7 @@ export const deployTokenRegistry = async (
         factoryAddress,
         txOptions,
       );
-      return await contract.deploymentTransaction()?.wait();
+      return await contract.deploymentTransaction().wait();
     } else {
       // Ethers v5: Use deployTransaction property
       const contract = await (tokenFactory as ContractFactoryV5).deploy(
