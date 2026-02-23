@@ -23,13 +23,11 @@ vi.mock('../../token-registry-functions/utils', async (importOriginal) => {
 
   return {
     ...original,
-    getChainIdSafe: vi.fn().mockResolvedValue(11155111), // sepolia chain ID
     getDefaultContractAddress: vi.fn().mockReturnValue({
       TitleEscrowFactory: '0x1234567890123456789012345678901234567890',
       TokenImplementation: '0x2234567890123456789012345678901234567890',
       Deployer: '0x3234567890123456789012345678901234567890',
     }),
-    getTxOptions: vi.fn().mockResolvedValue({}),
     isSupportedTitleEscrowFactory: vi.fn().mockResolvedValue(true),
     isValidAddress: vi.fn((addr: string) => addr && addr.startsWith('0x') && addr.length === 42),
   };
@@ -360,4 +358,10 @@ export const mockV4TradeTrustTokenContract = {
 export const PRIVATE_KEY = '0x59c6995e998f97a5a004497e5f1ebce0c16828d44b3f8d0bfa3a89d271d5b6b9';
 
 export const providerV5 = new ethersV5.providers.JsonRpcProvider();
+// Mock the getNetwork method for v5 provider
+vi.spyOn(providerV5, 'getNetwork').mockResolvedValue({
+  name: 'mainnet',
+  chainId: 1,
+});
+
 export const providerV6 = new JsonRpcProviderV6();
