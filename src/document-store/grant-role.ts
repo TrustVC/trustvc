@@ -1,7 +1,7 @@
 import {
   Signer as SignerV6,
   Contract as ContractV6,
-  ContractTransaction as ContractTransactionV6,
+  ContractTransactionResponse as ContractTransactionV6,
 } from 'ethersV6';
 import {
   Contract as ContractV5,
