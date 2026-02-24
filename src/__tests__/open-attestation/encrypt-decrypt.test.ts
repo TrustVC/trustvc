@@ -6,7 +6,6 @@ import {
   encodeDocument,
   decodeDocument,
 } from '../..';
-import type { IEncryptionResults } from '../..';
 import { RAW_DOCUMENT_DNS_DID_V3 } from '../fixtures/fixtures';
 import sampleOaDocument from '../fixtures/sample-oa-document.json';
 
@@ -37,10 +36,8 @@ describe('open-attestation encrypt/decrypt (OA document encryption)', () => {
   });
 
   describe('encryptString', () => {
-    let encryptionResults: IEncryptionResults;
-
     test('should have the right keys and values when no key passed', () => {
-      encryptionResults = encryptString('hello world');
+      const encryptionResults = encryptString('hello world');
       expect(encryptionResults).toStrictEqual(
         expect.objectContaining({
           cipherText: expect.stringMatching(base64Regex),
@@ -54,7 +51,7 @@ describe('open-attestation encrypt/decrypt (OA document encryption)', () => {
 
     test('should have the right keys and values when key is passed', () => {
       const encryptionKey = '35fb46ca758889669f38c83d2f159b0f5a320b5a97387a9eaecb5652d15e0e3d';
-      encryptionResults = encryptString('hello world', encryptionKey);
+      const encryptionResults = encryptString('hello world', encryptionKey);
       expect(encryptionResults).toStrictEqual(
         expect.objectContaining({
           cipherText: expect.stringMatching(base64Regex),
@@ -68,7 +65,6 @@ describe('open-attestation encrypt/decrypt (OA document encryption)', () => {
     });
 
     test('should throw error if input is not a string', () => {
-      encryptionResults = encryptString('hello world');
       expect(() =>
         encryptString(
           // @ts-expect-error testing invalid input
@@ -94,6 +90,19 @@ describe('open-attestation encrypt/decrypt (OA document encryption)', () => {
       const encryptionKey = '35fb46ca758889669f38c83d2f159b0f5a320b5a97387a9eaecb5652d15e0e3d';
       const encryptionResults = encryptString('hello world', encryptionKey);
       expect(decryptString(encryptionResults)).toBe('hello world');
+    });
+
+    test('throws when type is wrong', () => {
+      const enc = encryptString('hello');
+      expect(() => decryptString({ ...enc, type: 'OTHER-TYPE' })).toThrow(
+        `Expecting version ${ENCRYPTION_PARAMETERS.version} but got OTHER-TYPE`,
+      );
+    });
+
+    test('throws when key is wrong', () => {
+      const enc = encryptString('hello');
+      const wrongKey = '0'.repeat(64);
+      expect(() => decryptString({ ...enc, key: wrongKey })).toThrow('Error decrypting message');
     });
   });
 
