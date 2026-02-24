@@ -116,7 +116,7 @@ export const deployTokenRegistry = async (
   registryName: string,
   registrySymbol: string,
   signer: SignerV5 | SignerV6,
-  options: DeployOptions,
+  options: DeployOptions = {},
 ): Promise<TransactionReceipt> => {
   // Extract gas options
   const { maxFeePerGas, maxPriorityFeePerGas } = options;
