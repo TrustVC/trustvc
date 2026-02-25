@@ -97,16 +97,8 @@ export const documentStoreTransferOwnership = async (
       await (documentStoreContract as ContractV5).callStatic.grantRole(roleString, account);
     }
   } catch (e) {
-    const errorMessage = e instanceof Error ? e.message : String(e);
-    const reason = errorMessage.includes('AccessControl')
-      ? 'Caller does not have permission to grant this role'
-      : errorMessage.includes('already has role')
-        ? 'Account already has this role'
-        : 'Transaction simulation failed';
-
-    throw new Error(
-      `Pre-check (callStatic) for grant-role failed: ${reason}. Original error: ${errorMessage}`,
-    );
+    console.error('callStatic failed:', e);
+    throw new Error('Pre-check (callStatic) for grant-role failed');
   }
 
   try {
@@ -117,22 +109,11 @@ export const documentStoreTransferOwnership = async (
       await (documentStoreContract as ContractV5).callStatic.revokeRole(roleString, ownerAddress);
     }
   } catch (e) {
-    const errorMessage = e instanceof Error ? e.message : String(e);
-    const reason = errorMessage.includes('AccessControl')
-      ? 'Caller does not have permission to revoke this role'
-      : errorMessage.includes('does not have role')
-        ? 'Account does not have this role'
-        : 'Transaction simulation failed';
-
-    throw new Error(
-      `Pre-check (callStatic) for revoke-role failed: ${reason}. Original error: ${errorMessage}`,
-    );
+    console.error('callStatic failed:', e);
+    throw new Error('Pre-check (callStatic) for revoke-role failed');
   }
 
   // Both pre-checks passed - now execute the real transactions
-  // Note: We skip the individual function's pre-checks since we already did them above
-  // by passing the contract instance directly or using a flag (implementation depends on refactoring grant/revoke functions)
-
   const grantTransaction = await documentStoreGrantRole(
     documentStoreAddress,
     roleString,
