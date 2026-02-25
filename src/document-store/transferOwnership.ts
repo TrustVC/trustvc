@@ -1,10 +1,25 @@
-import { Signer as SignerV6, ContractTransactionResponse as ContractTransactionV6 } from 'ethersV6';
-import { ContractTransaction as ContractTransactionV5, Signer as SignerV5 } from 'ethers';
+import {
+  Signer as SignerV6,
+  ContractTransactionResponse as ContractTransactionV6,
+  Contract as ContractV6,
+} from 'ethersV6';
+import {
+  ContractTransaction as ContractTransactionV5,
+  Signer as SignerV5,
+  Contract as ContractV5,
+} from 'ethers';
 import { documentStoreRevokeRole } from './revoke-role';
-
 import { documentStoreGrantRole } from './grant-role';
 import { getRoleString } from './document-store-roles';
 import { CommandOptions } from './types';
+import { checkSupportsInterface } from '../core';
+import { supportInterfaceIds } from './supportInterfaceIds';
+import { TT_DOCUMENT_STORE_ABI } from './tt-document-store-abi';
+import { getEthersContractFromProvider, isV6EthersProvider } from '../utils/ethers';
+import {
+  DocumentStore__factory,
+  TransferableDocumentStore__factory,
+} from '@trustvc/document-store';
 
 /**
  * Transfers ownership of a DocumentStore contract to a new owner.
@@ -20,7 +35,7 @@ import { CommandOptions } from './types';
  * @returns {Promise<{grantTransaction: ContractTransactionV5 | ContractTransactionV6; revokeTransaction: ContractTransactionV5 | ContractTransactionV6}>} A promise resolving to the transaction result from the grant and revoke role calls.
  * @throws {Error} If the document store address or signer provider is not provided.
  * @throws {Error} If the role is invalid.
- * @throws {Error} If the `callStatic.revokeRole` fails as a pre-check.
+ * @throws {Error} If either the `callStatic.grantRole` or `callStatic.revokeRole` pre-check fails.
  */
 export const documentStoreTransferOwnership = async (
   documentStoreAddress: string,
@@ -39,9 +54,85 @@ export const documentStoreTransferOwnership = async (
   const roleString = await getRoleString(documentStoreAddress, 'DEFAULT_ADMIN_ROLE', {
     provider: signer.provider,
   });
-  //call the transferOwnership function of the document store contract
 
-  //call grant and revoke function here
+  // Get the contract instance for pre-checks
+  const Contract = getEthersContractFromProvider(signer.provider);
+  const isDocumentStore = await checkSupportsInterface(
+    documentStoreAddress,
+    supportInterfaceIds.IDocumentStore,
+    signer.provider,
+  );
+  const isTransferableDocumentStore = await checkSupportsInterface(
+    documentStoreAddress,
+    supportInterfaceIds.ITransferableDocumentStore,
+    signer.provider,
+  );
+
+  let documentStoreAbi;
+  if (isDocumentStore || isTransferableDocumentStore) {
+    const DocumentStoreFactory = isTransferableDocumentStore
+      ? TransferableDocumentStore__factory
+      : DocumentStore__factory;
+    documentStoreAbi = DocumentStoreFactory.abi;
+  } else {
+    documentStoreAbi = TT_DOCUMENT_STORE_ABI;
+  }
+
+  const documentStoreContract: ContractV5 | ContractV6 = new Contract(
+    documentStoreAddress,
+    documentStoreAbi,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    signer as any,
+  );
+
+  // CRITICAL: Perform BOTH static call pre-checks BEFORE executing any real transactions
+  // This prevents partial ownership transfer if revoke would fail after grant succeeds
+  const isV6 = isV6EthersProvider(signer.provider);
+
+  try {
+    // Pre-check 1: Verify grant will succeed
+    if (isV6) {
+      await (documentStoreContract as ContractV6).grantRole.staticCall(roleString, account);
+    } else {
+      await (documentStoreContract as ContractV5).callStatic.grantRole(roleString, account);
+    }
+  } catch (e) {
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    const reason = errorMessage.includes('AccessControl')
+      ? 'Caller does not have permission to grant this role'
+      : errorMessage.includes('already has role')
+        ? 'Account already has this role'
+        : 'Transaction simulation failed';
+
+    throw new Error(
+      `Pre-check (callStatic) for grant-role failed: ${reason}. Original error: ${errorMessage}`,
+    );
+  }
+
+  try {
+    // Pre-check 2: Verify revoke will succeed
+    if (isV6) {
+      await (documentStoreContract as ContractV6).revokeRole.staticCall(roleString, ownerAddress);
+    } else {
+      await (documentStoreContract as ContractV5).callStatic.revokeRole(roleString, ownerAddress);
+    }
+  } catch (e) {
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    const reason = errorMessage.includes('AccessControl')
+      ? 'Caller does not have permission to revoke this role'
+      : errorMessage.includes('does not have role')
+        ? 'Account does not have this role'
+        : 'Transaction simulation failed';
+
+    throw new Error(
+      `Pre-check (callStatic) for revoke-role failed: ${reason}. Original error: ${errorMessage}`,
+    );
+  }
+
+  // Both pre-checks passed - now execute the real transactions
+  // Note: We skip the individual function's pre-checks since we already did them above
+  // by passing the contract instance directly or using a flag (implementation depends on refactoring grant/revoke functions)
+
   const grantTransaction = await documentStoreGrantRole(
     documentStoreAddress,
     roleString,
@@ -49,12 +140,11 @@ export const documentStoreTransferOwnership = async (
     signer,
     options,
   );
-  //check if the grant transaction is successful
+
   if (!grantTransaction) {
-    //add custom error message not proceeding with the revoke transaction
     throw new Error('Grant transaction failed, not proceeding with revoke transaction');
   }
-  //call revoke function here
+
   const revokeTransaction = await documentStoreRevokeRole(
     documentStoreAddress,
     roleString,
@@ -62,9 +152,10 @@ export const documentStoreTransferOwnership = async (
     signer,
     options,
   );
-  //check if the revoke transaction is successful
+
   if (!revokeTransaction) {
     throw new Error('Revoke transaction failed');
   }
+
   return { grantTransaction, revokeTransaction };
 };

@@ -40,4 +40,4 @@ export const getRoleString = async (
   return await (documentStore as any)[role]();
 };
 
-export const rolesList = ['admin', 'issuer', 'revoker'];
+export const rolesList = ['DEFAULT_ADMIN_ROLE', 'ISSUER_ROLE', 'REVOKER_ROLE'];
