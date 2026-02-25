@@ -1,3 +1,10 @@
+## [2.9.1](https://github.com/TrustVC/trustvc/compare/v2.9.0...v2.9.1) (2026-02-25)
+
+
+### Bug Fixes
+
+* update document store functions ([#132](https://github.com/TrustVC/trustvc/issues/132)) ([b87af71](https://github.com/TrustVC/trustvc/commit/b87af71e137dea8f1312df9cf898a67f13eab1d6))
+
 ## [2.9.0](https://github.com/TrustVC/trustvc/compare/v2.8.0...v2.9.0) (2026-02-25)
 
 
