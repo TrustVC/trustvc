@@ -30,16 +30,14 @@ export const getRoleString = async (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     provider as any,
   );
-  switch (role) {
-    case 'admin':
-      return await documentStore.DEFAULT_ADMIN_ROLE();
-    case 'issuer':
-      return await documentStore.ISSUER_ROLE();
-    case 'revoker':
-      return await documentStore.REVOKER_ROLE();
-    default:
-      throw new Error('Invalid role');
+
+  // Role should be the actual contract method name (e.g., 'DEFAULT_ADMIN_ROLE', 'ISSUER_ROLE', 'REVOKER_ROLE')
+  if (typeof documentStore[role as keyof typeof documentStore] !== 'function') {
+    throw new Error(`Invalid role: ${role}`);
   }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return await (documentStore as any)[role]();
 };
 
-export const rolesList = ['admin', 'issuer', 'revoker'];
+export const rolesList = ['DEFAULT_ADMIN_ROLE', 'ISSUER_ROLE', 'REVOKER_ROLE'];

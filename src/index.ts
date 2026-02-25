@@ -27,6 +27,8 @@ import {
   documentStoreRevoke,
   DocumentStore__factory,
   TransferableDocumentStore__factory,
+  getRoleString,
+  documentStoreTransferOwnership,
 } from './document-store';
 export type { TypedContractMethod } from './token-registry-v5/typedContractMethod';
 export * from './token-registry-functions';
@@ -61,6 +63,8 @@ export {
   documentStoreRevokeRole,
   documentStoreIssue,
   documentStoreRevoke,
+  getRoleString,
+  documentStoreTransferOwnership,
   DocumentStore__factory,
   TransferableDocumentStore__factory,
 };
