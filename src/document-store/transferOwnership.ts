@@ -1,4 +1,4 @@
-import { Signer as SignerV6, ContractTransaction as ContractTransactionV6 } from 'ethersV6';
+import { Signer as SignerV6, ContractTransactionResponse as ContractTransactionV6 } from 'ethersV6';
 import { ContractTransaction as ContractTransactionV5, Signer as SignerV5 } from 'ethers';
 import { documentStoreRevokeRole } from './revoke-role';
 

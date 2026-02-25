@@ -1,6 +1,10 @@
-import { ethers } from 'ethers';
-import { ethers as ethersV6 } from 'ethersV6';
-import { Provider } from '@ethersproject/abstract-provider';
+import {
+  Provider as ProviderV6,
+  Contract as ContractV6,
+  ContractFactory as ContractFactoryV6,
+} from 'ethersV6';
+import { providers, Contract as ContractV5, ContractFactory as ContractFactoryV5 } from 'ethers';
+type ProviderV5 = providers.Provider;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const isV6EthersProvider = (provider: any): boolean => {
@@ -22,7 +26,13 @@ export const isV6EthersProvider = (provider: any): boolean => {
 };
 
 export const getEthersContractFromProvider = (
-  provider: Provider | ethersV6.Provider,
-): typeof ethers.Contract | typeof ethersV6.Contract => {
-  return isV6EthersProvider(provider) ? ethersV6.Contract : ethers.Contract;
+  provider: ProviderV5 | ProviderV6,
+): typeof ContractV5 | typeof ContractV6 => {
+  return isV6EthersProvider(provider) ? ContractV6 : ContractV5;
+};
+
+export const getEthersContractFactoryFromProvider = (
+  provider: ProviderV5 | ProviderV6,
+): typeof ContractFactoryV5 | typeof ContractFactoryV6 => {
+  return isV6EthersProvider(provider) ? ContractFactoryV6 : ContractFactoryV5;
 };

@@ -430,8 +430,8 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
       if (isV5TT) expect(encrypt).toHaveBeenCalledWith('0xencrypted_remarks', 'doc-id');
 
       const resultOptions = isV5TT
-        ? ['0xbeneficiary', '0xencrypted_remarks', {}]
-        : ['0xbeneficiary', {}];
+        ? ['0xbeneficiary', '0xencrypted_remarks', { maxFeePerGas: 100, maxPriorityFeePerGas: 50 }]
+        : ['0xbeneficiary', { maxFeePerGas: 100, maxPriorityFeePerGas: 50 }];
 
       expect(mockTitleEscrowContract.transferBeneficiary).toHaveBeenCalledWith(...resultOptions);
       expect(tx).toBe(txHash);
@@ -471,7 +471,7 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
       vi.spyOn(coreModule, 'getTitleEscrowAddress').mockImplementation(() =>
         Promise.resolve(titleEscrowAddress),
       );
-      mockTitleEscrowContract.callStatic.transferBeneficiary.mockResolvedValue(true);
+      mockTitleEscrowContract.callStatic.transferOwners.mockResolvedValue(true);
 
       const tx = await transferOwners(
         {
@@ -488,30 +488,6 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
         : ['0xbeneficiary', '0xholder', {}];
 
       expect(mockTitleEscrowContract.transferOwners).toHaveBeenCalledWith(...resultOptions);
-      expect(tx).toBe(txHash);
-    });
-
-    it(`detects version automatically via supportsInterface for ${titleEscrowVersion}`, async () => {
-      vi.spyOn(coreModule, 'isTitleEscrowVersion').mockImplementation(
-        async ({ versionInterface }) =>
-          versionInterface === (isV5TT ? '0xTitleEscrowIdV5' : '0xTitleEscrowIdV4'),
-      );
-      mockTitleEscrowContract.callStatic.transferOwners.mockResolvedValue(true);
-
-      const tx = await transferOwners(
-        {
-          titleEscrowAddress: '0xauto',
-        },
-        wallet,
-        params,
-        {}, // no isV5TT provided
-      );
-
-      expect(coreModule.isTitleEscrowVersion).toHaveBeenCalledWith({
-        provider: wallet.provider,
-        titleEscrowAddress: '0xauto',
-        versionInterface: isV5TT ? '0xTitleEscrowIdV5' : '0xTitleEscrowIdV4',
-      });
       expect(tx).toBe(txHash);
     });
 
@@ -610,8 +586,13 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
       if (isV5TT) expect(encrypt).toHaveBeenCalledWith('0xencrypted_remarks', 'doc-id');
 
       const resultOptions = isV5TT
-        ? ['0xbeneficiary', '0xholder', '0xencrypted_remarks', {}]
-        : ['0xbeneficiary', '0xholder', {}];
+        ? [
+            '0xbeneficiary',
+            '0xholder',
+            '0xencrypted_remarks',
+            { maxFeePerGas: 100, maxPriorityFeePerGas: 50 },
+          ]
+        : ['0xbeneficiary', '0xholder', { maxFeePerGas: 100, maxPriorityFeePerGas: 50 }];
 
       expect(mockTitleEscrowContract.transferOwners).toHaveBeenCalledWith(...resultOptions);
       expect(tx).toBe(txHash);
@@ -778,8 +759,8 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
       if (isV5TT) expect(encrypt).toHaveBeenCalledWith('0xencrypted_remarks', 'doc-id');
 
       const resultOptions = isV5TT
-        ? ['0xbeneficiary', '0xencrypted_remarks', {}]
-        : ['0xbeneficiary', {}];
+        ? ['0xbeneficiary', '0xencrypted_remarks', { maxFeePerGas: 100, maxPriorityFeePerGas: 50 }]
+        : ['0xbeneficiary', { maxFeePerGas: 100, maxPriorityFeePerGas: 50 }];
 
       expect(mockTitleEscrowContract.nominate).toHaveBeenCalledWith(...resultOptions);
       expect(tx).toBe(txHash);

@@ -2,17 +2,53 @@ import { vi } from 'vitest';
 import { ethers as ethersV5 } from 'ethers';
 import { JsonRpcProvider as JsonRpcProviderV6 } from 'ethersV6';
 import * as originalModule from '../../utils/ethers';
+import * as tokenRegistryFunctions from '../../token-registry-functions/utils';
+import * as tokenRegistryV5 from '../../token-registry-v5/utils';
 
 export const MOCK_V5_ADDRESS = '0xV5TokenRegistryContract';
 export const MOCK_V4_ADDRESS = '0xV4TokenRegistryContract';
 export const MOCK_OWNER_ADDRESS = '0xowner';
 
+vi.mock('../../token-registry-v5/utils', async (importOriginal) => {
+  const original = (await importOriginal()) as typeof tokenRegistryV5;
+  return {
+    ...original,
+    encodeInitParams: vi.fn().mockReturnValue('0xencodedparams'),
+  };
+});
+
+// Mock the utility functions - don't use importOriginal to avoid loading the actual module
+vi.mock('../../token-registry-functions/utils', async (importOriginal) => {
+  const original = (await importOriginal()) as typeof tokenRegistryFunctions;
+
+  return {
+    ...original,
+    getChainIdSafe: vi.fn().mockImplementation(original.getChainIdSafe),
+    getDefaultContractAddress: vi.fn().mockReturnValue({
+      TitleEscrowFactory: '0x1234567890123456789012345678901234567890',
+      TokenImplementation: '0x2234567890123456789012345678901234567890',
+      Deployer: '0x3234567890123456789012345678901234567890',
+    }),
+    isSupportedTitleEscrowFactory: vi.fn().mockResolvedValue(true),
+    isValidAddress: vi.fn((addr: string) => addr && addr.startsWith('0x') && addr.length === 42),
+  };
+});
+
 vi.mock('../../utils/ethers', async (importOriginal) => {
   const original = (await importOriginal()) as typeof originalModule;
 
+  // Mock contract constructor that returns contract with ownerOf method
+  const MockContractConstructor = vi.fn((address: string, abi: string) => {
+    // Determine which mock to return based on the address or ABI
+    const isV5 = address === MOCK_V5_ADDRESS || abi === 'TradeTrustToken';
+    return isV5 ? mockV5TradeTrustTokenContract : mockV4TradeTrustTokenContract;
+  });
+
   return {
     ...original, // Keep all original exports
-    getEthersContractFromProvider: vi.fn(() => vi.fn()), // Only mock this function
+    getEthersContractFromProvider: vi.fn(() => MockContractConstructor),
+    getEthersContractFactoryFromProvider: vi.fn(() => vi.fn()),
+    isV6EthersProvider: vi.fn(() => true),
   };
 });
 
@@ -27,8 +63,38 @@ vi.mock('../../core', () => ({
   },
 }));
 
+vi.mock('@tradetrust-tt/token-registry-v5', () => ({
+  constants: {
+    contractInterfaceId: {},
+    contractAddress: {
+      TitleEscrowFactory: {},
+      TokenImplementation: {},
+      Deployer: {},
+    },
+  },
+  utils: {},
+}));
+
+vi.mock('@tradetrust-tt/token-registry/contracts', () => ({
+  TDocDeployer__factory: {
+    abi: ['function deploy(address, bytes)'],
+  },
+  TradeTrustToken__factory: {
+    abi: ['constructor(string, string, address)'],
+    bytecode: '0x60806040',
+  },
+}));
+
 vi.mock('../../token-registry-v5', () => {
   return {
+    constants: {
+      contractInterfaceId: {},
+      contractAddress: {
+        TitleEscrowFactory: {},
+        TokenImplementation: {},
+        Deployer: {},
+      },
+    },
     v5Contracts: {
       TitleEscrow__factory: {
         connect: vi.fn(() => mockV5TitleEscrowContract),
@@ -300,4 +366,10 @@ export const mockV4TradeTrustTokenContract = {
 export const PRIVATE_KEY = '0x59c6995e998f97a5a004497e5f1ebce0c16828d44b3f8d0bfa3a89d271d5b6b9';
 
 export const providerV5 = new ethersV5.providers.JsonRpcProvider();
+// Mock the getNetwork method for v5 provider
+vi.spyOn(providerV5, 'getNetwork').mockResolvedValue({
+  name: 'mainnet',
+  chainId: 1,
+});
+
 export const providerV6 = new JsonRpcProviderV6();

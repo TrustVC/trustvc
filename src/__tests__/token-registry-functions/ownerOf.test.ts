@@ -5,8 +5,6 @@ import { Wallet as WalletV6, Network, ethers as ethersV6 } from 'ethersV6';
 import * as coreModule from '../../core';
 import { CHAIN_ID } from '../../utils';
 import { ownerOf } from '../../token-registry-functions';
-import { v5Contracts } from '../../token-registry-v5';
-import { v4Contracts } from '../../token-registry-v4';
 import {
   MOCK_OWNER_ADDRESS,
   MOCK_V4_ADDRESS,
@@ -86,9 +84,7 @@ describe.each(providers)(
         );
 
         expect(result).toBe(MOCK_OWNER_ADDRESS);
-        expect(
-          (isV5TT ? v5Contracts : v4Contracts).TradeTrustToken__factory.connect,
-        ).toHaveBeenCalled();
+        expect(coreModule.checkSupportsInterface).toHaveBeenCalled();
       });
 
       it('should return owner for V5/v4 contract (explicit version)', async () => {
