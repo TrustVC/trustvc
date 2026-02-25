@@ -1,3 +1,10 @@
+## [2.9.0](https://github.com/TrustVC/trustvc/compare/v2.8.0...v2.9.0) (2026-02-25)
+
+
+### Features
+
+* token registry deploy ([#130](https://github.com/TrustVC/trustvc/issues/130)) ([9faf75f](https://github.com/TrustVC/trustvc/commit/9faf75f577f07eedcc8a09883d106596a48bdad4))
+
 ## [2.8.0](https://github.com/TrustVC/trustvc/compare/v2.7.0...v2.8.0) (2026-02-13)
 
 
