@@ -2,7 +2,7 @@ import './fixtures';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Wallet as WalletV5 } from 'ethers';
 import { Wallet as WalletV6, Network } from 'ethersV6';
-import { deployDocumentStore } from '../../document-store/deploy';
+import { deployDocumentStore } from '../../deploy/document-store';
 import { PRIVATE_KEY, providerV5, providerV6 } from './fixtures';
 import { CHAIN_ID } from '../../utils';
 

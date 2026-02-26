@@ -3,9 +3,9 @@ import { roleHash } from './roleHash';
 import { supportInterfaceIds } from './supportInterfaceIds';
 import * as v5Contracts from './contracts';
 import { encodeInitParams, getEventFromReceipt, computeInterfaceId } from './utils';
-import { utils } from '@tradetrust-tt/token-registry-v4';
+import { utils } from '@tradetrust-tt/token-registry-v5';
 
-export { constants } from '@tradetrust-tt/token-registry-v4';
+export { constants } from '@tradetrust-tt/token-registry-v5';
 export type { TypedContractMethod } from './typedContractMethod';
 export {
   contractAddress as v5ContractAddress,

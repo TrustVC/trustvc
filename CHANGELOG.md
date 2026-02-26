@@ -1,3 +1,24 @@
+## [2.10.0](https://github.com/TrustVC/trustvc/compare/v2.9.1...v2.10.0) (2026-02-26)
+
+
+### Features
+
+* added encrypt and decrypt oa functionlities ([#131](https://github.com/TrustVC/trustvc/issues/131)) ([5949581](https://github.com/TrustVC/trustvc/commit/59495818e328491cfe9bcf1411fee8ec988835b9))
+
+## [2.9.1](https://github.com/TrustVC/trustvc/compare/v2.9.0...v2.9.1) (2026-02-25)
+
+
+### Bug Fixes
+
+* update document store functions ([#132](https://github.com/TrustVC/trustvc/issues/132)) ([b87af71](https://github.com/TrustVC/trustvc/commit/b87af71e137dea8f1312df9cf898a67f13eab1d6))
+
+## [2.9.0](https://github.com/TrustVC/trustvc/compare/v2.8.0...v2.9.0) (2026-02-25)
+
+
+### Features
+
+* token registry deploy ([#130](https://github.com/TrustVC/trustvc/issues/130)) ([9faf75f](https://github.com/TrustVC/trustvc/commit/9faf75f577f07eedcc8a09883d106596a48bdad4))
+
 ## [2.8.0](https://github.com/TrustVC/trustvc/compare/v2.7.0...v2.8.0) (2026-02-13)
 
 
