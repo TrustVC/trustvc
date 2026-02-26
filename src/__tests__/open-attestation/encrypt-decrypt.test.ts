@@ -10,7 +10,7 @@ import {
 import { RAW_DOCUMENT_DNS_DID_V3 } from '../fixtures/fixtures';
 import sampleOaDocument from '../fixtures/sample-oa-document.json';
 
-const base64Regex = /^(?:[a-zA-Z0-9+/]{4})*(?:|(?:[a-zA-Z0-9+/]{3}=)|(?:[a-zA-Z0-9+/]{2}==))$/;
+const base64Regex = /^(?=.{4,}$)(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$/;
 const encryptionKeyRegex = /^[0-9a-f]{64}$/;
 
 describe('open-attestation encrypt/decrypt (OA document encryption)', () => {
