@@ -131,6 +131,7 @@
     "ethersV6": "npm:ethers@^6.14.4",
     "js-sha3": "^0.9.3",
     "node-fetch": "^2.7.0",
+    "node-forge": "^1.3.3",
     "ts-chacha20": "^1.2.0"
   },
   "devDependencies": {
@@ -149,6 +150,7 @@
     "@types/lodash": "^4.17.16",
     "@types/mocha": "^10.0.10",
     "@types/node": "^18.19.86",
+    "@types/node-forge": "^1.3.14",
     "@types/node-fetch": "^2.6.12",
     "@vitest/coverage-v8": "^1.6.1",
     "concurrently": "^9.2.0",

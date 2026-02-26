@@ -10,4 +10,12 @@ export type KeyPair = {
   private: string; // Corresponding private key as a hex string
 };
 
+export interface IEncryptionResults {
+  cipherText: string;
+  iv: string;
+  tag: string;
+  key: string;
+  type: string;
+}
+
 export type { DiagnoseError } from '@tradetrust-tt/tradetrust/dist/types/shared/utils';
