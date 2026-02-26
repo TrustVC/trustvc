@@ -34,22 +34,28 @@ export const generateEncryptionKey = (
 };
 
 /**
- * Encode document string to base64 (UTF-8 then base64).
+ * Encode document string to URL-safe base64 (base64url: UTF-8 then base64 with +→-, /→_, no padding).
+ * Safe for use in query strings and JSON without further encoding.
  * @param {string} document - Plain text document to encode.
- * @returns {string} Base64-encoded string.
+ * @returns {string} Base64url-encoded string.
  */
 export const encodeDocument = (document: string): string => {
   const bytes = forge.util.encodeUtf8(document);
-  return forge.util.encode64(bytes);
+  const standard = forge.util.encode64(bytes);
+  return standard.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 };
 
 /**
- * Decode base64-encoded document string back to UTF-8.
- * @param {string} encoded - Base64-encoded string to decode.
+ * Decode base64url-encoded document string back to UTF-8.
+ * Accepts both base64url (no padding, - and _) and standard base64 for backwards compatibility.
+ * @param {string} encoded - Base64- or base64url-encoded string to decode.
  * @returns {string} Decoded UTF-8 plain text.
  */
 export const decodeDocument = (encoded: string): string => {
-  const decoded = forge.util.decode64(encoded);
+  let normalized = encoded.replace(/-/g, '+').replace(/_/g, '/');
+  const pad = normalized.length % 4;
+  if (pad) normalized += '='.repeat(4 - pad);
+  const decoded = forge.util.decode64(normalized);
   return forge.util.decodeUtf8(decoded);
 };
 

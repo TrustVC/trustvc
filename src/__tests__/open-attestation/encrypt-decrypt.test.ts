@@ -5,13 +5,13 @@ import {
   ENCRYPTION_PARAMETERS,
   encodeDocument,
   decodeDocument,
+  generateEncryptionKey,
 } from '../..';
 import { RAW_DOCUMENT_DNS_DID_V3 } from '../fixtures/fixtures';
 import sampleOaDocument from '../fixtures/sample-oa-document.json';
 
-const base64Regex =
-  /^(?:[a-zA-Z0-9+/]{4})*(?:|(?:[a-zA-Z0-9+/]{3}=)|(?:[a-zA-Z0-9+/]{2}==)|(?:[a-zA-Z0-9+/]{1}===))$/;
-const encryptionKeyRegex = new RegExp(`^[0-9a-f]{${ENCRYPTION_PARAMETERS.keyLength / 4}}$`);
+const base64Regex = /^(?:[a-zA-Z0-9+/]{4})*(?:|(?:[a-zA-Z0-9+/]{3}=)|(?:[a-zA-Z0-9+/]{2}==))$/;
+const encryptionKeyRegex = /^[0-9a-f]{64}$/;
 
 describe('open-attestation encrypt/decrypt (OA document encryption)', () => {
   it('should encrypt and decrypt unicode symbols correctly', () => {
@@ -50,7 +50,7 @@ describe('open-attestation encrypt/decrypt (OA document encryption)', () => {
     });
 
     test('should have the right keys and values when key is passed', () => {
-      const encryptionKey = '35fb46ca758889669f38c83d2f159b0f5a320b5a97387a9eaecb5652d15e0e3d';
+      const encryptionKey = generateEncryptionKey();
       const encryptionResults = encryptString('hello world', encryptionKey);
       expect(encryptionResults).toStrictEqual(
         expect.objectContaining({
@@ -87,7 +87,7 @@ describe('open-attestation encrypt/decrypt (OA document encryption)', () => {
     });
 
     test('can decrypt when encryption key is passed', () => {
-      const encryptionKey = '35fb46ca758889669f38c83d2f159b0f5a320b5a97387a9eaecb5652d15e0e3d';
+      const encryptionKey = generateEncryptionKey();
       const encryptionResults = encryptString('hello world', encryptionKey);
       expect(decryptString(encryptionResults)).toBe('hello world');
     });
@@ -124,7 +124,7 @@ describe('open-attestation encrypt/decrypt (OA document encryption)', () => {
     it('encodeDocument should return url safe characters only', () => {
       const input = '🦄😱|certificate|证书|sijil|प्रमाणपत्र';
       const encoded = encodeDocument(input);
-      expect(encodeURI(encoded)).toBe(encoded);
+      expect(encodeURIComponent(encoded)).toBe(encoded);
     });
   });
 });
