@@ -13,13 +13,13 @@ import {
  * Default options for OA document encryption (AES-GCM).
  * {@link https://crypto.stackexchange.com/questions/26783/ciphertext-and-tag-size-and-iv-transmission-with-aes-in-gcm-mode/26787|here}
  */
-export const ENCRYPTION_PARAMETERS = {
-  algorithm: 'AES-GCM' as const,
+export const ENCRYPTION_PARAMETERS = Object.freeze({
+  algorithm: 'AES-GCM',
   keyLength: 256, // Key length in bits
   ivLength: 96, // IV length in bits: NIST suggests 12 bytes
   tagLength: 128, // GCM authentication tag length in bits, see link above for explanation
   version: 'OPEN-ATTESTATION-TYPE-1', // Type 1 using the above params without compression
-};
+} as const);
 
 /**
  * Generates a random key represented as a hexadecimal string.
