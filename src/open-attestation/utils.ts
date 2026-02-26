@@ -42,7 +42,9 @@ export const generateEncryptionKey = (
 export const encodeDocument = (document: string): string => {
   const bytes = forge.util.encodeUtf8(document);
   const standard = forge.util.encode64(bytes);
-  return standard.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const s = standard.replace(/\+/g, '-').replace(/\//g, '_');
+  const trim = s.endsWith('==') ? 2 : s.endsWith('=') ? 1 : 0;
+  return trim ? s.slice(0, -trim) : s;
 };
 
 /**
