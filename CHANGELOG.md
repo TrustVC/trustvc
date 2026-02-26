@@ -1,3 +1,10 @@
+## [2.10.0](https://github.com/TrustVC/trustvc/compare/v2.9.1...v2.10.0) (2026-02-26)
+
+
+### Features
+
+* added encrypt and decrypt oa functionlities ([#131](https://github.com/TrustVC/trustvc/issues/131)) ([5949581](https://github.com/TrustVC/trustvc/commit/59495818e328491cfe9bcf1411fee8ec988835b9))
+
 ## [2.9.1](https://github.com/TrustVC/trustvc/compare/v2.9.0...v2.9.1) (2026-02-25)
 
 
