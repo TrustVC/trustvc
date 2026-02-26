@@ -124,6 +124,7 @@ describe('open-attestation encrypt/decrypt (OA document encryption)', () => {
     it('encodeDocument should return url safe characters only', () => {
       const input = '🦄😱|certificate|证书|sijil|प्रमाणपत्र';
       const encoded = encodeDocument(input);
+      // encodeURIComponent encodes +, /, = — so this only passes when output is truly query-safe (base64url).
       expect(encodeURIComponent(encoded)).toBe(encoded);
     });
   });
