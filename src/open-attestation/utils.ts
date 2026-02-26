@@ -29,6 +29,9 @@ export const ENCRYPTION_PARAMETERS = {
 export const generateEncryptionKey = (
   keyLengthInBits: number = ENCRYPTION_PARAMETERS.keyLength,
 ): string => {
+  if (!Number.isInteger(keyLengthInBits) || ![128, 192, 256].includes(keyLengthInBits)) {
+    throw new Error('keyLengthInBits must be one of 128, 192, or 256');
+  }
   const encryptionKey = forge.random.getBytesSync(keyLengthInBits / 8);
   return forge.util.bytesToHex(encryptionKey);
 };
