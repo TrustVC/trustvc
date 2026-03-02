@@ -1,0 +1,95 @@
+/**
+ * Transaction Cancel Module
+ *
+ * Cancels a pending transaction by replacing it with a 0-value transaction to self
+ * using the same nonce and a higher gas price (e.g. 2x when using --transaction-hash).
+ * @see https://info.etherscan.com/how-to-cancel-ethereum-pending-transactions/
+ */
+
+import { Signer as SignerV6 } from 'ethersV6';
+import { Signer as SignerV5 } from 'ethers';
+import { BigNumber } from 'ethers';
+import { isV6EthersProvider } from '../utils/ethers';
+
+const GAS_PRICE_SCALE_WHEN_FROM_HASH = 2;
+
+export interface CancelTransactionOptions {
+  /** Pending transaction nonce (use with gasPrice, or use transactionHash instead) */
+  nonce?: string;
+  /** Gas price higher than the pending transaction (use with nonce) */
+  gasPrice?: string;
+  /** Pending transaction hash; nonce and gas price will be fetched and gas price increased by 100% */
+  transactionHash?: string;
+}
+
+/**
+ * Cancels a pending transaction by sending a 0-value transaction to self with the same nonce
+ * and a higher gas price. Supports both ethers v5 and v6 signers.
+ * @param {SignerV5 | SignerV6} signer - Signer with provider (ethers v5 or v6)
+ * @param {CancelTransactionOptions} options - Either (nonce + gasPrice) or transactionHash
+ * @returns {Promise<string>} The replacement transaction hash
+ * @throws If neither (nonce and gasPrice) nor transactionHash is provided
+ * @throws If provider is not available on signer
+ */
+export const cancelTransaction = async (
+  signer: SignerV5 | SignerV6,
+  options: CancelTransactionOptions,
+): Promise<string> => {
+  if (!signer.provider) {
+    throw new Error('Provider is required on signer');
+  }
+
+  const { nonce, gasPrice, transactionHash } = options;
+  let transactionNonce: string | undefined = nonce;
+  let transactionGasPrice: string | undefined = gasPrice;
+
+  if (transactionHash) {
+    const tx = await signer.provider.getTransaction(transactionHash);
+    if (!tx) {
+      throw new Error(`Transaction not found: ${transactionHash}`);
+    }
+    const txNonce = (tx as { nonce: number }).nonce;
+    const txGasPrice = (tx as { gasPrice?: bigint | BigNumber | null }).gasPrice;
+    if (txGasPrice == null) {
+      throw new Error(
+        'Transaction uses EIP-1559 (no gasPrice). Cancel by providing --nonce and --gas-price explicitly.',
+      );
+    }
+    transactionNonce = String(txNonce);
+    const scaled =
+      typeof txGasPrice === 'bigint'
+        ? txGasPrice * BigInt(GAS_PRICE_SCALE_WHEN_FROM_HASH)
+        : BigNumber.from(txGasPrice).mul(GAS_PRICE_SCALE_WHEN_FROM_HASH);
+    transactionGasPrice = String(scaled);
+  }
+
+  if (!transactionNonce || !transactionGasPrice) {
+    throw new Error(
+      'Provide either (--nonce and --gas-price) or --transaction-hash to cancel the pending transaction',
+    );
+  }
+
+  const address = await signer.getAddress();
+  const isV6 = isV6EthersProvider(signer.provider);
+
+  if (isV6) {
+    const txResponse = await (signer as SignerV6).sendTransaction({
+      to: address,
+      value: 0n,
+      nonce: Number(transactionNonce),
+      gasPrice: BigInt(transactionGasPrice),
+      gasLimit: 21000n,
+    });
+    return txResponse.hash;
+  } else {
+    const txResponse = await (signer as SignerV5).sendTransaction({
+      to: address,
+      from: address,
+      value: 0,
+      nonce: parseInt(transactionNonce, 10),
+      gasPrice: BigNumber.from(transactionGasPrice),
+      gasLimit: 21000,
+    });
+    return txResponse.hash;
+  }
+};

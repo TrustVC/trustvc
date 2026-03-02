@@ -30,6 +30,7 @@ import {
   getRoleString,
   documentStoreTransferOwnership,
 } from './document-store';
+import { cancelTransaction } from './transaction';
 export type { TypedContractMethod } from './token-registry-v5/typedContractMethod';
 export * from './token-registry-functions';
 export * from './core';
@@ -39,6 +40,7 @@ export * from './open-cert';
 export * from './w3c';
 export * from './utils';
 export * from './dnsprove';
+export * from './transaction';
 
 export {
   v4SupportInterfaceIds,
@@ -67,4 +69,5 @@ export {
   documentStoreTransferOwnership,
   DocumentStore__factory,
   TransferableDocumentStore__factory,
+  cancelTransaction,
 };

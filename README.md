@@ -27,6 +27,7 @@ TrustVC is a comprehensive wrapper library designed to simplify the signing and 
       - [b) Token Registry V5](#b-token-registry-v5)
     - [8. **Document Builder**](#8-document-builder)
     - [9. **Document Store**](#9-document-store)
+    - [10. **Transaction Cancel**](#10-transaction-cancel)
 
 ## Installation
 
@@ -1106,4 +1107,57 @@ const documentHashes = [
 for (const hash of documentHashes) {
   await documentStoreIssue(storeAddress, hash, signer);
 }
+```
+
+---
+
+## 10. Transaction Cancel
+
+TrustVC provides a utility to cancel a pending Ethereum transaction by replacing it with a 0-value transaction to the same address, using the same nonce and a higher gas price (replace-by-fee). This works with both ethers v5 and v6 signers.
+
+**Reference:** [How to cancel Ethereum pending transactions](https://info.etherscan.com/how-to-cancel-ethereum-pending-transactions/)
+
+### cancelTransaction
+
+#### Description
+
+Cancels a pending transaction by sending a 0-value transaction to the signer’s address with the same nonce and a higher gas price. You can specify the pending transaction either by **transaction hash** (nonce and gas price are fetched; gas price is doubled) or by **nonce and gas price** explicitly. Transactions that use EIP-1559 (no legacy `gasPrice`) must be cancelled using nonce and gas price.
+
+#### Parameters
+
+- **signer** – Signer with a connected provider (ethers v5 or v6).
+- **options** – `CancelTransactionOptions`:
+  - **transactionHash** (optional): Pending transaction hash (`0x...`). If provided, nonce and gas price are read from the chain and gas price is increased by 100%.
+  - **nonce** (optional): Pending transaction nonce. Must be used together with `gasPrice`.
+  - **gasPrice** (optional): Gas price in wei for the replacement transaction. Must be used together with `nonce`.
+
+Either `(nonce, gasPrice)` or `transactionHash` must be provided.
+
+#### Returns
+
+**Promise&lt;string&gt;** – The replacement transaction hash.
+
+#### Throws
+
+- If the signer has no provider.
+- If neither `(nonce, gasPrice)` nor `transactionHash` is provided.
+- If `transactionHash` is given but the transaction is not found.
+- If the transaction uses EIP-1559 (no `gasPrice`); in that case use nonce and gas price explicitly.
+
+#### Example
+
+```ts
+import { cancelTransaction } from '@trustvc/trustvc';
+
+// Cancel by transaction hash (gas price is fetched and doubled)
+const replacementHash = await cancelTransaction(signer, {
+  transactionHash: '0x...',
+});
+console.log('Replacement tx:', replacementHash);
+
+// Or cancel by nonce and gas price (e.g. for EIP-1559 txs)
+const replacementHash2 = await cancelTransaction(signer, {
+  nonce: '5',
+  gasPrice: '25000000000', // 25 gwei in wei
+});
 ```
