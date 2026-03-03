@@ -48,7 +48,10 @@ export const cancelTransaction = async (
   let transactionGasPrice: string | undefined = gasPrice;
 
   if (transactionHash) {
-    const tx = await signer.provider.getTransaction!(transactionHash);
+    if (typeof signer.provider.getTransaction !== 'function') {
+      throw new Error('Provider does not support getTransaction');
+    }
+    const tx = await signer.provider.getTransaction(transactionHash);
     if (!tx) {
       throw new Error(`Transaction not found: ${transactionHash}`);
     }
