@@ -35,9 +35,9 @@ describe('transaction/cancel', () => {
       const call = sendTransaction.mock.calls[0][0];
       expect(call.to).toBe(mockAddress);
       expect(call.nonce).toBe(5);
-      expect(call.gasPrice).toBe(25000000000n);
-      expect(call.value).toBe(0n);
-      expect(call.gasLimit).toBe(21000n);
+      expect(call.gasPrice).toBe('25000000000');
+      expect(call.value).toBe(0);
+      expect(call.gasLimit).toBe(21000);
     });
 
     it('when transactionHash provided, fetches tx and uses 2x gas price', async () => {
@@ -66,7 +66,7 @@ describe('transaction/cancel', () => {
       );
       expect(hash).toBe(mockHash);
       expect(sendTransaction.mock.calls[0][0].nonce).toBe(10);
-      expect(sendTransaction.mock.calls[0][0].gasPrice).toBe(6n); // 2 * 3
+      expect(sendTransaction.mock.calls[0][0].gasPrice).toBe('6'); // 2 * 3
     });
 
     it('throws when transactionHash not found', async () => {

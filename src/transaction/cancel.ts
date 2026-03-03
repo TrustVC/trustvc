@@ -6,10 +6,7 @@
  * @see https://info.etherscan.com/how-to-cancel-ethereum-pending-transactions/
  */
 
-import { Signer as SignerV6 } from 'ethersV6';
-import { Signer as SignerV5 } from 'ethers';
 import { BigNumber } from 'ethers';
-import { isV6EthersProvider } from '../utils/ethers';
 
 const GAS_PRICE_SCALE_WHEN_FROM_HASH = 2;
 
@@ -22,17 +19,24 @@ export interface CancelTransactionOptions {
   transactionHash?: string;
 }
 
+/** Signer with provider, compatible with ethers v5 and v6. */
+export interface CancelTransactionSigner {
+  getAddress(): Promise<string>;
+  provider: { getTransaction?(hash: string): Promise<unknown> } | null;
+  sendTransaction(tx: Record<string, unknown>): Promise<{ hash: string }>;
+}
+
 /**
  * Cancels a pending transaction by sending a 0-value transaction to self with the same nonce
- * and a higher gas price. Supports both ethers v5 and v6 signers.
- * @param {SignerV5 | SignerV6} signer - Signer with provider (ethers v5 or v6)
+ * and a higher gas price. Supports both ethers v5 and v6 signers via a unified transaction object.
+ * @param {CancelTransactionSigner} signer - Signer with provider (ethers v5 or v6)
  * @param {CancelTransactionOptions} options - Either (nonce + gasPrice) or transactionHash
  * @returns {Promise<string>} The replacement transaction hash
  * @throws If neither (nonce and gasPrice) nor transactionHash is provided
  * @throws If provider is not available on signer
  */
 export const cancelTransaction = async (
-  signer: SignerV5 | SignerV6,
+  signer: CancelTransactionSigner,
   options: CancelTransactionOptions,
 ): Promise<string> => {
   if (!signer.provider) {
@@ -44,7 +48,7 @@ export const cancelTransaction = async (
   let transactionGasPrice: string | undefined = gasPrice;
 
   if (transactionHash) {
-    const tx = await signer.provider.getTransaction(transactionHash);
+    const tx = await signer.provider.getTransaction!(transactionHash);
     if (!tx) {
       throw new Error(`Transaction not found: ${transactionHash}`);
     }
@@ -70,26 +74,14 @@ export const cancelTransaction = async (
   }
 
   const address = await signer.getAddress();
-  const isV6 = isV6EthersProvider(signer.provider);
+  const nonceNum = parseInt(transactionNonce, 10);
 
-  if (isV6) {
-    const txResponse = await (signer as SignerV6).sendTransaction({
-      to: address,
-      value: 0n,
-      nonce: Number(transactionNonce),
-      gasPrice: BigInt(transactionGasPrice),
-      gasLimit: 21000n,
-    });
-    return txResponse.hash;
-  } else {
-    const txResponse = await (signer as SignerV5).sendTransaction({
-      to: address,
-      from: address,
-      value: 0,
-      nonce: parseInt(transactionNonce, 10),
-      gasPrice: BigNumber.from(transactionGasPrice),
-      gasLimit: 21000,
-    });
-    return txResponse.hash;
-  }
+  const txResponse = await signer.sendTransaction({
+    to: address,
+    value: 0,
+    nonce: nonceNum,
+    gasPrice: transactionGasPrice,
+    gasLimit: 21000,
+  });
+  return txResponse.hash;
 };

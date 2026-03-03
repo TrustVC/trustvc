@@ -1125,7 +1125,7 @@ Cancels a pending transaction by sending a 0-value transaction to the signer’s
 
 #### Parameters
 
-- **signer** – Signer with a connected provider (ethers v5 or v6).
+- **signer** – Signer with a connected provider; type `CancelTransactionSigner` (compatible with ethers v5 and v6 signers).
 - **options** – `CancelTransactionOptions`:
   - **transactionHash** (optional): Pending transaction hash (`0x...`). If provided, nonce and gas price are read from the chain and gas price is increased by 100%.
   - **nonce** (optional): Pending transaction nonce. Must be used together with `gasPrice`.

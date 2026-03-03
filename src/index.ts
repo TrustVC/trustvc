@@ -32,6 +32,7 @@ import {
 } from './document-store';
 import { cancelTransaction } from './transaction';
 export type { TypedContractMethod } from './token-registry-v5/typedContractMethod';
+export type { CancelTransactionSigner } from './transaction';
 export * from './token-registry-functions';
 export * from './core';
 export * from './open-attestation';

@@ -1,1 +1,5 @@
-export { cancelTransaction, type CancelTransactionOptions } from './cancel';
+export {
+  cancelTransaction,
+  type CancelTransactionOptions,
+  type CancelTransactionSigner,
+} from './cancel';
