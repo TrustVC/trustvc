@@ -1,3 +1,10 @@
+## [2.11.0](https://github.com/TrustVC/trustvc/compare/v2.10.0...v2.11.0) (2026-03-03)
+
+
+### Features
+
+* added functionality for transaction cancel ([#134](https://github.com/TrustVC/trustvc/issues/134)) ([a6e973e](https://github.com/TrustVC/trustvc/commit/a6e973ef1e97fc97be1cb52f4a525fbbd6867f88))
+
 ## [2.10.0](https://github.com/TrustVC/trustvc/compare/v2.9.1...v2.10.0) (2026-02-26)
 
 
