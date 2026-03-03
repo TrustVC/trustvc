@@ -74,7 +74,13 @@ export const cancelTransaction = async (
   }
 
   const address = await signer.getAddress();
-  const nonceNum = parseInt(transactionNonce, 10);
+  if (!/^\d+$/.test(transactionNonce)) {
+    throw new Error('Invalid nonce: expected a non-negative integer');
+  }
+  if (!/^\d+$/.test(transactionGasPrice) || transactionGasPrice === '0') {
+    throw new Error('Invalid gasPrice: expected a positive integer string in wei');
+  }
+  const nonceNum = Number(transactionNonce);
 
   const txResponse = await signer.sendTransaction({
     to: address,
