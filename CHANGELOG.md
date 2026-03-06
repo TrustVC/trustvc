@@ -1,3 +1,10 @@
+## [2.11.1](https://github.com/TrustVC/trustvc/compare/v2.11.0...v2.11.1) (2026-03-06)
+
+
+### Bug Fixes
+
+*  convert base64 encoding/decoding to utf8 ([#135](https://github.com/TrustVC/trustvc/issues/135)) ([f8b9cec](https://github.com/TrustVC/trustvc/commit/f8b9cec8ed525fa068db3d7a833f99fe6051ad22))
+
 ## [2.11.0](https://github.com/TrustVC/trustvc/compare/v2.10.0...v2.11.0) (2026-03-03)
 
 
