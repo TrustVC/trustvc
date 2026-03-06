@@ -33,7 +33,6 @@ export const generateEncryptionKey = (keyLengthInBits = ENCRYPTION_PARAMETERS.ke
 
 /**
  * Encode document string to base64 (UTF-8 then base64).
- * Data format matches @govtechsg/oa-encryption.
  * @param {string} document UTF-8 document string to encode
  * @returns {string} Base64-encoded document
  */
@@ -44,7 +43,6 @@ export const encodeDocument = (document: string) => {
 
 /**
  * Decode base64-encoded document string back to UTF-8.
- * Data format matches @govtechsg/oa-encryption.
  * @param {string} encoded Base64-encoded document string
  * @returns {string} Decoded UTF-8 document string
  */

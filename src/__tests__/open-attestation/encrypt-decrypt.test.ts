@@ -121,7 +121,7 @@ describe('open-attestation encrypt/decrypt (OA document encryption)', () => {
       expect(decoded).toBe(input);
     });
 
-    it('encodeDocument should return standard base64 (matches @govtechsg/oa-encryption / tradetrust-cli)', () => {
+    it('encodeDocument should return standard base64', () => {
       const input = 'hello';
       const encoded = encodeDocument(input);
       expect(encoded).toMatch(base64Regex);
