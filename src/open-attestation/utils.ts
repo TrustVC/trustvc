@@ -22,20 +22,6 @@ export const ENCRYPTION_PARAMETERS = Object.freeze({
 } as const);
 
 /**
- * Generates a random key represented as a hexadecimal string
- * @param {number} keyLengthInBits Key length in bits
- * @returns {string} Encryption key as hexadecimal string
- */
-export const generateEncryptionKey = (keyLengthInBits = ENCRYPTION_PARAMETERS.keyLength) => {
-  const encryptionKey = forge.random.getBytesSync(keyLengthInBits / 8);
-  return forge.util.bytesToHex(encryptionKey);
-};
-
-/**
- * Encode document string to base64 (UTF-8 then base64).
- * @param {string} document UTF-8 document string to encode
- * @returns {string} Base64-encoded document
- */
 export const encodeDocument = (document: string) => {
   const bytes = forge.util.encodeUtf8(document);
   return forge.util.encode64(bytes);
@@ -43,12 +29,18 @@ export const encodeDocument = (document: string) => {
 
 /**
  * Decode base64-encoded document string back to UTF-8.
- * @param {string} encoded Base64-encoded document string
- * @returns {string} Decoded UTF-8 document string
+ * Data format matches `@govtechsg/oa-encryption`.
+ * `@param` {string} encoded Base64-encoded document string
+ * `@returns` {string} Decoded UTF-8 document string
  */
 export const decodeDocument = (encoded: string) => {
-  const decoded = forge.util.decode64(encoded);
+  const normalized = encoded
+    .replace(/-/g, '+')
+    .replace(/_/g, '/')
+    .padEnd(Math.ceil(encoded.length / 4) * 4, '=');
+  const decoded = forge.util.decode64(normalized);
   return forge.util.decodeUtf8(decoded);
+};
 };
 
 const {
