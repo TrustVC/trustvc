@@ -121,11 +121,11 @@ describe('open-attestation encrypt/decrypt (OA document encryption)', () => {
       expect(decoded).toBe(input);
     });
 
-    it('encodeDocument should return url safe characters only', () => {
-      const input = '🦄😱|certificate|证书|sijil|प्रमाणपत्र';
+    it('encodeDocument should return standard base64', () => {
+      const input = 'hello';
       const encoded = encodeDocument(input);
-      // encodeURIComponent encodes +, /, = — so this only passes when output is truly query-safe (base64url).
-      expect(encodeURIComponent(encoded)).toBe(encoded);
+      expect(encoded).toMatch(base64Regex);
+      expect(decodeDocument(encoded)).toBe(input);
     });
   });
 });

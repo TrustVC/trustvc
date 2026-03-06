@@ -22,45 +22,32 @@ export const ENCRYPTION_PARAMETERS = Object.freeze({
 } as const);
 
 /**
- * Generates a random key represented as a hexadecimal string.
- * @param {number} [keyLengthInBits] - Key length in bits.
- * @returns {string} Hexadecimal-encoded encryption key.
+ * Generates a random key represented as a hexadecimal string
+ * @param {number} keyLengthInBits Key length in bits
+ * @returns {string} Encryption key as hexadecimal string
  */
-export const generateEncryptionKey = (
-  keyLengthInBits: number = ENCRYPTION_PARAMETERS.keyLength,
-): string => {
-  if (!Number.isInteger(keyLengthInBits) || ![128, 192, 256].includes(keyLengthInBits)) {
-    throw new Error('keyLengthInBits must be one of 128, 192, or 256');
-  }
+export const generateEncryptionKey = (keyLengthInBits = ENCRYPTION_PARAMETERS.keyLength) => {
   const encryptionKey = forge.random.getBytesSync(keyLengthInBits / 8);
   return forge.util.bytesToHex(encryptionKey);
 };
 
 /**
- * Encode document string to URL-safe base64 (base64url: UTF-8 then base64 with +→-, /→_, no padding).
- * Safe for use in query strings and JSON without further encoding.
- * @param {string} document - Plain text document to encode.
- * @returns {string} Base64url-encoded string.
+ * Encode document string to base64 (UTF-8 then base64).
+ * @param {string} document UTF-8 document string to encode
+ * @returns {string} Base64-encoded document
  */
-export const encodeDocument = (document: string): string => {
+export const encodeDocument = (document: string) => {
   const bytes = forge.util.encodeUtf8(document);
-  const standard = forge.util.encode64(bytes);
-  const s = standard.replace(/\+/g, '-').replace(/\//g, '_');
-  const trim = s.endsWith('==') ? 2 : s.endsWith('=') ? 1 : 0;
-  return trim ? s.slice(0, -trim) : s;
+  return forge.util.encode64(bytes);
 };
 
 /**
- * Decode base64url-encoded document string back to UTF-8.
- * Accepts both base64url (no padding, - and _) and standard base64 for backwards compatibility.
- * @param {string} encoded - Base64- or base64url-encoded string to decode.
- * @returns {string} Decoded UTF-8 plain text.
+ * Decode base64-encoded document string back to UTF-8.
+ * @param {string} encoded Base64-encoded document string
+ * @returns {string} Decoded UTF-8 document string
  */
-export const decodeDocument = (encoded: string): string => {
-  let normalized = encoded.replace(/-/g, '+').replace(/_/g, '/');
-  const pad = normalized.length % 4;
-  if (pad) normalized += '='.repeat(4 - pad);
-  const decoded = forge.util.decode64(normalized);
+export const decodeDocument = (encoded: string) => {
+  const decoded = forge.util.decode64(encoded);
   return forge.util.decodeUtf8(decoded);
 };
 
