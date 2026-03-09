@@ -108,9 +108,9 @@ const documentStoreRevoke = async (
     const isV6 = isV6EthersProvider(signer.provider);
 
     if (isV6) {
-      await (documentStoreContract as ContractV6).revoke.staticCall(documentHash);
+      await (documentStoreContract as ContractV6).revoke!.staticCall(documentHash);
     } else {
-      await (documentStoreContract as ContractV5).callStatic.revoke(documentHash);
+      await (documentStoreContract as ContractV5).callStatic.revoke!(documentHash);
     }
   } catch (e) {
     console.error('callStatic failed:', e);

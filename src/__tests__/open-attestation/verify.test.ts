@@ -12,7 +12,7 @@ const TEST_DOCUMENTS = {
   'Documents without proofs mean these documents are wrapped individually (i.e. targetHash == merkleRoot)':
     SIGNED_WRAPPED_DOCUMENT_DNS_DID_V3,
   'Documents with proofs mean these documents are wrapped as a batch (i.e. proofs exist, and targetHash !== merkleRoot)':
-    BATCHED_SIGNED_WRAPPED_DOCUMENTS_DID[0],
+    BATCHED_SIGNED_WRAPPED_DOCUMENTS_DID[0]!,
 } as const;
 
 describe.concurrent('v3 verify', () => {
@@ -228,7 +228,7 @@ describe.concurrent('V2 verify', () => {
 
   it('given a value of a key in object is changed, should return false', async () => {
     const newName = 'a775d0db-ef6f-41ce-bb2f-f2366ef0e1a6:string:SG FREIGHT';
-    expect(WRAPPED_DOCUMENT_DNS_TXT_V2.data.recipient.name).not.toBe(newName);
+    expect(WRAPPED_DOCUMENT_DNS_TXT_V2.data.recipient!.name).not.toBe(newName);
     expect(
       await verifyOASignature({
         ...WRAPPED_DOCUMENT_DNS_TXT_V2,

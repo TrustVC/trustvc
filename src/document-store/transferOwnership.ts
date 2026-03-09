@@ -92,9 +92,9 @@ export const documentStoreTransferOwnership = async (
   try {
     // Pre-check 1: Verify grant will succeed
     if (isV6) {
-      await (documentStoreContract as ContractV6).grantRole.staticCall(roleString, account);
+      await (documentStoreContract as ContractV6).grantRole!.staticCall(roleString, account);
     } else {
-      await (documentStoreContract as ContractV5).callStatic.grantRole(roleString, account);
+      await (documentStoreContract as ContractV5).callStatic.grantRole!(roleString, account);
     }
   } catch (e) {
     console.error('callStatic failed:', e);
@@ -104,9 +104,9 @@ export const documentStoreTransferOwnership = async (
   try {
     // Pre-check 2: Verify revoke will succeed
     if (isV6) {
-      await (documentStoreContract as ContractV6).revokeRole.staticCall(roleString, ownerAddress);
+      await (documentStoreContract as ContractV6).revokeRole!.staticCall(roleString, ownerAddress);
     } else {
-      await (documentStoreContract as ContractV5).callStatic.revokeRole(roleString, ownerAddress);
+      await (documentStoreContract as ContractV5).callStatic.revokeRole!(roleString, ownerAddress);
     }
   } catch (e) {
     console.error('callStatic failed:', e);

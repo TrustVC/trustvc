@@ -41,7 +41,10 @@ const returnToIssuer = async (
   let { titleEscrowAddress } = contractOptions;
   const { chainId, maxFeePerGas, maxPriorityFeePerGas, titleEscrowVersion } = options;
 
+  if (!signer.provider) throw new Error('Provider is required');
   if (!titleEscrowAddress) {
+    if (!tokenRegistryAddress) throw new Error('Token registry address is required');
+    if (!tokenId) throw new Error('Token ID is required');
     titleEscrowAddress = await getTitleEscrowAddress(
       tokenRegistryAddress,
       tokenId as string,
@@ -51,7 +54,6 @@ const returnToIssuer = async (
   }
 
   if (!titleEscrowAddress) throw new Error('Title Escrow address is required');
-  if (!signer.provider) throw new Error('Provider is required');
   const { remarks } = params;
 
   // Connect V5 contract by default
@@ -100,6 +102,8 @@ const returnToIssuer = async (
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       signer as any,
     );
+  } else {
+    throw new Error('Only Token Registry V4/V5 is supported');
   }
 
   // Check callStatic (dry run)
@@ -109,9 +113,9 @@ const returnToIssuer = async (
     const staticCallFxn = isV5TT ? 'returnToIssuer' : 'surrender';
 
     if (isV6) {
-      await (titleEscrowContract as ContractV6)[staticCallFxn].staticCall(...args);
+      await (titleEscrowContract as ContractV6)[staticCallFxn]!.staticCall(...args);
     } else {
-      await (titleEscrowContract as ContractV5).callStatic[staticCallFxn](...args);
+      await (titleEscrowContract as ContractV5).callStatic[staticCallFxn]!(...args);
     }
   } catch (e) {
     console.error('callStatic failed:', e);
@@ -123,7 +127,7 @@ const returnToIssuer = async (
   // Send the actual transaction
   if (isV5TT) {
     return await titleEscrowContract.returnToIssuer(encryptedRemarks, txOptions);
-  } else if (isV4TT) {
+  } else {
     return await titleEscrowContract.surrender(txOptions);
   }
 };
@@ -192,6 +196,8 @@ const rejectReturned = async (
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       signer as any,
     );
+  } else {
+    throw new Error('Only Token Registry V4/V5 is supported');
   }
 
   const encryptedRemarks = remarks && isV5TT ? `0x${encrypt(remarks, options.id!)}` : '0x';
@@ -201,9 +207,9 @@ const rejectReturned = async (
     const args = isV5TT ? [tokenId, encryptedRemarks] : [tokenId];
 
     if (isV6) {
-      await (tradeTrustTokenContract as ContractV6).restore.staticCall(...args);
+      await (tradeTrustTokenContract as ContractV6).restore!.staticCall(...args);
     } else {
-      await (tradeTrustTokenContract as ContractV5).callStatic.restore(...args);
+      await (tradeTrustTokenContract as ContractV5).callStatic.restore!(...args);
     }
   } catch (e) {
     console.error('callStatic failed:', e);
@@ -216,7 +222,7 @@ const rejectReturned = async (
 
   if (isV5TT) {
     return await tradeTrustTokenContract.restore(tokenId, encryptedRemarks, txOptions);
-  } else if (isV4TT) {
+  } else {
     return await tradeTrustTokenContract.restore(tokenId, txOptions);
   }
 };
@@ -284,6 +290,8 @@ const acceptReturned = async (
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       signer as any,
     );
+  } else {
+    throw new Error('Only Token Registry V4/V5 is supported');
   }
 
   const encryptedRemarks = remarks && isV5TT ? `0x${encrypt(remarks, options.id!)}` : '0x';
@@ -294,9 +302,9 @@ const acceptReturned = async (
     const args = isV5TT ? [tokenId, encryptedRemarks] : [tokenId];
 
     if (isV6) {
-      await (tradeTrustTokenContract as ContractV6).burn.staticCall(...args);
+      await (tradeTrustTokenContract as ContractV6).burn!.staticCall(...args);
     } else {
-      await (tradeTrustTokenContract as ContractV5).callStatic.burn(...args);
+      await (tradeTrustTokenContract as ContractV5).callStatic.burn!(...args);
     }
   } catch (e) {
     console.error('callStatic failed:', e);
@@ -309,7 +317,7 @@ const acceptReturned = async (
 
   if (isV5TT) {
     return await tradeTrustTokenContract.burn(tokenId, encryptedRemarks, txOptions);
-  } else if (isV4TT) {
+  } else {
     return await tradeTrustTokenContract.burn(tokenId, txOptions);
   }
 };

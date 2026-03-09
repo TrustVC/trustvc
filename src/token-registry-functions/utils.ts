@@ -7,9 +7,9 @@ import { constants, v5Contracts } from '../token-registry-v5';
 
 const getTxOptions = async (
   signer: SignerV6 | Signer,
-  chainId: CHAIN_ID,
-  maxFeePerGas: GasValue,
-  maxPriorityFeePerGas: GasValue,
+  chainId: CHAIN_ID | undefined,
+  maxFeePerGas: GasValue | undefined,
+  maxPriorityFeePerGas: GasValue | undefined,
 ) => {
   // If gas values are missing, query gas station if available
   if (!maxFeePerGas || !maxPriorityFeePerGas) {

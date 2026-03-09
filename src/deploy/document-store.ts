@@ -134,7 +134,11 @@ const deployDocumentStore = async (
         owner,
         txOptions,
       );
-      return await contract.deploymentTransaction().wait();
+      const deployTx = contract.deploymentTransaction();
+      if (!deployTx) throw new Error('Deployment transaction not found');
+      const receipt = await deployTx.wait();
+      if (!receipt) throw new Error('Deployment transaction receipt not found');
+      return receipt;
     } else {
       // Ethers v5: Use deployTransaction property
       const contract = await (contractFactory as ContractFactoryV5).deploy(

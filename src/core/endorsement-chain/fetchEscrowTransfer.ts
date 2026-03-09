@@ -152,7 +152,8 @@ const fetchAllTransfers = async (
   }
   if (!titleEscrowAddress) {
     // Handle ethers v5 and v6 differently
-    titleEscrowAddress = titleEscrowContract?.address ?? (await titleEscrowContract.getAddress());
+    const v5Address = (titleEscrowContract as ethers.Contract).address as string | undefined;
+    titleEscrowAddress = v5Address ?? (await titleEscrowContract.getAddress());
   }
 
   return holderChangeLogsParsed

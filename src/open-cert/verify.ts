@@ -106,11 +106,11 @@ const storeToData = (
   store: string,
 ): OpencertsRegistryVerificationValidData | OpencertsRegistryVerificationInvalidData => {
   const key = Object.keys(registry.issuers).find((k) => k.toLowerCase() === store.toLowerCase());
-  if (key) {
+  if (key && registry.issuers[key]) {
     return {
       status: 'VALID' as const,
       value: store,
-      ...registry.issuers[key],
+      ...registry.issuers[key]!,
     };
   }
   return {

@@ -101,9 +101,9 @@ export const documentStoreRevokeRole = async (
     const isV6 = isV6EthersProvider(signer.provider);
 
     if (isV6) {
-      await (documentStoreContract as ContractV6).revokeRole.staticCall(role, account);
+      await (documentStoreContract as ContractV6).revokeRole!.staticCall(role, account);
     } else {
-      await (documentStoreContract as ContractV5).callStatic.revokeRole(role, account);
+      await (documentStoreContract as ContractV5).callStatic.revokeRole!(role, account);
     }
   } catch (e) {
     console.error('callStatic failed:', e);

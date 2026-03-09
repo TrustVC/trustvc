@@ -127,7 +127,7 @@ describe('fetch endorsement chain - Mocked', () => {
 });
 
 describe('fetch endorsement chain - Mocked - Web Provider', () => {
-  it.each([testCases[0], testCases[1]])(
+  it.each([testCases[0]!, testCases[1]!])(
     '$description - fetch with ethers v5 Web3Provider',
     { timeout: 180_000 },
     async ({ rpcUrl, tokenRegistryAddress, tokenId, expected, mock }) => {
@@ -162,7 +162,7 @@ describe('fetch endorsement chain - Mocked - Web Provider', () => {
     },
   );
 
-  it.each([testCases[0], testCases[1]])(
+  it.each([testCases[0]!, testCases[1]!])(
     '$description - fetch with ethers v6 BrowserProvider',
     { timeout: 180_000 },
     async ({ rpcUrl, tokenRegistryAddress, tokenId, expected, mock }) => {

@@ -100,9 +100,9 @@ const documentStoreIssue = async (
     const isV6 = isV6EthersProvider(signer.provider);
 
     if (isV6) {
-      await (documentStoreContract as ContractV6).issue.staticCall(documentHash);
+      await (documentStoreContract as ContractV6).issue!.staticCall(documentHash);
     } else {
-      await (documentStoreContract as ContractV5).callStatic.issue(documentHash);
+      await (documentStoreContract as ContractV5).callStatic.issue!(documentHash);
     }
   } catch (e) {
     console.error('callStatic failed:', e);

@@ -61,6 +61,8 @@ const ownerOf = async (
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       signer as any,
     );
+  } else {
+    throw new Error('Only Token Registry V4/V5 is supported');
   }
 
   // Send the actual transaction

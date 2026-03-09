@@ -72,6 +72,8 @@ const mint = async (
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       signer as any,
     );
+  } else {
+    throw new Error('Only Token Registry V4/V5 is supported');
   }
 
   const encryptedRemarks = remarks && isV5TT ? `0x${encrypt(remarks, options.id ?? '')}` : '0x';
@@ -83,9 +85,9 @@ const mint = async (
       : [beneficiaryAddress, holderAddress, tokenId];
 
     if (isV6) {
-      await (tradeTrustTokenContract as ContractV6).mint.staticCall(...args);
+      await (tradeTrustTokenContract as ContractV6).mint!.staticCall(...args);
     } else {
-      await (tradeTrustTokenContract as ContractV5).callStatic.mint(...args);
+      await (tradeTrustTokenContract as ContractV5).callStatic.mint!(...args);
     }
   } catch (e) {
     console.error('callStatic failed:', e);
@@ -109,7 +111,7 @@ const mint = async (
       encryptedRemarks,
       txOptions,
     );
-  } else if (isV4TT) {
+  } else {
     return await tradeTrustTokenContract.mint(
       beneficiaryAddress,
       holderAddress,

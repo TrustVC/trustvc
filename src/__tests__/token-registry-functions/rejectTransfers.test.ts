@@ -119,7 +119,9 @@ describe.each(providers)(
       });
 
       it('should throw error when tokenRegistryAddress is missing', async () => {
-        vi.mocked(coreModule.getTitleEscrowAddress).mockResolvedValue(undefined);
+        vi.mocked(coreModule.getTitleEscrowAddress).mockResolvedValue(
+          undefined as unknown as string,
+        );
         await expect(
           rejectTransferHolder(
             {
@@ -247,7 +249,9 @@ describe.each(providers)(
       });
 
       it('should throw error when tokenRegistryAddress is missing', async () => {
-        vi.mocked(coreModule.getTitleEscrowAddress).mockResolvedValue(undefined);
+        vi.mocked(coreModule.getTitleEscrowAddress).mockResolvedValue(
+          undefined as unknown as string,
+        );
         await expect(
           rejectTransferBeneficiary(
             {
@@ -374,7 +378,9 @@ describe.each(providers)(
       });
 
       it('should throw error when tokenRegistryAddress is missing', async () => {
-        vi.mocked(coreModule.getTitleEscrowAddress).mockResolvedValue(undefined);
+        vi.mocked(coreModule.getTitleEscrowAddress).mockResolvedValue(
+          undefined as unknown as string,
+        );
         await expect(
           rejectTransferOwners(
             {

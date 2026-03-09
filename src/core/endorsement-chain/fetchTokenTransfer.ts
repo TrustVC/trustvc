@@ -44,7 +44,7 @@ async function fetchLogs(
   tokenId: string,
 ): Promise<Event[] | ethersV6.EventLog[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const transferLogFilter: any = tokenRegistry.filters.Transfer(null, null, tokenId);
+  const transferLogFilter: any = tokenRegistry.filters.Transfer!(null, null, tokenId);
   const logs = await tokenRegistry.queryFilter(transferLogFilter, 0);
 
   if (logs.length === 0) {

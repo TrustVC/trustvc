@@ -49,16 +49,16 @@ const safeParseUnits = (_value: number | string, decimals: number): BigNumber =>
   }
 
   // Pad the fraction to 9 decimal places
-  while (comps[1].length < decimals) {
-    comps[1] += '0';
+  while (comps[1]!.length < decimals) {
+    comps[1] = comps[1]! + '0';
   }
 
   // Too many decimals and some non-zero ending, take the ceiling
-  if (comps[1].length > 9 && !comps[1].substring(9).match(/^0+$/)) {
-    comps[1] = BigNumber.from(comps[1].substring(0, 9)).add(BigNumber.from(1)).toString();
+  if (comps[1]!.length > 9 && !comps[1]!.substring(9).match(/^0+$/)) {
+    comps[1] = BigNumber.from(comps[1]!.substring(0, 9)).add(BigNumber.from(1)).toString();
   }
 
-  return ethers.utils.parseUnits(`${comps[0]}.${comps[1]}`, decimals);
+  return ethers.utils.parseUnits(`${comps[0]!}.${comps[1]!}`, decimals);
 };
 
 export const scaleBigNumber = (

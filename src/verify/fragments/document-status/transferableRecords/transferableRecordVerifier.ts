@@ -72,7 +72,7 @@ const verify: VerifierType['verify'] = async (
     type,
     status: 'INVALID' as const,
     data: {
-      tokenRegistry: credentialStatuses?.[0]?.tokenRegistry,
+      tokenRegistry: credentialStatuses?.[0]?.tokenRegistry ?? '',
     },
   };
 
@@ -110,7 +110,9 @@ const test: VerifierType['test'] = (
 
   if (
     w3cVC.isSignedDocument(document) &&
-    credentialStatuses.every((cs: w3cVC.CredentialStatus) => cs?.type === TRANSFERABLE_RECORDS_TYPE)
+    credentialStatuses.every(
+      (cs: w3cVC.CredentialStatus | undefined) => cs?.type === TRANSFERABLE_RECORDS_TYPE,
+    )
   ) {
     return true;
   }

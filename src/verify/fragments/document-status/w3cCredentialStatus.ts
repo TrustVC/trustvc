@@ -44,8 +44,8 @@ export const w3cCredentialStatus: Verifier<VerificationFragment> = {
       ? doc?.credentialStatus
       : [doc?.credentialStatus];
 
-    const test = (credentialStatus: CredentialStatus) =>
-      ['BitstringStatusListEntry', 'StatusList2021Entry'].includes(credentialStatus?.type);
+    const test = (credentialStatus: CredentialStatus | undefined) =>
+      ['BitstringStatusListEntry', 'StatusList2021Entry'].includes(credentialStatus?.type ?? '');
 
     if (isSignedDocument(document) && credentialStatuses.every(test)) {
       return true;

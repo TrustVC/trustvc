@@ -49,6 +49,7 @@ const transferHolder = async (
   let isV5TT = titleEscrowVersion === 'v5';
   let isV4TT = titleEscrowVersion === 'v4';
 
+  if (!signer.provider) throw new Error('Provider is required');
   if (!titleEscrowAddress) {
     if (!tokenRegistryAddress) throw new Error('Token registry address is required');
     if (!tokenId) throw new Error('Token ID is required');
@@ -61,7 +62,6 @@ const transferHolder = async (
   }
 
   if (!titleEscrowAddress) throw new Error('Token registry address is required');
-  if (!signer.provider) throw new Error('Provider is required');
   const { holderAddress, remarks } = params;
 
   // Connect V5 contract by default
@@ -106,6 +106,8 @@ const transferHolder = async (
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       signer as any,
     );
+  } else {
+    throw new Error('Only Token Registry V4/V5 is supported');
   }
   //   check for current holder and signer
   //   const currentHolder = await titleEscrowContract.holder();
@@ -124,9 +126,9 @@ const transferHolder = async (
     const args = isV5TT ? [holderAddress, encryptedRemarks] : [holderAddress];
 
     if (isV6) {
-      await (titleEscrowContract as ContractV6).transferHolder.staticCall(...args);
+      await (titleEscrowContract as ContractV6).transferHolder!.staticCall(...args);
     } else {
-      await (titleEscrowContract as ContractV5).callStatic.transferHolder(...args);
+      await (titleEscrowContract as ContractV5).callStatic.transferHolder!(...args);
     }
   } catch (e) {
     console.error('callStatic failed:', e);
@@ -138,7 +140,7 @@ const transferHolder = async (
   // Send the actual transaction
   if (isV5TT) {
     return await titleEscrowContract.transferHolder(holderAddress, encryptedRemarks, txOptions);
-  } else if (isV4TT) {
+  } else {
     return await titleEscrowContract.transferHolder(holderAddress, txOptions);
   }
 };
@@ -175,7 +177,10 @@ const transferBeneficiary = async (
   let isV5TT = titleEscrowVersion === 'v5';
   let isV4TT = titleEscrowVersion === 'v4';
 
+  if (!signer.provider) throw new Error('Provider is required');
   if (!titleEscrowAddress) {
+    if (!tokenRegistryAddress) throw new Error('Token registry address is required');
+    if (!tokenId) throw new Error('Token ID is required');
     titleEscrowAddress = await getTitleEscrowAddress(
       tokenRegistryAddress,
       tokenId as string,
@@ -184,7 +189,6 @@ const transferBeneficiary = async (
     );
   }
   if (!titleEscrowAddress) throw new Error('Token registry address is required');
-  if (!signer.provider) throw new Error('Provider is required');
   const { newBeneficiaryAddress, remarks } = params;
 
   const encryptedRemarks = remarks ? `0x${encrypt(remarks, options.id!)}` : '0x';
@@ -225,6 +229,8 @@ const transferBeneficiary = async (
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       signer as any,
     );
+  } else {
+    throw new Error('Only Token Registry V4/V5 is supported');
   }
 
   // check for current beneficiary and signer
@@ -244,9 +250,9 @@ const transferBeneficiary = async (
     const args = isV5TT ? [newBeneficiaryAddress, encryptedRemarks] : [newBeneficiaryAddress];
 
     if (isV6) {
-      await (titleEscrowContract as ContractV6).transferBeneficiary.staticCall(...args);
+      await (titleEscrowContract as ContractV6).transferBeneficiary!.staticCall(...args);
     } else {
-      await (titleEscrowContract as ContractV5).callStatic.transferBeneficiary(...args);
+      await (titleEscrowContract as ContractV5).callStatic.transferBeneficiary!(...args);
     }
   } catch (e) {
     console.error('callStatic failed:', e);
@@ -263,7 +269,7 @@ const transferBeneficiary = async (
       encryptedRemarks,
       txOptions,
     );
-  } else if (isV4TT) {
+  } else {
     return await titleEscrowContract.transferBeneficiary(newBeneficiaryAddress, txOptions);
   }
 };
@@ -300,7 +306,10 @@ const transferOwners = async (
   let isV5TT = titleEscrowVersion === 'v5';
   let isV4TT = titleEscrowVersion === 'v4';
 
+  if (!signer.provider) throw new Error('Provider is required');
   if (!titleEscrowAddress) {
+    if (!tokenRegistryAddress) throw new Error('Token registry address is required');
+    if (!tokenId) throw new Error('Token ID is required');
     titleEscrowAddress = await getTitleEscrowAddress(
       tokenRegistryAddress,
       tokenId as string,
@@ -309,7 +318,6 @@ const transferOwners = async (
     );
   }
   if (!titleEscrowAddress) throw new Error('Token registry address is required');
-  if (!signer.provider) throw new Error('Provider is required');
   const { newBeneficiaryAddress, newHolderAddress, remarks } = params;
 
   const encryptedRemarks = remarks ? `0x${encrypt(remarks, options.id!)}` : '0x';
@@ -350,6 +358,8 @@ const transferOwners = async (
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       signer as any,
     );
+  } else {
+    throw new Error('Only Token Registry V4/V5 is supported');
   }
 
   // check for current beneficiary, holder and signer
@@ -377,9 +387,9 @@ const transferOwners = async (
       : [newBeneficiaryAddress, newHolderAddress];
 
     if (isV6) {
-      await (titleEscrowContract as ContractV6).transferOwners.staticCall(...args);
+      await (titleEscrowContract as ContractV6).transferOwners!.staticCall(...args);
     } else {
-      await (titleEscrowContract as ContractV5).callStatic.transferOwners(...args);
+      await (titleEscrowContract as ContractV5).callStatic.transferOwners!(...args);
     }
   } catch (e) {
     console.error('callStatic failed:', e);
@@ -398,7 +408,7 @@ const transferOwners = async (
       encryptedRemarks,
       txOptions,
     );
-  } else if (isV4TT) {
+  } else {
     return await titleEscrowContract.transferOwners(
       newBeneficiaryAddress,
       newHolderAddress,
@@ -439,7 +449,10 @@ const nominate = async (
   let isV5TT = titleEscrowVersion === 'v5';
   let isV4TT = titleEscrowVersion === 'v4';
 
+  if (!signer.provider) throw new Error('Provider is required');
   if (!titleEscrowAddress) {
+    if (!tokenRegistryAddress) throw new Error('Token registry address is required');
+    if (!tokenId) throw new Error('Token ID is required');
     titleEscrowAddress = await getTitleEscrowAddress(
       tokenRegistryAddress,
       tokenId as string,
@@ -448,7 +461,6 @@ const nominate = async (
     );
   }
   if (!titleEscrowAddress) throw new Error('Token registry address is required');
-  if (!signer.provider) throw new Error('Provider is required');
   const { newBeneficiaryAddress, remarks } = params;
 
   const encryptedRemarks = remarks ? `0x${encrypt(remarks, options.id!)}` : '0x';
@@ -469,6 +481,10 @@ const nominate = async (
     ]);
   }
 
+  if (!isV4TT && !isV5TT) {
+    throw new Error('Only Token Registry V4/V5 is supported');
+  }
+
   const Contract = getEthersContractFromProvider(signer.provider);
   // Connect V5 contract by default
   let titleEscrowContract: ContractV5 | ContractV6;
@@ -486,6 +502,8 @@ const nominate = async (
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       signer as any,
     );
+  } else {
+    throw new Error('Only Token Registry V4/V5 is supported');
   }
 
   // check for current beneficiary and signer
@@ -505,9 +523,9 @@ const nominate = async (
     const args = isV5TT ? [newBeneficiaryAddress, encryptedRemarks] : [newBeneficiaryAddress];
 
     if (isV6) {
-      await (titleEscrowContract as ContractV6).nominate.staticCall(...args);
+      await (titleEscrowContract as ContractV6).nominate!.staticCall(...args);
     } else {
-      await (titleEscrowContract as ContractV5).callStatic.nominate(...args);
+      await (titleEscrowContract as ContractV5).callStatic.nominate!(...args);
     }
   } catch (e) {
     console.error('callStatic failed:', e);
@@ -521,7 +539,7 @@ const nominate = async (
 
   if (isV5TT) {
     return await titleEscrowContract.nominate(newBeneficiaryAddress, encryptedRemarks, txOptions);
-  } else if (isV4TT) {
+  } else {
     return await titleEscrowContract.nominate(newBeneficiaryAddress, txOptions);
   }
 };

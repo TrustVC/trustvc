@@ -78,7 +78,7 @@ describe.concurrent('wrap documents', () => {
 
   it('given an array of documents with different versions, should throw', async ({ expect }) => {
     await expect(
-      wrapOADocuments([BATCHED_RAW_DOCUMENTS_DID_V2[0], BATCHED_RAW_DOCUMENTS_DID_V3[0]]),
+      wrapOADocuments([BATCHED_RAW_DOCUMENTS_DID_V2[0]!, BATCHED_RAW_DOCUMENTS_DID_V3[0]!]),
     ).rejects.toThrowErrorMatchingInlineSnapshot(`[Error: Unsupported documents version]`);
   });
 
@@ -229,7 +229,7 @@ describe.concurrent('v2.0 wrap documents', () => {
           ...BATCHED_RAW_DOCUMENTS_DID_V2[1],
           issuers: [
             {
-              ...BATCHED_RAW_DOCUMENTS_DID_V2[1].issuers[0],
+              ...BATCHED_RAW_DOCUMENTS_DID_V2[1]!.issuers[0]!,
               identityProof: 'any' as any,
             },
           ],

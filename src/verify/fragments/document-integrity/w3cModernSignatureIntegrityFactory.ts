@@ -65,6 +65,7 @@ export function createW3CSignatureIntegrityVerifier(
           verificationResult.error?.includes(DERIVE_CREDENTIAL_ERROR)
         ) {
           const derivedCredential = await deriveCredential(document, derivationPaths);
+          if (!derivedCredential.derived) throw new Error('Failed to derive credential');
           verificationResult = await verifyW3CSignature(derivedCredential.derived, verifierOptions);
           isDerived = false;
         }

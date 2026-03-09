@@ -123,6 +123,8 @@ export const deployTokenRegistry = async (
   let { chainId, standalone, factoryAddress, tokenRegistryImplAddress, deployerContractAddress } =
     options;
 
+  if (!signer.provider) throw new Error('Provider is required');
+
   // Get deployer's address for initialization
   const deployerAddress = await signer.getAddress();
 
@@ -225,7 +227,11 @@ export const deployTokenRegistry = async (
         factoryAddress,
         txOptions,
       );
-      return await contract.deploymentTransaction().wait();
+      const deployTx = contract.deploymentTransaction();
+      if (!deployTx) throw new Error('Deployment transaction not found');
+      const receipt = await deployTx.wait();
+      if (!receipt) throw new Error('Deployment transaction receipt not found');
+      return receipt;
     } else {
       // Ethers v5: Use deployTransaction property
       const contract = await (tokenFactory as ContractFactoryV5).deploy(

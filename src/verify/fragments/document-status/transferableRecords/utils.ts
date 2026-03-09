@@ -97,7 +97,7 @@ export const isTokenMintedOnRegistry = async ({
       minted: false,
       address: tokenRegistryAddress,
       reason: {
-        message: decodeError(error),
+        message: decodeError(error as EthersError),
         // message: (error as Error).message,
         code: OpenAttestationEthereumTokenRegistryStatusCode.DOCUMENT_NOT_MINTED,
         codeString:

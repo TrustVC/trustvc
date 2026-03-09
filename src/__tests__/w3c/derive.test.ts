@@ -45,20 +45,20 @@ describe('W3C derive', () => {
         const result = await deriveW3C(document as SignedVerifiableCredential, selectivePointers);
 
         expect(result.derived).toBeDefined();
-        expect(result.derived.proof).toBeDefined();
-        expect(result.derived['@context']).toBeDefined();
-        expect(result.derived.credentialStatus).toBeDefined();
+        expect(result.derived!.proof).toBeDefined();
+        expect(result.derived!['@context']).toBeDefined();
+        expect(result.derived!.credentialStatus).toBeDefined();
 
         if (expectations.renderMethodDefined) {
-          expect(result.derived.renderMethod).toBeDefined();
+          expect(result.derived!.renderMethod).toBeDefined();
         } else {
-          expect(result.derived.renderMethod).toBeUndefined();
+          expect(result.derived!.renderMethod).toBeUndefined();
         }
 
         if (expectations.qrCodeDefined) {
-          expect(result.derived.qrCode).toBeDefined();
+          expect(result.derived!.qrCode).toBeDefined();
         } else {
-          expect(result.derived.qrCode).toBeUndefined();
+          expect(result.derived!.qrCode).toBeUndefined();
         }
       });
     });

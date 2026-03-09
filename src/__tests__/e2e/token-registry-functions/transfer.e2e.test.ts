@@ -84,7 +84,14 @@ providers.forEach(({ Provider, ethersVersion, titleEscrowVersion }) => {
       // For v6, use unique private keys based on provider index to avoid nonce conflicts
       const signers = ethersVersion === 'v5' ? await getSignersV5(8) : await getSignersV6(8); // Larger offset for v6
       // const signers = await hardhatEthers.getSigners();
-      [owner, holder1, beneficiary1, holder2, beneficiary2, newHolder, newBeneficiary] = signers;
+      const _signers = signers as (ethers.Wallet | ethersV6.Wallet)[];
+      owner = _signers[0]!;
+      holder1 = _signers[1]!;
+      beneficiary1 = _signers[2]!;
+      holder2 = _signers[3]!;
+      beneficiary2 = _signers[4]!;
+      newHolder = _signers[5]!;
+      newBeneficiary = _signers[6]!;
 
       // Deploy TitleEscrowFactory first
       console.log('Deploying TitleEscrowFactory...');

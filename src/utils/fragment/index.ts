@@ -108,26 +108,26 @@ const w3cCredentialStatusSuspended = (fragments: VerificationFragment[]): boolea
 
 const errorMessageHandling = (fragments: VerificationFragment[]): string[] => {
   const { hashValid, issuedValid, identityValid } = interpretFragments(fragments);
-  const errors = [];
+  const errors: string[] = [];
   const isW3cFragments = fragments.some(
     (f) => f.name.startsWith('W3C') || f.name === 'TransferableRecords',
   );
   if (isW3cFragments) {
     switch (true) {
       case w3cCredentialStatusRevoked(fragments):
-        errors.push(CONSTANTS.TYPES.REVOKED);
+        if (CONSTANTS.TYPES.REVOKED) errors.push(CONSTANTS.TYPES.REVOKED);
         break;
       case w3cCredentialStatusSuspended(fragments):
-        errors.push(CONSTANTS.TYPES.SUSPENDED);
+        if (CONSTANTS.TYPES.SUSPENDED) errors.push(CONSTANTS.TYPES.SUSPENDED);
         break;
       case !hashValid:
-        errors.push(CONSTANTS.TYPES.HASH);
+        if (CONSTANTS.TYPES.HASH) errors.push(CONSTANTS.TYPES.HASH);
         break;
       case !identityValid:
-        errors.push(CONSTANTS.TYPES.IDENTITY);
+        if (CONSTANTS.TYPES.IDENTITY) errors.push(CONSTANTS.TYPES.IDENTITY);
         break;
       case !issuedValid:
-        errors.push(CONSTANTS.TYPES.INVALID);
+        if (CONSTANTS.TYPES.INVALID) errors.push(CONSTANTS.TYPES.INVALID);
         break;
     }
 

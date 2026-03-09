@@ -51,7 +51,7 @@ describe.concurrent('OpenCert signature verify', () => {
         });
 
         it('given a key in an object is altered (value kept the same), should return false', async () => {
-          const { name, ...recipientWithoutName } = document.data.recipient;
+          const { name, ...recipientWithoutName } = document.data.recipient!;
           const modified = {
             ...document,
             data: {
@@ -63,7 +63,7 @@ describe.concurrent('OpenCert signature verify', () => {
             },
           };
 
-          expect(await verifySignature(modified)).toBe(false);
+          expect(await verifySignature(modified as any)).toBe(false);
         });
 
         it('given a new array item is added, should return false', async () => {
@@ -91,8 +91,8 @@ describe.concurrent('OpenCert signature verify', () => {
         it('given a key in an item is removed, should return false', async () => {
           const modifiedData = cloneDeep(document.data);
           expect(modifiedData.issuers?.[0]?.name).toBeDefined();
-          delete modifiedData.issuers[0].name;
-          expect(modifiedData.issuers[0].name).toBeUndefined();
+          delete (modifiedData.issuers[0] as any).name;
+          expect(modifiedData.issuers[0]!.name).toBeUndefined();
 
           expect(
             await verifySignature({
@@ -168,7 +168,7 @@ describe.concurrent('OpenCert signature verify', () => {
                 ...document.data,
                 extraNullField: null,
               },
-            }),
+            } as any),
           ).toBe(false);
 
           const modifiedData: any = cloneDeep(document.data);

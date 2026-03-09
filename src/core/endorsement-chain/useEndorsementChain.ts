@@ -185,6 +185,7 @@ export const isTitleEscrowVersion = async ({
     if (!titleEscrowAddress && (!tokenRegistryAddress || !tokenId)) {
       throw new Error('Missing required dependencies');
     } else if (!titleEscrowAddress) {
+      if (!tokenRegistryAddress || !tokenId) throw new Error('Missing required dependencies');
       titleEscrowAddress = await getTitleEscrowAddress(tokenRegistryAddress, tokenId, provider);
     }
     return await checkSupportsInterface(titleEscrowAddress, versionInterface, provider);

@@ -90,7 +90,7 @@ export class DocumentBuilder {
   private documentType: string = 'w3c'; // Default to W3C
   private selectedStatusType: 'transferableRecords' | 'verifiableDocument' | null = null; // Tracks selected status type.
   private statusConfig: Partial<CredentialStatus> = {}; // Configuration for the credential status.
-  private rpcProviderUrl: string; // Holds the RPC provider URL for verifying token registry.
+  private rpcProviderUrl: string = ''; // Holds the RPC provider URL for verifying token registry.
   private requiredFields: string[] = ['credentialSubject']; // Required fields that must be present in the document.
   private isSigned: boolean = false; // Tracks if a document is signed
   private isDerived: boolean = false; // Tracks if a document is derived
@@ -224,7 +224,8 @@ export class DocumentBuilder {
       revealedAttributes,
     );
     if (derivedCredential.error) throw new Error(`Derivation Error: ${derivedCredential.error}`);
-    this.document = derivedCredential.derived;
+    if (!derivedCredential.derived) throw new Error('Derivation Error: No derived credential');
+    this.document = derivedCredential.derived as unknown as Partial<VerifiableCredential>;
     this.isDerived = true;
     return derivedCredential.derived;
   }
@@ -285,13 +286,18 @@ export class DocumentBuilder {
     if (input.proof) throw new Error('Configuration Error: Document is already signed.');
     return {
       ...input,
-      '@context': this.buildContext(input['@context']),
-      type: Array.from(new Set([].concat(input.type || [], 'VerifiableCredential'))),
+      '@context': this.buildContext(input['@context'] as string | string[] | undefined),
+      type: Array.from(
+        new Set([
+          ...(Array.isArray(input.type) ? input.type : input.type ? [input.type] : []),
+          'VerifiableCredential',
+        ]),
+      ),
     };
   }
 
   // Private helper method to build the context for the document, ensuring uniqueness and adding the default W3C context.
-  private buildContext(context: string | string[]): string[] {
+  private buildContext(context: string | string[] | undefined): string[] {
     const arrayContext = Array.isArray(context) ? context : context ? [context] : [];
     if (arrayContext.includes(VC_V1_URL)) {
       throw new Error('Document builder does not support data model v1.1.');

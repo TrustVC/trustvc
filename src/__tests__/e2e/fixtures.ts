@@ -61,7 +61,7 @@ const generateTestV5PrivateKeys = (count: number): string[] => {
 
   for (let i = 0; i < count; i++) {
     if (i < baseKeys.length) {
-      keys.push(baseKeys[i]);
+      keys.push(baseKeys[i]!);
     } else {
       // Generate additional keys if needed
       const randomKey = ethersV5.Wallet.createRandom().privateKey;
@@ -89,7 +89,7 @@ const generateTestV6PrivateKeys = (count: number): string[] => {
 
   for (let i = 0; i < count; i++) {
     if (i < baseKeys.length) {
-      keys.push(baseKeys[i]);
+      keys.push(baseKeys[i]!);
     } else {
       // Generate additional keys if needed
       const randomKey = WalletV6.createRandom().privateKey;

@@ -32,6 +32,7 @@ const rejectTransferHolder = async (
   let { titleEscrowAddress } = contractOptions;
   const { chainId, maxFeePerGas, maxPriorityFeePerGas, titleEscrowVersion } = options;
 
+  if (!signer.provider) throw new Error('Provider is required');
   if (!titleEscrowAddress) {
     if (!tokenRegistryAddress) throw new Error('Token registry address is required');
     if (!tokenId) throw new Error('Token ID is required');
@@ -44,7 +45,6 @@ const rejectTransferHolder = async (
   }
 
   if (!titleEscrowAddress) throw new Error('Title escrow address is required');
-  if (!signer.provider) throw new Error('Provider is required');
   const { remarks } = params;
 
   // Connect V5 contract by default
@@ -77,9 +77,9 @@ const rejectTransferHolder = async (
     const args = isV5TT ? [encryptedRemarks] : [];
 
     if (isV6) {
-      await (titleEscrowContract as ContractV6).rejectTransferHolder.staticCall(...args);
+      await (titleEscrowContract as ContractV6).rejectTransferHolder!.staticCall(...args);
     } else {
-      await (titleEscrowContract as ContractV5).callStatic.rejectTransferHolder(...args);
+      await (titleEscrowContract as ContractV5).callStatic.rejectTransferHolder!(...args);
     }
   } catch (e) {
     console.error('callStatic failed:', e);
@@ -114,6 +114,7 @@ const rejectTransferBeneficiary = async (
   let { titleEscrowAddress } = contractOptions;
   const { chainId, maxFeePerGas, maxPriorityFeePerGas, titleEscrowVersion } = options;
 
+  if (!signer.provider) throw new Error('Provider is required');
   if (!titleEscrowAddress) {
     if (!tokenRegistryAddress) throw new Error('Token registry address is required');
     if (!tokenId) throw new Error('Token ID is required');
@@ -126,7 +127,6 @@ const rejectTransferBeneficiary = async (
   }
 
   if (!titleEscrowAddress) throw new Error('Token registry address is required');
-  if (!signer.provider) throw new Error('Provider is required');
   const { remarks } = params;
 
   // Connect V5 contract by default
@@ -160,9 +160,9 @@ const rejectTransferBeneficiary = async (
     const args = isV5TT ? [encryptedRemarks] : [];
 
     if (isV6) {
-      await (titleEscrowContract as ContractV6).rejectTransferBeneficiary.staticCall(...args);
+      await (titleEscrowContract as ContractV6).rejectTransferBeneficiary!.staticCall(...args);
     } else {
-      await (titleEscrowContract as ContractV5).callStatic.rejectTransferBeneficiary(...args);
+      await (titleEscrowContract as ContractV5).callStatic.rejectTransferBeneficiary!(...args);
     }
   } catch (e) {
     console.error('callStatic failed:', e);
@@ -197,6 +197,7 @@ const rejectTransferOwners = async (
   let { titleEscrowAddress } = contractOptions;
   const { chainId, maxFeePerGas, maxPriorityFeePerGas, titleEscrowVersion } = options;
 
+  if (!signer.provider) throw new Error('Provider is required');
   if (!titleEscrowAddress) {
     if (!tokenRegistryAddress) throw new Error('Token registry address is required');
     if (!tokenId) throw new Error('Token ID is required');
@@ -209,7 +210,6 @@ const rejectTransferOwners = async (
   }
 
   if (!titleEscrowAddress) throw new Error('Token registry address is required');
-  if (!signer.provider) throw new Error('Provider is required');
   const { remarks } = params;
 
   // Connect V5 contract by default
@@ -243,9 +243,9 @@ const rejectTransferOwners = async (
     const args = isV5TT ? [encryptedRemarks] : [];
 
     if (isV6) {
-      await (titleEscrowContract as ContractV6).rejectTransferOwners.staticCall(...args);
+      await (titleEscrowContract as ContractV6).rejectTransferOwners!.staticCall(...args);
     } else {
-      await (titleEscrowContract as ContractV5).callStatic.rejectTransferOwners(...args);
+      await (titleEscrowContract as ContractV5).callStatic.rejectTransferOwners!(...args);
     }
   } catch (e) {
     console.error('callStatic failed:', e);

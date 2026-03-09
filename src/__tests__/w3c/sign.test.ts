@@ -98,8 +98,8 @@ describe('W3C sign', () => {
       );
 
       expect(signingResult.signed).toBeDefined();
-      expect(signingResult.signed.proof).toBeDefined();
-      expect(signingResult.signed.proof.type).toBe('DataIntegrityProof');
+      expect(signingResult.signed!.proof).toBeDefined();
+      expect(signingResult.signed!.proof!.type).toBe('DataIntegrityProof');
     });
   });
 
@@ -133,8 +133,8 @@ describe('W3C sign', () => {
       );
 
       expect(signingResult.signed).toBeDefined();
-      expect(signingResult.signed.proof).toBeDefined();
-      expect(signingResult.signed.proof.type).toBe('DataIntegrityProof');
+      expect(signingResult.signed!.proof).toBeDefined();
+      expect(signingResult.signed!.proof!.type).toBe('DataIntegrityProof');
     });
   });
 });
