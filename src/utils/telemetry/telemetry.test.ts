@@ -1,6 +1,14 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { emitTelemetry, disableTelemetry, enableTelemetry, extractDidMethod } from './telemetry';
-import { _resetForTesting, isTelemetryEnabled, getInstanceId, SDK_VERSION } from './telemetry';
+import { afterEach, beforeEach, vi } from 'vitest';
+import {
+  emitTelemetry,
+  disableTelemetry,
+  enableTelemetry,
+  extractDidMethod,
+  _resetForTesting,
+  isTelemetryEnabled,
+  getInstanceId,
+  SDK_VERSION,
+} from './telemetry';
 import type { TelemetryInput } from './types';
 import { readLastTelemetryPayload, waitForTelemetryFlush } from '../../__tests__/utils/telemetry';
 
@@ -54,7 +62,7 @@ describe('telemetry', () => {
   });
 
   describe('extractDidMethod', () => {
-    it.each([
+    [
       {
         name: 'extracts did:web',
         input: 'did:web:trustvc.github.io:did:1',
@@ -90,8 +98,10 @@ describe('telemetry', () => {
         input: 'did:',
         expected: 'unknown',
       },
-    ])('$name', ({ input, expected }) => {
-      expect(extractDidMethod(input)).toBe(expected);
+    ].forEach(({ name, input, expected }) => {
+      it(name, () => {
+        expect(extractDidMethod(input)).toBe(expected);
+      });
     });
   });
 
@@ -100,13 +110,12 @@ describe('telemetry', () => {
       expect(isTelemetryEnabled()).toBe(true);
     });
 
-    it.each(['1', 'true', 'yes', 'YES'])(
-      'should return false when TRUSTVC_TELEMETRY_DISABLED=%s',
-      (value) => {
+    ['1', 'true', 'yes', 'YES'].forEach((value) => {
+      it(`should return false when TRUSTVC_TELEMETRY_DISABLED=${value}`, () => {
         vi.stubEnv('TRUSTVC_TELEMETRY_DISABLED', value);
         expect(isTelemetryEnabled()).toBe(false);
-      },
-    );
+      });
+    });
 
     it('should return true when TRUSTVC_TELEMETRY_DISABLED=0', () => {
       vi.stubEnv('TRUSTVC_TELEMETRY_DISABLED', '0');

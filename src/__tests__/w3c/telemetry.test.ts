@@ -1,4 +1,3 @@
-import { describe, it } from 'vitest';
 import { VerificationType } from '@trustvc/w3c-issuer';
 import { signW3C, verifyW3CSignature } from '../..';
 import { W3C_VERIFIABLE_DOCUMENT } from '../fixtures/fixtures';
@@ -7,7 +6,7 @@ import { useTelemetryTestHarness } from '../utils/telemetry';
 describe('W3C telemetry did_method extraction', () => {
   const telemetry = useTelemetryTestHarness();
 
-  it.each([
+  [
     {
       name: 'emits did:web when signing with a string issuer',
       runOperation: async () => {
@@ -45,7 +44,9 @@ describe('W3C telemetry did_method extraction', () => {
         }),
       expectedDidMethod: 'did:key',
     },
-  ])('$name', async ({ runOperation, expectedDidMethod }) => {
-    await telemetry.assertDidMethod(runOperation, expectedDidMethod);
+  ].forEach(({ name, runOperation, expectedDidMethod }) => {
+    it(name, async () => {
+      await telemetry.assertDidMethod(runOperation, expectedDidMethod);
+    });
   });
 });

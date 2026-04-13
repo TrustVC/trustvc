@@ -6,7 +6,10 @@ import {
 } from '../../utils/telemetry/telemetry';
 
 type FetchSpy = ReturnType<typeof vi.fn>;
-type TelemetryPayload = Record<string, unknown> & { did_method?: string };
+type TelemetryPayload = Record<string, unknown> & {
+  did_method?: string;
+  cryptosuite?: string;
+};
 
 const TELEMETRY_FLUSH_DELAY_MS = 10;
 
@@ -46,6 +49,10 @@ export const useTelemetryTestHarness = () => {
     getLastDidMethod: (): string | undefined => {
       const payload = readLastTelemetryPayload(fetchSpy);
       return typeof payload?.did_method === 'string' ? payload.did_method : undefined;
+    },
+    getLastCryptosuite: (): string | undefined => {
+      const payload = readLastTelemetryPayload(fetchSpy);
+      return typeof payload?.cryptosuite === 'string' ? payload.cryptosuite : undefined;
     },
     waitForTelemetry: waitForTelemetryFlush,
     assertDidMethod: async (
