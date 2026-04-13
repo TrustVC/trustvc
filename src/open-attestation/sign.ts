@@ -4,11 +4,13 @@ import {
   signDocument,
   SignedWrappedDocument,
   SUPPORTED_SIGNING_ALGORITHM,
+  utils,
   v2,
   v3,
 } from '@tradetrust-tt/tradetrust';
 import { KeyPair } from './types';
-import { emitTelemetry, extractDidMethod } from '../utils/telemetry';
+import { emitTelemetry } from '../utils/telemetry';
+import { getDataV2 } from './utils';
 
 export async function signOA<T extends v2.WrappedDocument | v2.SignedWrappedDocument>(
   document: T,
@@ -42,17 +44,17 @@ export async function signOA<T extends OpenAttestationDocument>(
     keyPair,
   );
 
-  let proofDid = '';
-  if ('key' in result.proof && typeof result.proof.key === 'string') {
-    proofDid = result.proof.key;
-  } else if (Array.isArray(result.proof) && result.proof[0]?.verificationMethod) {
-    proofDid = result.proof[0].verificationMethod;
+  let identityProofType = '';
+  if (utils.isWrappedV3Document(result)) {
+    identityProofType = result.openAttestationMetadata?.identityProof?.type ?? '';
+  } else if (utils.isWrappedV2Document(result)) {
+    identityProofType = getDataV2(result)?.issuers?.[0]?.identityProof?.type ?? '';
   }
   emitTelemetry({
     action_type: 'issuance',
     document_format: 'oa',
     cryptosuite: SUPPORTED_SIGNING_ALGORITHM.Secp256k1VerificationKey2018,
-    did_method: extractDidMethod(proofDid),
+    did_method: identityProofType || 'unknown',
   }).catch(() => {});
 
   return result as SignedWrappedDocument<T>;

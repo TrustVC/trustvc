@@ -22,11 +22,13 @@ export const signW3C = async (
   // Call the signCredential function from the trustvc/w3c-vc package to sign the credential
   const result = await signCredential(credential, keyPair, cryptoSuite, options);
 
+  const issuerDid =
+    typeof credential.issuer === 'string' ? credential.issuer : (credential.issuer?.id ?? '');
   emitTelemetry({
     action_type: 'issuance',
     document_format: 'w3c_vc',
     cryptosuite: cryptoSuite,
-    did_method: extractDidMethod(keyPair.controller ?? keyPair.id ?? ''),
+    did_method: extractDidMethod(issuerDid),
   }).catch(() => {});
 
   return result;

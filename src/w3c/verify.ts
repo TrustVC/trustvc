@@ -16,15 +16,13 @@ export const verifyW3CSignature = async (
   // Call the verifyCredential function from the trustvc/w3c-vc package to verify the credential
   const result = await verifyCredential(credential, options);
 
+  const issuerDid =
+    typeof credential.issuer === 'string' ? credential.issuer : (credential.issuer?.id ?? '');
   emitTelemetry({
     action_type: 'verification',
     document_format: 'w3c_vc',
     cryptosuite: credential.proof?.cryptosuite ?? credential.proof?.type ?? 'unknown',
-    did_method: extractDidMethod(
-      credential.proof?.verificationMethod ??
-        (typeof credential.issuer === 'string' ? credential.issuer : '') ??
-        '',
-    ),
+    did_method: extractDidMethod(issuerDid),
   }).catch(() => {});
 
   return result;
