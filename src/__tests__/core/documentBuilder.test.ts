@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { DocumentBuilder } from '../../core/documentBuilder';
+import { TEST_BBS2020_KEY_PAIR } from '../fixtures/keys';
 import {
   Bbs2023PrivateKeyPair,
   CryptoSuite,
@@ -11,16 +12,6 @@ import {
 // Note: Dummy/test cryptographic key pairs for local development and CI/CD.
 // Used for signing/verifying credentials only. Not for production. Do not control funds.
 // -----------------------------
-
-const BBS2020testPrivateKey: PrivateKeyPair = {
-  // test key for BBS 2020 signing
-  id: 'did:web:trustvc.github.io:did:1#keys-1',
-  controller: 'did:web:trustvc.github.io:did:1',
-  type: VerificationType.Bls12381G2Key2020,
-  publicKeyBase58:
-    'oRfEeWFresvhRtXCkihZbxyoi2JER7gHTJ5psXhHsdCoU1MttRMi3Yp9b9fpjmKh7bMgfWKLESiK2YovRd8KGzJsGuamoAXfqDDVhckxuc9nmsJ84skCSTijKeU4pfAcxeJ',
-  privateKeyBase58: '4LDU56PUhA9ZEutnR1qCWQnUhtLtpLu2EHSq4h1o7vtF',
-};
 
 const ECDSAtestPrivateKey: PrivateKeyPair = {
   // test key for ECDSA signing
@@ -287,7 +278,7 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
 
     it('should throw error when trying to sign with BbsBlsSignature2020', async () => {
       await expect(
-        documentBuilder.sign(BBS2020testPrivateKey, 'BbsBlsSignature2020' as any),
+        documentBuilder.sign(TEST_BBS2020_KEY_PAIR, 'BbsBlsSignature2020' as any),
       ).rejects.toThrow(
         'BbsBlsSignature2020 is no longer supported. Please use the latest cryptosuite versions instead',
       );

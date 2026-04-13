@@ -1,9 +1,9 @@
-import { VerificationType } from '@trustvc/w3c-issuer';
 import { signW3C, verifyW3CSignature } from '../..';
 import { W3C_VERIFIABLE_DOCUMENT } from '../fixtures/fixtures';
+import { TEST_BBS2020_KEY_PAIR } from '../fixtures/keys';
 import { useTelemetryTestHarness } from '../utils/telemetry';
 
-describe('W3C telemetry did_method extraction', () => {
+describe('W3C telemetry extraction', () => {
   const telemetry = useTelemetryTestHarness();
 
   [
@@ -12,25 +12,16 @@ describe('W3C telemetry did_method extraction', () => {
       runOperation: async () => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { proof, id, ...documentWithoutProof } = W3C_VERIFIABLE_DOCUMENT;
-        await signW3C(
-          documentWithoutProof,
-          {
-            id: 'did:web:trustvc.github.io:did:1#keys-1',
-            controller: 'did:web:trustvc.github.io:did:1',
-            type: VerificationType.Bls12381G2Key2020,
-            publicKeyBase58:
-              'oRfEeWFresvhRtXCkihZbxyoi2JER7gHTJ5psXhHsdCoU1MttRMi3Yp9b9fpjmKh7bMgfWKLESiK2YovRd8KGzJsGuamoAXfqDDVhckxuc9nmsJ84skCSTijKeU4pfAcxeJ',
-            privateKeyBase58: '4LDU56PUhA9ZEutnR1qCWQnUhtLtpLu2EHSq4h1o7vtF',
-          },
-          'BbsBlsSignature2020',
-        );
+        await signW3C(documentWithoutProof, TEST_BBS2020_KEY_PAIR, 'BbsBlsSignature2020');
       },
       expectedDidMethod: 'did:web',
+      expectedCryptosuite: 'BbsBlsSignature2020',
     },
     {
       name: 'emits did:web when verifying with a string issuer',
       runOperation: () => verifyW3CSignature(W3C_VERIFIABLE_DOCUMENT),
       expectedDidMethod: 'did:web',
+      expectedCryptosuite: 'BbsBlsSignature2020',
     },
     {
       name: 'emits did:key when verifying with an object issuer',
@@ -38,15 +29,17 @@ describe('W3C telemetry did_method extraction', () => {
         verifyW3CSignature({
           ...W3C_VERIFIABLE_DOCUMENT,
           issuer: {
-            id: 'did:key:z6MkrHKzgsahxBLyNAbLQyB1pcWNYC9GmywiWPgkrvntAZcj',
+            id: 'did:key:fake',
             name: 'Test',
           },
         }),
       expectedDidMethod: 'did:key',
+      expectedCryptosuite: 'BbsBlsSignature2020',
     },
-  ].forEach(({ name, runOperation, expectedDidMethod }) => {
+  ].forEach(({ name, runOperation, expectedDidMethod, expectedCryptosuite }) => {
     it(name, async () => {
       await telemetry.assertDidMethod(runOperation, expectedDidMethod);
+      expect(telemetry.getLastCryptosuite()).toBe(expectedCryptosuite);
     });
   });
 });

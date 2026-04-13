@@ -75,7 +75,7 @@ describe('telemetry', () => {
       },
       {
         name: 'extracts did:key',
-        input: 'did:key:z6MkrHKzgsahxBLyNAbLQyB1pcWNYC9GmywiWPgkrvntAZcj',
+        input: 'did:key:fake',
         expected: 'did:key',
       },
       {
@@ -106,7 +106,7 @@ describe('telemetry', () => {
   });
 
   describe('isTelemetryEnabled', () => {
-    it('should return true by default when env var is not set', () => {
+    it('should return true when TRUSTVC_TELEMETRY_DISABLED is empty', () => {
       expect(isTelemetryEnabled()).toBe(true);
     });
 

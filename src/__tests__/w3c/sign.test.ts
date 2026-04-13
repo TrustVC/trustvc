@@ -4,6 +4,7 @@ import {
   BBS2023_W3C_VERIFIABLE_DOCUMENT_V2_0,
   W3C_VERIFIABLE_DOCUMENT,
 } from '../fixtures/fixtures';
+import { TEST_BBS2020_KEY_PAIR } from '../fixtures/keys';
 import { signW3C } from '../..';
 import { VerificationType } from '@trustvc/w3c-issuer';
 import type { CryptoSuiteName } from '@trustvc/w3c-vc';
@@ -19,18 +20,9 @@ describe('W3C sign', () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { proof, id, ...documentWithoutProof } = W3C_VERIFIABLE_DOCUMENT;
 
-    // Note: Dummy/test cryptographic BBS 2020 key pairs for local development and CI/CD.
-    // Used for signing/verifying credentials only. Not for production. Do not control funds.
     const signingResult = await signW3C(
       documentWithoutProof,
-      {
-        id: 'did:web:trustvc.github.io:did:1#keys-1',
-        controller: 'did:web:trustvc.github.io:did:1',
-        type: VerificationType.Bls12381G2Key2020,
-        publicKeyBase58:
-          'oRfEeWFresvhRtXCkihZbxyoi2JER7gHTJ5psXhHsdCoU1MttRMi3Yp9b9fpjmKh7bMgfWKLESiK2YovRd8KGzJsGuamoAXfqDDVhckxuc9nmsJ84skCSTijKeU4pfAcxeJ',
-        privateKeyBase58: '4LDU56PUhA9ZEutnR1qCWQnUhtLtpLu2EHSq4h1o7vtF',
-      },
+      TEST_BBS2020_KEY_PAIR,
       'BbsBlsSignature2020',
     );
     expect(signingResult).toEqual({
