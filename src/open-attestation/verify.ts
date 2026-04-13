@@ -1,4 +1,11 @@
-import { verifySignature, utils, v2, v3 } from '@tradetrust-tt/tradetrust';
+import {
+  verifySignature,
+  utils,
+  v2,
+  v3,
+  SUPPORTED_SIGNING_ALGORITHM,
+} from '@tradetrust-tt/tradetrust';
+import { emitTelemetry, extractDidMethod } from '../utils/telemetry';
 
 /**
  * Asynchronously verifies the signature of an OpenAttestation wrapped document.
@@ -17,7 +24,22 @@ export const verifyOASignature = async (
   // Check if the document is of a supported version before verifying its signature
   if (utils.isWrappedV2Document(document) || utils.isWrappedV3Document(document)) {
     // Verify the document's signature using OpenAttestation's `verifySignature` function
-    return verifySignature(document);
+    const result = verifySignature(document);
+
+    let proofValue = '';
+    if (utils.isWrappedV3Document(document)) {
+      proofValue = document.openAttestationMetadata.proof.value;
+    } else if ('proof' in document && Array.isArray(document.proof)) {
+      proofValue = (document.proof as v2.Proof[])[0]?.verificationMethod ?? '';
+    }
+    emitTelemetry({
+      action_type: 'verification',
+      document_format: 'oa',
+      cryptosuite: SUPPORTED_SIGNING_ALGORITHM.Secp256k1VerificationKey2018,
+      did_method: extractDidMethod(proofValue),
+    }).catch(() => {});
+
+    return result;
   } else {
     // Return false if the document type is not recognized
     return false;

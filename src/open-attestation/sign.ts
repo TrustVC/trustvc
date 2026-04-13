@@ -8,6 +8,7 @@ import {
   v3,
 } from '@tradetrust-tt/tradetrust';
 import { KeyPair } from './types';
+import { emitTelemetry, extractDidMethod } from '../utils/telemetry';
 
 export async function signOA<T extends v2.WrappedDocument | v2.SignedWrappedDocument>(
   document: T,
@@ -34,10 +35,25 @@ export async function signOA<T extends OpenAttestationDocument>(
   keyPair: KeyPair | Signer,
 ): Promise<SignedWrappedDocument<T>> {
   // Sign the document using OpenAttestation's `signDocument` function with Secp256k1 algorithm
-  return signDocument(
+  const result = await signDocument(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     document as any,
     SUPPORTED_SIGNING_ALGORITHM.Secp256k1VerificationKey2018,
     keyPair,
   );
+
+  let proofDid = '';
+  if ('key' in result.proof && typeof result.proof.key === 'string') {
+    proofDid = result.proof.key;
+  } else if (Array.isArray(result.proof) && result.proof[0]?.verificationMethod) {
+    proofDid = result.proof[0].verificationMethod;
+  }
+  emitTelemetry({
+    action_type: 'issuance',
+    document_format: 'oa',
+    cryptosuite: SUPPORTED_SIGNING_ALGORITHM.Secp256k1VerificationKey2018,
+    did_method: extractDidMethod(proofDid),
+  }).catch(() => {});
+
+  return result as SignedWrappedDocument<T>;
 }

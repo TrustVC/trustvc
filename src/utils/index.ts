@@ -7,3 +7,4 @@ export * from './documents';
 export * from './gasStation';
 export * from './aws-kms-signer';
 export * from './analytics';
+export * from './telemetry';

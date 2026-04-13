@@ -5,7 +5,7 @@
     "moduleResolution": "nodenext",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "types": ["vitest/globals", "mocha", "gtag.js"],
+    "types": ["node", "vitest/globals", "mocha", "gtag.js"],
     "baseUrl": ".",
     "rootDir": ".",
     "paths": {

@@ -1,4 +1,5 @@
 import { deriveCredential, DerivedResult, SignedVerifiableCredential } from '@trustvc/w3c-vc';
+import { emitTelemetry, extractDidMethod } from '../utils/telemetry';
 
 /**
  * Derives a credential with selective disclosure based on revealed attributes.
@@ -11,5 +12,18 @@ export const deriveW3C = async (
   credential: SignedVerifiableCredential,
   revealedAttributes: string[],
 ): Promise<DerivedResult> => {
-  return deriveCredential(credential, revealedAttributes);
+  const result = await deriveCredential(credential, revealedAttributes);
+
+  emitTelemetry({
+    action_type: 'issuance',
+    document_format: 'w3c_vc',
+    cryptosuite: credential.proof?.cryptosuite ?? credential.proof?.type ?? 'unknown',
+    did_method: extractDidMethod(
+      credential.proof?.verificationMethod ??
+        (typeof credential.issuer === 'string' ? credential.issuer : '') ??
+        '',
+    ),
+  }).catch(() => {});
+
+  return result;
 };

@@ -28,6 +28,7 @@ TrustVC is a comprehensive wrapper library designed to simplify the signing and 
     - [8. **Document Builder**](#8-document-builder)
     - [9. **Document Store**](#9-document-store)
     - [10. **Transaction Cancel**](#10-transaction-cancel)
+  - [Telemetry](#telemetry)
 
 ## Installation
 
@@ -1160,4 +1161,51 @@ const replacementHash2 = await cancelTransaction(signer, {
   nonce: '5',
   gasPrice: '25000000000', // 25 gwei in wei
 });
+```
+
+## Telemetry
+
+TrustVC collects anonymous usage telemetry to help improve the SDK. Telemetry data includes:
+
+- The type of operation performed (signing or verification)
+- The document format used (W3C VC or OpenAttestation)
+- The DID method (e.g. `did:web`, `did:ethr`)
+- The cryptographic suite used (e.g. `ecdsa-sd-2023`)
+- The SDK version
+- An anonymous, randomly generated instance identifier (SHA-256 hashed)
+
+No personally identifiable information (PII) is collected. The instance identifier is a SHA-256 hash of a random UUID, generated locally and stored for consistency across sessions (`~/.trustvc/instance-id` on Node.js, `localStorage` in the browser).
+
+### Opting Out
+
+You can disable telemetry using either of the following methods:
+
+#### Environment Variable
+
+Set `TRUSTVC_TELEMETRY_DISABLED` to `1`, `true`, or `yes`:
+
+```bash
+TRUSTVC_TELEMETRY_DISABLED=1 node your-app.js
+```
+
+Or in a `.env` file:
+
+```
+TRUSTVC_TELEMETRY_DISABLED=1
+```
+
+#### Programmatic API
+
+```ts
+import { disableTelemetry } from '@trustvc/trustvc';
+
+disableTelemetry();
+```
+
+To re-enable telemetry after disabling it programmatically:
+
+```ts
+import { enableTelemetry } from '@trustvc/trustvc';
+
+enableTelemetry();
 ```

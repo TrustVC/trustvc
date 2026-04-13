@@ -25,7 +25,7 @@ export default defineConfig({
     retry: process.env.CI ? 3 : 0,
     // setupFiles: ['dotenv/config'], //this line
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    env: process.env as any,
+    env: { ...process.env, TRUSTVC_TELEMETRY_DISABLED: '1' } as any,
     server: {
       deps: {
         inline: ['@govtechsg/oa-verify', '@tradetrust-tt/tt-verify'], // Inline oa-verify package directly
