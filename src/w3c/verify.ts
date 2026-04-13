@@ -1,6 +1,6 @@
 import { DocumentLoader, verifyCredential } from '@trustvc/w3c-vc';
 import { SignedVerifiableCredential, VerificationResult } from './types';
-import { emitTelemetry, extractDidMethod } from '../utils/telemetry';
+import { emitW3CTelemetry, getProofCryptosuite } from './telemetry';
 
 /**
  * Verifies the signature of a W3C Verifiable Credential.
@@ -15,15 +15,7 @@ export const verifyW3CSignature = async (
 ): Promise<VerificationResult> => {
   // Call the verifyCredential function from the trustvc/w3c-vc package to verify the credential
   const result = await verifyCredential(credential, options);
-
-  const issuerDid =
-    typeof credential.issuer === 'string' ? credential.issuer : (credential.issuer?.id ?? '');
-  emitTelemetry({
-    action_type: 'verification',
-    document_format: 'w3c_vc',
-    cryptosuite: credential.proof?.cryptosuite ?? credential.proof?.type ?? 'unknown',
-    did_method: extractDidMethod(issuerDid),
-  }).catch(() => {});
+  emitW3CTelemetry('verification', credential, getProofCryptosuite(credential.proof));
 
   return result;
 };

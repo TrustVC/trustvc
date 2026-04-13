@@ -4,13 +4,11 @@ import {
   signDocument,
   SignedWrappedDocument,
   SUPPORTED_SIGNING_ALGORITHM,
-  utils,
   v2,
   v3,
 } from '@tradetrust-tt/tradetrust';
 import { KeyPair } from './types';
-import { emitTelemetry } from '../utils/telemetry';
-import { getDataV2 } from './utils';
+import { emitOATelemetry } from './telemetry';
 
 export async function signOA<T extends v2.WrappedDocument | v2.SignedWrappedDocument>(
   document: T,
@@ -44,18 +42,7 @@ export async function signOA<T extends OpenAttestationDocument>(
     keyPair,
   );
 
-  let identityProofType = '';
-  if (utils.isWrappedV3Document(result)) {
-    identityProofType = result.openAttestationMetadata?.identityProof?.type ?? '';
-  } else if (utils.isWrappedV2Document(result)) {
-    identityProofType = getDataV2(result)?.issuers?.[0]?.identityProof?.type ?? '';
-  }
-  emitTelemetry({
-    action_type: 'issuance',
-    document_format: 'oa',
-    cryptosuite: SUPPORTED_SIGNING_ALGORITHM.Secp256k1VerificationKey2018,
-    did_method: identityProofType || 'unknown',
-  }).catch(() => {});
+  emitOATelemetry('issuance', result);
 
   return result as SignedWrappedDocument<T>;
 }

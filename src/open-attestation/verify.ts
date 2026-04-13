@@ -1,12 +1,5 @@
-import {
-  verifySignature,
-  utils,
-  v2,
-  v3,
-  SUPPORTED_SIGNING_ALGORITHM,
-} from '@tradetrust-tt/tradetrust';
-import { emitTelemetry } from '../utils/telemetry';
-import { getDataV2 } from './utils';
+import { verifySignature, utils, v2, v3 } from '@tradetrust-tt/tradetrust';
+import { emitOATelemetry } from './telemetry';
 
 /**
  * Asynchronously verifies the signature of an OpenAttestation wrapped document.
@@ -26,19 +19,7 @@ export const verifyOASignature = async (
   if (utils.isWrappedV2Document(document) || utils.isWrappedV3Document(document)) {
     // Verify the document's signature using OpenAttestation's `verifySignature` function
     const result = verifySignature(document);
-
-    let identityProofType = '';
-    if (utils.isWrappedV3Document(document)) {
-      identityProofType = document.openAttestationMetadata?.identityProof?.type ?? '';
-    } else if (utils.isWrappedV2Document(document)) {
-      identityProofType = getDataV2(document)?.issuers?.[0]?.identityProof?.type ?? '';
-    }
-    emitTelemetry({
-      action_type: 'verification',
-      document_format: 'oa',
-      cryptosuite: SUPPORTED_SIGNING_ALGORITHM.Secp256k1VerificationKey2018,
-      did_method: identityProofType || 'unknown',
-    }).catch(() => {});
+    emitOATelemetry('verification', document);
 
     return result;
   } else {

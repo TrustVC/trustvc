@@ -1,6 +1,6 @@
 import { CryptoSuiteName, signCredential } from '@trustvc/w3c-vc';
 import { RawVerifiableCredential, SigningResult, PrivateKeyPair } from './types';
-import { emitTelemetry, extractDidMethod } from '../utils/telemetry';
+import { emitW3CTelemetry } from './telemetry';
 
 /**
  * Signs a W3C Verifiable Credential using the provided cryptographic suite and key pair.
@@ -21,15 +21,7 @@ export const signW3C = async (
 ): Promise<SigningResult> => {
   // Call the signCredential function from the trustvc/w3c-vc package to sign the credential
   const result = await signCredential(credential, keyPair, cryptoSuite, options);
-
-  const issuerDid =
-    typeof credential.issuer === 'string' ? credential.issuer : (credential.issuer?.id ?? '');
-  emitTelemetry({
-    action_type: 'issuance',
-    document_format: 'w3c_vc',
-    cryptosuite: cryptoSuite,
-    did_method: extractDidMethod(issuerDid),
-  }).catch(() => {});
+  emitW3CTelemetry('issuance', credential, cryptoSuite);
 
   return result;
 };

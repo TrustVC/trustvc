@@ -1,8 +1,43 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { emitTelemetry, disableTelemetry, enableTelemetry, extractDidMethod } from './telemetry';
 import { _resetForTesting, isTelemetryEnabled, getInstanceId, SDK_VERSION } from './telemetry';
+import type { TelemetryInput } from './types';
+import { readLastTelemetryPayload, waitForTelemetryFlush } from '../../__tests__/utils/telemetry';
 
 describe('telemetry', () => {
   let fetchSpy: ReturnType<typeof vi.fn>;
+
+  const baseTelemetryInput: TelemetryInput = {
+    action_type: 'issuance',
+    document_format: 'w3c_vc',
+    did_method: 'did:web',
+    cryptosuite: 'ecdsa-sd-2023',
+  };
+
+  const getLastRequest = (): {
+    url: string;
+    options: RequestInit;
+    body: Record<string, unknown>;
+  } => {
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const [url, options] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    const body = readLastTelemetryPayload(fetchSpy);
+    expect(body).toBeDefined();
+
+    return {
+      url,
+      options,
+      body: body as Record<string, unknown>,
+    };
+  };
+
+  const emitBaseTelemetry = async (overrides: Partial<TelemetryInput> = {}): Promise<void> => {
+    await emitTelemetry({
+      ...baseTelemetryInput,
+      ...overrides,
+    });
+    await waitForTelemetryFlush();
+  };
 
   beforeEach(() => {
     _resetForTesting();
@@ -19,36 +54,44 @@ describe('telemetry', () => {
   });
 
   describe('extractDidMethod', () => {
-    it('should extract did:web', () => {
-      expect(extractDidMethod('did:web:trustvc.github.io:did:1')).toBe('did:web');
-    });
-
-    it('should extract did:ethr', () => {
-      expect(
-        extractDidMethod('did:ethr:0xB26B4941941C51a4885E5B7D3A1B861E54405f90#controller'),
-      ).toBe('did:ethr');
-    });
-
-    it('should extract did:key', () => {
-      expect(extractDidMethod('did:key:z6MkrHKzgsahxBLyNAbLQyB1pcWNYC9GmywiWPgkrvntAZcj')).toBe(
-        'did:key',
-      );
-    });
-
-    it('should extract DID method from verification method with fragment', () => {
-      expect(extractDidMethod('did:web:trustvc.github.io:did:1#multikey-1')).toBe('did:web');
-    });
-
-    it('should return unknown for empty string', () => {
-      expect(extractDidMethod('')).toBe('unknown');
-    });
-
-    it('should return unknown for non-DID string', () => {
-      expect(extractDidMethod('https://example.com')).toBe('unknown');
-    });
-
-    it('should return unknown for malformed DID', () => {
-      expect(extractDidMethod('did:')).toBe('unknown');
+    it.each([
+      {
+        name: 'extracts did:web',
+        input: 'did:web:trustvc.github.io:did:1',
+        expected: 'did:web',
+      },
+      {
+        name: 'extracts did:ethr',
+        input: 'did:ethr:0xB26B4941941C51a4885E5B7D3A1B861E54405f90#controller',
+        expected: 'did:ethr',
+      },
+      {
+        name: 'extracts did:key',
+        input: 'did:key:z6MkrHKzgsahxBLyNAbLQyB1pcWNYC9GmywiWPgkrvntAZcj',
+        expected: 'did:key',
+      },
+      {
+        name: 'extracts a DID method from a verification method with a fragment',
+        input: 'did:web:trustvc.github.io:did:1#multikey-1',
+        expected: 'did:web',
+      },
+      {
+        name: 'returns unknown for an empty string',
+        input: '',
+        expected: 'unknown',
+      },
+      {
+        name: 'returns unknown for a non-DID string',
+        input: 'https://example.com',
+        expected: 'unknown',
+      },
+      {
+        name: 'returns unknown for a malformed DID',
+        input: 'did:',
+        expected: 'unknown',
+      },
+    ])('$name', ({ input, expected }) => {
+      expect(extractDidMethod(input)).toBe(expected);
     });
   });
 
@@ -57,25 +100,13 @@ describe('telemetry', () => {
       expect(isTelemetryEnabled()).toBe(true);
     });
 
-    it('should return false when TRUSTVC_TELEMETRY_DISABLED=1', () => {
-      vi.stubEnv('TRUSTVC_TELEMETRY_DISABLED', '1');
-      expect(isTelemetryEnabled()).toBe(false);
-    });
-
-    it('should return false when TRUSTVC_TELEMETRY_DISABLED=true', () => {
-      vi.stubEnv('TRUSTVC_TELEMETRY_DISABLED', 'true');
-      expect(isTelemetryEnabled()).toBe(false);
-    });
-
-    it('should return false when TRUSTVC_TELEMETRY_DISABLED=yes', () => {
-      vi.stubEnv('TRUSTVC_TELEMETRY_DISABLED', 'yes');
-      expect(isTelemetryEnabled()).toBe(false);
-    });
-
-    it('should return false when TRUSTVC_TELEMETRY_DISABLED=YES (case-insensitive)', () => {
-      vi.stubEnv('TRUSTVC_TELEMETRY_DISABLED', 'YES');
-      expect(isTelemetryEnabled()).toBe(false);
-    });
+    it.each(['1', 'true', 'yes', 'YES'])(
+      'should return false when TRUSTVC_TELEMETRY_DISABLED=%s',
+      (value) => {
+        vi.stubEnv('TRUSTVC_TELEMETRY_DISABLED', value);
+        expect(isTelemetryEnabled()).toBe(false);
+      },
+    );
 
     it('should return true when TRUSTVC_TELEMETRY_DISABLED=0', () => {
       vi.stubEnv('TRUSTVC_TELEMETRY_DISABLED', '0');
@@ -117,24 +148,12 @@ describe('telemetry', () => {
   describe('emitTelemetry', () => {
     it('should call fetch with correct payload when enabled', async () => {
       enableTelemetry();
+      await emitBaseTelemetry();
 
-      await emitTelemetry({
-        action_type: 'issuance',
-        document_format: 'w3c_vc',
-        did_method: 'did:web',
-        cryptosuite: 'ecdsa-sd-2023',
-      });
-
-      // Wait for the fire-and-forget fetch to be called
-      await new Promise((r) => setTimeout(r, 10));
-
-      expect(fetchSpy).toHaveBeenCalledTimes(1);
-      const [url, options] = fetchSpy.mock.calls[0];
+      const { url, options, body } = getLastRequest();
       expect(url).toContain('/api/v1/telemetry');
       expect(options.method).toBe('POST');
       expect(options.headers).toEqual({ 'Content-Type': 'application/json' });
-
-      const body = JSON.parse(options.body);
       expect(body.action_type).toBe('issuance');
       expect(body.document_format).toBe('w3c_vc');
       expect(body.sdk_version).toMatch(/^\d+\.\d+\.\d+$/);
@@ -145,29 +164,18 @@ describe('telemetry', () => {
 
     it('should not call fetch when telemetry is disabled', async () => {
       disableTelemetry();
-
-      await emitTelemetry({
-        action_type: 'issuance',
-        document_format: 'w3c_vc',
-        did_method: 'did:web',
-        cryptosuite: 'ecdsa-sd-2023',
-      });
-
-      await new Promise((r) => setTimeout(r, 10));
+      await emitBaseTelemetry();
       expect(fetchSpy).not.toHaveBeenCalled();
     });
 
     it('should not call fetch when env var disables telemetry', async () => {
       vi.stubEnv('TRUSTVC_TELEMETRY_DISABLED', '1');
-
-      await emitTelemetry({
+      await emitBaseTelemetry({
         action_type: 'verification',
         document_format: 'oa',
         did_method: 'did:ethr',
         cryptosuite: 'Secp256k1VerificationKey2018',
       });
-
-      await new Promise((r) => setTimeout(r, 10));
       expect(fetchSpy).not.toHaveBeenCalled();
     });
 
@@ -175,28 +183,14 @@ describe('telemetry', () => {
       enableTelemetry();
       fetchSpy.mockRejectedValue(new Error('Network error'));
 
-      await expect(
-        emitTelemetry({
-          action_type: 'issuance',
-          document_format: 'w3c_vc',
-          did_method: 'did:web',
-          cryptosuite: 'ecdsa-sd-2023',
-        }),
-      ).resolves.toBeUndefined();
+      await expect(emitBaseTelemetry()).resolves.toBeUndefined();
     });
 
     it('should not throw when fetch is undefined', async () => {
       enableTelemetry();
       vi.stubGlobal('fetch', undefined);
 
-      await expect(
-        emitTelemetry({
-          action_type: 'issuance',
-          document_format: 'w3c_vc',
-          did_method: 'did:web',
-          cryptosuite: 'ecdsa-sd-2023',
-        }),
-      ).resolves.toBeUndefined();
+      await expect(emitBaseTelemetry()).resolves.toBeUndefined();
     });
   });
 });
