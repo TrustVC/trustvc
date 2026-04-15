@@ -1,3 +1,10 @@
+## [2.12.0](https://github.com/TrustVC/trustvc/compare/v2.11.1...v2.12.0) (2026-04-15)
+
+
+### Features
+
+* update @tradetrust-tt/tt-verify to version 9.7.0 and remove deprecated document-store ([#137](https://github.com/TrustVC/trustvc/issues/137)) ([4498837](https://github.com/TrustVC/trustvc/commit/44988378f79cd1c42798440a6b6c2a607c1d4c00))
+
 ## [2.11.1](https://github.com/TrustVC/trustvc/compare/v2.11.0...v2.11.1) (2026-03-06)
 
 
