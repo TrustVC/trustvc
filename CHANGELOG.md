@@ -1,3 +1,10 @@
+## [2.12.1](https://github.com/TrustVC/trustvc/compare/v2.12.0...v2.12.1) (2026-04-24)
+
+
+### Bug Fixes
+
+* oav3 - deps issue ([#138](https://github.com/TrustVC/trustvc/issues/138)) ([7a36aee](https://github.com/TrustVC/trustvc/commit/7a36aee699da9e1cd8e26e79d1f51d7cba43ffa5))
+
 ## [2.12.0](https://github.com/TrustVC/trustvc/compare/v2.11.1...v2.12.0) (2026-04-15)
 
 
