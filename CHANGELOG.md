@@ -1,3 +1,10 @@
+## [2.12.2](https://github.com/TrustVC/trustvc/compare/v2.12.1...v2.12.2) (2026-05-05)
+
+
+### Bug Fixes
+
+* update tt-verify package ([#139](https://github.com/TrustVC/trustvc/issues/139)) ([635c30e](https://github.com/TrustVC/trustvc/commit/635c30e1ab898225a752895d45db562bcb704c62))
+
 ## [2.12.1](https://github.com/TrustVC/trustvc/compare/v2.12.0...v2.12.1) (2026-04-24)
 
 
