@@ -205,7 +205,7 @@ export class DocumentBuilder {
       await this.verifyTokenRegistry(); // Verify that the token registry supports the required interface.
     }
 
-    this.document.issuer = privateKey.id.split('#')[0]; // Set the issuer of the document.
+    this.document.issuer = this.document.issuer || privateKey.id.split('#')[0]; // Set the issuer of the document.
     this.document.validFrom = this.document.validFrom || new Date().toISOString(); // Set the issuance date if not already present.
     this.addContext(DATA_INTEGRITY_V2_URL);
 
