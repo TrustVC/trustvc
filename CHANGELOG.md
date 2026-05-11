@@ -1,3 +1,10 @@
+## [2.12.3](https://github.com/TrustVC/trustvc/compare/v2.12.2...v2.12.3) (2026-05-11)
+
+
+### Bug Fixes
+
+* update document builder sign ([#141](https://github.com/TrustVC/trustvc/issues/141)) ([ea5f858](https://github.com/TrustVC/trustvc/commit/ea5f8585d9c1bee4b193b67a601f1b9e8c5ef187))
+
 ## [2.12.2](https://github.com/TrustVC/trustvc/compare/v2.12.1...v2.12.2) (2026-05-05)
 
 
