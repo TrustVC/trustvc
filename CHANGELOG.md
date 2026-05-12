@@ -1,3 +1,10 @@
+## [2.12.4](https://github.com/TrustVC/trustvc/compare/v2.12.3...v2.12.4) (2026-05-12)
+
+
+### Bug Fixes
+
+* handle object form of W3C VC issuer in identity check ([#142](https://github.com/TrustVC/trustvc/issues/142)) ([2e5cd6e](https://github.com/TrustVC/trustvc/commit/2e5cd6ee96f80d96b8b14a7f200df98a6194ac39))
+
 ## [2.12.3](https://github.com/TrustVC/trustvc/compare/v2.12.2...v2.12.3) (2026-05-11)
 
 
