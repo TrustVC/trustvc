@@ -45,7 +45,8 @@ export const w3cIssuerIdentity: Verifier<VerificationFragment> = {
 
   verify: async (document: unknown, verifierOptions: VerifierOptions) => {
     const doc = document as SignedVerifiableCredential;
-    if (doc.proof?.verificationMethod?.split('#')[0] !== doc.issuer) {
+    const issuerId = typeof doc.issuer === 'string' ? doc.issuer : doc.issuer?.id;
+    if (doc.proof?.verificationMethod?.split('#')[0] !== issuerId) {
       return {
         type: 'ISSUER_IDENTITY',
         name: 'W3CIssuerIdentity',
@@ -56,7 +57,7 @@ export const w3cIssuerIdentity: Verifier<VerificationFragment> = {
         status: 'INVALID',
       };
     }
-    const resolutionResult = await checkDidWebResolve(doc.issuer, verifierOptions?.documentLoader);
+    const resolutionResult = await checkDidWebResolve(issuerId, verifierOptions?.documentLoader);
 
     if (resolutionResult) {
       return {
