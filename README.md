@@ -14,7 +14,7 @@ TrustVC is a comprehensive wrapper library designed to simplify the signing and 
       - [a) wrapOADocument](#a-wrapoadocument)
       - [b) wrapOADocuments](#b-wrapoadocuments)
     - [2. **Signing**](#2-signing)
-      - [a) OpenAttestation Signing (signOA) v2 v3](#a-openattestation-signing-signoa-v2-v3)
+      - [a) OpenAttestation Signing (signOA) v2](#a-openattestation-signing-signoa-v2)
       - [b) TrustVC W3C Signing (signW3C)](#b-trustvc-w3c-signing-signw3c)
     - [3. **Deriving (Selective Disclosure)**](#3-deriving-selective-disclosure)
     - [4. **Verifying**](#4-verifying)
@@ -44,13 +44,13 @@ npm run test
 
 ### 1. **Wrapping**
 
-> This module provides utility functions for wrapping OpenAttestation documents of version 2 (v2) and version 3 (v3). These functions validate the document version and apply the appropriate wrapping logic using the OpenAttestation library. Note that wrapping is not required for W3C-compliant documents, as they follow a different format and standard.
+> This module provides utility functions for wrapping OpenAttestation documents of version 2 (v2). These functions validate the document version and apply the appropriate wrapping logic using the OpenAttestation library. Note that wrapping is not required for W3C-compliant documents, as they follow a different format and standard.
 
 #### a) wrapOADocument
 
 #### Description
 
-> Wraps a single OpenAttestation document asynchronously, supporting both v2 and v3 documents.
+> Wraps a single OpenAttestation v2 document asynchronously.
 
 #### Parameters
 
@@ -71,7 +71,7 @@ npm run test
 import { wrapOADocument } from '@trustvc/trustvc';
 
 const document = {
-  /* OpenAttestation document (v2 or v3) */
+  /* OpenAttestation v2 document */
 };
 const wrappedDocument = await wrapOADocument(document);
 console.log(wrappedDocument);
@@ -81,7 +81,7 @@ console.log(wrappedDocument);
 
 #### Description
 
-> Wraps multiple OpenAttestation documents asynchronously, supporting both v2 and v3 documents.
+> Wraps multiple OpenAttestation v2 documents asynchronously.
 
 #### Parameters
 
@@ -126,7 +126,7 @@ The signing functionality is split into two methods:
 1. signOA: Designed specifically for signing OpenAttestation documents.
 2. signW3C: Tailored for signing W3C-compliant verifiable credentials.
 
-#### a) OpenAttestation Signing (signOA) [v2](https://github.com/Open-Attestation/open-attestation/tree/master/src/2.0) [v3](https://github.com/Open-Attestation/open-attestation/tree/master/src/3.0)
+#### a) OpenAttestation Signing (signOA) [v2](https://github.com/Open-Attestation/open-attestation/tree/master/src/2.0)
 
 ```ts
 import { wrapOA, signOA } from '@trustvc/trustvc';
