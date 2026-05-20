@@ -9,9 +9,9 @@ import {
 } from '../..';
 import {
   BATCHED_RAW_DOCUMENTS_DID_V2,
-  // BATCHED_RAW_DOCUMENTS_DID_V3, // OA v3 wrapping not supported
+  BATCHED_RAW_DOCUMENTS_DID_V3,
   RAW_DOCUMENT_DID_V2,
-  // RAW_DOCUMENT_DNS_DID_V3, // OA v3 wrapping not supported
+  RAW_DOCUMENT_DNS_DID_V3,
 } from '../fixtures/fixtures';
 
 describe.concurrent('wrap document', () => {
@@ -39,6 +39,14 @@ describe.concurrent('wrap document', () => {
   //   expect(proof).not.toHaveProperty('key');
   //   expect(proof).not.toHaveProperty('signature');
   // });
+
+  it('given a v3 document, should throw deprecation error', async ({ expect }) => {
+    await expect(
+      wrapOADocument(RAW_DOCUMENT_DNS_DID_V3 as any),
+    ).rejects.toThrowErrorMatchingInlineSnapshot(
+      `[Error: OA v3 is deprecated in TrustVC as of 1 October 2025. Please switch over to W3C VC.]`,
+    );
+  });
 
   it('given a invalid document, should throw', async ({ expect }) => {
     await expect(wrapOADocument({} as any)).rejects.toThrowErrorMatchingInlineSnapshot(
@@ -84,6 +92,24 @@ describe.concurrent('wrap documents', () => {
   //     wrapOADocuments([BATCHED_RAW_DOCUMENTS_DID_V2[0], BATCHED_RAW_DOCUMENTS_DID_V3[0]]),
   //   ).rejects.toThrowErrorMatchingInlineSnapshot(`[Error: Unsupported documents version]`);
   // });
+
+  it('given an array of v3 documents, should throw deprecation error', async ({ expect }) => {
+    await expect(
+      wrapOADocuments(BATCHED_RAW_DOCUMENTS_DID_V3 as any),
+    ).rejects.toThrowErrorMatchingInlineSnapshot(
+      `[Error: OA v3 is deprecated in TrustVC as of 1 October 2025. Please switch over to W3C VC.]`,
+    );
+  });
+
+  it('given an array of documents with mixed v2 and v3, should throw deprecation error', async ({
+    expect,
+  }) => {
+    await expect(
+      wrapOADocuments([BATCHED_RAW_DOCUMENTS_DID_V2[0], BATCHED_RAW_DOCUMENTS_DID_V3[0]] as any),
+    ).rejects.toThrowErrorMatchingInlineSnapshot(
+      `[Error: OA v3 is deprecated in TrustVC as of 1 October 2025. Please switch over to W3C VC.]`,
+    );
+  });
 
   it('given an array of invalid documents, should throw', async ({ expect }) => {
     await expect(

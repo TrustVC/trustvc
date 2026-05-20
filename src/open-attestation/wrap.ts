@@ -56,6 +56,10 @@ async function wrapOADocument<T extends OpenAttestationDocument>(
 ): Promise<WrappedDocument<T>> {
   if (utils.isRawV2Document(document)) {
     return wrapOADocumentV2(document) as Promise<WrappedDocument<T>>;
+  } else if (utils.isRawV3Document(document)) {
+    throw new Error(
+      'OA v3 is deprecated in TrustVC as of 1 October 2025. Please switch over to W3C VC.',
+    );
   } else {
     throw new Error('Unsupported document version');
   }
@@ -75,6 +79,10 @@ async function wrapOADocuments<T extends OpenAttestationDocument>(
 ): Promise<WrappedDocument<T>[]> {
   if (documents.every((s) => utils.isRawV2Document(s))) {
     return wrapOADocumentsV2(documents) as Promise<WrappedDocument<T>[]>;
+  } else if (documents.some((s) => utils.isRawV3Document(s))) {
+    throw new Error(
+      'OA v3 is deprecated in TrustVC as of 1 October 2025. Please switch over to W3C VC.',
+    );
   } else {
     throw new Error('Unsupported documents version');
   }
