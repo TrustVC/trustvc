@@ -1,3 +1,10 @@
+## [2.12.5](https://github.com/TrustVC/trustvc/compare/v2.12.4...v2.12.5) (2026-05-21)
+
+
+### Bug Fixes
+
+* update oa v3 function ([#144](https://github.com/TrustVC/trustvc/issues/144)) ([aebca9f](https://github.com/TrustVC/trustvc/commit/aebca9fefd3e04f4bc6f14a079a02fb5ccda276a))
+
 ## [2.12.4](https://github.com/TrustVC/trustvc/compare/v2.12.3...v2.12.4) (2026-05-12)
 
 
