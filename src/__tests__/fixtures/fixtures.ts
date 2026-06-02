@@ -1352,24 +1352,21 @@ export const W3C_TRANSFERABLE_RECORD = freezeObject({
   },
 } as SignedVerifiableCredential);
 
-export const ECDSA_W3C_VERIFIABLE_DOCUMENT_V2_0 = freezeObject({
+// Unsigned W3C v2.0 credential template — cryptosuite-agnostic. Used as input to signW3C
+// for both did:web and did:key tests across ECDSA-SD-2023 and BBS-2023. Has no `proof`
+// and no top-level `id` (generated at sign time). Tests override `issuer` when using
+// did:key. Deliberately has no `credentialStatus` — fully verifiable on-the-wire
+// without needing a minted token registry entry or a hosted status list.
+export const W3C_RAW_CREDENTIAL_V2_0 = freezeObject({
   '@context': [
     'https://www.w3.org/ns/credentials/v2',
     'https://w3id.org/security/data-integrity/v2',
-    'https://w3id.org/vc/status-list/2021/v1',
-    'https://trustvc.io/context/transferable-records-context.json',
     'https://trustvc.io/context/attachments-context.json',
     'https://trustvc.io/context/qrcode-context.json',
     'https://trustvc.io/context/bill-of-lading.json',
     'https://trustvc.io/context/render-method-context-v2.json',
   ],
   qrCode: { type: 'TrustVCQRCode', uri: 'https://localhost:3000/qrcode' },
-  credentialStatus: {
-    type: 'TransferableRecords',
-    tokenNetwork: { chain: 'MATIC', chainId: '80001' },
-    tokenRegistry: '0xE0a94770B8e969B5D9179d6dA8730B01e19279e2',
-    tokenId: '8b44d0a7a2e5f083945f4132a06a23fbe58c2e567a3ad89ac0239e02d2d71cf4',
-  },
   credentialSubject: {
     billOfLadingName: 'TrustVC Bill of Lading',
     scac: 'SGPU',
@@ -1408,95 +1405,20 @@ export const ECDSA_W3C_VERIFIABLE_DOCUMENT_V2_0 = freezeObject({
   issuer: 'did:web:trustvc.github.io:did:1',
   type: ['VerifiableCredential'],
   validFrom: '2024-04-01T12:19:52Z',
-  id: 'urn:uuid:0198bd46-6b8e-7661-a19c-8d608f1f2a77',
-  proof: {
-    type: 'DataIntegrityProof',
-    created: '2025-08-18T13:02:45Z',
-    verificationMethod: 'did:web:trustvc.github.io:did:1#multikey-1',
-    cryptosuite: 'ecdsa-sd-2023',
-    proofPurpose: 'assertionMethod',
-    proofValue:
-      'u2V0AhVhAaza3_cFVdDWARDWR4cV4SQOQ0SIFR6OGALPOEM5X8U4BkD_kgTvSSnIrZmRwyNemEtI5BQ7JmWk9sDcYcrgN8lgjgCQCeUnpYnpjxzQXARbt9qNebaTK4njyttXsD2UR9tayRHZYIEFAgdS7BRlH4W-vOfnUu-L5j-AyWzpodqk-mUuROA31mClYQK9a3Fc9lHVOPnS--UgAfVQRENIedf6jrMoLN5ckrJPNO7OBPJMglh-5D0T7Qp_CnOrwch2f3dlFwfwz42z_eM9YQOxxcs-LvJ4k1PHzN2JMNxE19NfAIIPe1mCP_IjI9ekVJG-DiPJetAR_WtQS5rQODVuapz3X424ICeQOrgfgJhRYQAUYDOFKeTsNSkoovWCwuuurZJsRBMuVvd6-FPo3dOXPCj6eno_Ur2clUA2RvIkWdklqGD6GE8cBBnBs9OVv_NVYQKHvH16Y_xKT9_4NKSKdV7IPD2zuy1p6_FkhYa0aRAXU_8FBpBWpn_qFocnkMO5FHQDkCpyLyQa-yHTo2DGfWItYQIbJVco8TOvokwZRjHuezXBiWDtQY0CGTr6XI04qWPKHHAV6qv_cPv9QN95S8ImDFd9Jq5wnKk9mMzFZqQxFu2dYQLldGs8mZDDyerrujluO-OaNcJfru01Sy5_espg3NokKMxcCrafo8CEH6iOmWwt-ntRb56bwGE3saFAGXXNNjRdYQFPOZOPMxVrSGnt3A4yE0CYCZfeP8nmPZCNs2deHRxPKbvBB7miIihku5ak4GxOHikrKXnE8-SS3WUHG1VMt_-1YQPHLvSmGXpJ6PMlu_qG7vq4CxCJoi6RbDsiONxMJCalg9Fm0SNYJZWtkCxH-ktXCbqUpP1z4vgh8x9MvSnEUMvBYQPkEhQD5m70pJWqG9sCx1FPJwVbLXac0N-EKbUJGJ7OoxXHeUV71RiJIZjmM-3a1L0eMyk15r9dAllaMV7LB4RVYQIhjlQWv18OBNKxHTeTnclUZ3whr8vZ-Lev_1WgEo3usutBwzAoWZ03kXv-oHlhGq3-MTX8du4FKmzN4MlwtSBtYQHnVGf7THennsSBUu6d3riOnF68uQYceJUKJOAsY54m4DHv1vBVrXwxvUvLdbe5IpcTuY0RdfmzRHcIv3rV7Eu9YQCUVkdeN5FU5XEp5AgVK-H2vsMdK0ZvHRX2aCQe_3wlMyI9xWajWNDxaCXNslNOAw4eXD0phRj0BzpRzih5oIvFYQAXv0iIMKEHa3TJTIUoAXudyixqmwPB80D4_qXRhfC8esLm1R2ZdppBPI3In64GUHuD8lJYRjFt0PKbxMcyT6KdYQGbW6YOwuaFwghMzOWj4QjR9hhBEtoIx6mAMJfdqSCmT2U4lwS0QcPmjhqME_2OLJojY-K0YusWyZj1pCOh5RIxYQJ0mPNCvuPYv08tOm9cbBZPS7R0AKkF6T4A3tzbdVZ2WovDeIBdA0AbGjpxlKOEKtBThYa-trRsT7yU-Tsp2VP9YQA2rDWql138q5S5foj6VZVNpawhP2ynzelT_K381qsksj7e-4rC0inhyGvh2HXjj7_F8RhjBWy1Y8SqAP_D6iXtYQHXbn2RAJX1kHo47xhHB2TT4RgKUL7BcO4u697PVYlC6ndBxO-hOuM_U6eh2FdlDvuGQaUlSoLm8S0Pn5vMhT-NYQIcz0Hi1oN6viLHKUo0HqSK-pbci1Z7rusQVUOQdEVerfE-GzW5fAIDr74wQHVokqzetzD9inA1AWdvN-1foTYlYQHg5Mv3TJ4immMQdzwd2vOPnr2wKDQgvDJ22g8hxd5YGgUPRJjSH9MMKcRXuBVIZXmChGxmhPfzsUcCXTleZ8pBYQNcCSxhPDknei_wPKHbtSiVmFsi1ypRCCGnJZGopDC2xdPHjtb7v4lrtzWF3_zvGFDeSlLca-1QZS-YxOv4MvwNYQCeeG0E6s5rFc9Cno0C1evT9FJlIX8lcENULh1eAE0cRsLy_rgz_P1eYV-_Du4mp9JrQBDTyyFxWUFexTceia45YQIvh-c0E8a_s9sbmfvEz_upibAgg7Kqqka2lAifbHOHTtbermTaNs95nuP8bIWWFZz9qVvsl3sf9nD4ckAOmTINYQJwaa_zKwnOfq3ST4KpMwYmpufGvxtrct84ZoI7B4kFTE2n6Z4wVuu0WLqtq4afYTmrQ7Qhkr9gi3VFTJNWNFmdYQBpXKx9u6AhU7U-wE14jdW9vVE8Sl2sFN22i9JyMkhKQhI9n33-KPF20MwSGxfzKncAdxukS1cTFeaUIFzcx7XxYQG5OD4CnjTTA1Ki8yM1iAx1wwGRl5KO0g1XFgAPgF6gHOXA6UY_f0Rf4_1eU6lwd9IHvi3GHR4Ea2NQCFydNIzdYQIkFHeY4JnlwI-XN3tlGlZN15YGEoNdFvOmBnI7ANB9pjm9VYt0fZaZwU0kHFJUOaqJmlxehSpywLKYewUFWMgRYQLbyvcEAByxAnc6RSZHjpBhuXkIgDgCxOwsatwg62XSqh9Ou-wKaBg5d5ARKofSI7-v68y0xzPyjrPp1MQGehfFYQGgZC8rut-CFKrmNhsZw2wqA4iJMoRT_Ww2koVfuCGxxYQBQW23zzkXALVMWdttqY4lIet0rH6_f-ylmQrB5q7FYQMkpTM-NT4yCn1UY4U_HnoY9Eopg1sgmYsaA5AMo9WFovRQkd7HRHhAgi9Iuodqxw9MjFGYX07ASd_d-BragZBZYQLEkpg2PiDfh0zvtJKEnWhPRX4yUChIZ86cQ1eCKvNsbVqT64bwFzRRx8lab0FMpQgTgOFB9ACO_kKWdf3xgdFBYQH6emAuiM0fBbnUU7jT5QnRNckC1l3a44zTGHfyVakFueo5MbjgKEwneDAQ9AzGjGtqK2aAMQETa5sYGUqoUo6RYQKtGocAHRPPkAqSoHt2rKmB7hC-nxTPMPNZ_3oUMvrtf2hF0w7yX20DsC1HWf2Z4DavjxI1jfSvCcnSV58b8WC9YQFazPwizz1aWq7XPvbLcfMc8MlO-pH-2_uY85DS6xBAiQZuB0kZcNkz_QoKchVNlQyay2DPyjDr35LLj8zSicGpYQBVewABn9dgauraK4EDNx0oPFlybXMlhQicfXT3ZmuRtsFvnH24t_G_vlW54XBkKlThv9ZCMederOQT0pAi0rZtYQCuu_uF3gW_FfxgCY4GJUb0zmo7iEa8mW6ja9inaBbGKX9ZUSHlHvCMOb3niQwzkCOkkwgYT-AXWKCJ2YBvf6i5YQH3VHg6LJpkG0oBaFut9pm8gDNt040IfQV_eZjGQ1kAfmUrPdviW4WqX8EVpn3TOC7CW3iyVLmglv2DGuRzrWAlYQDVKKuNxCV44iP8hrqV6VOClixZAjeh5FW720VyZIm43mRBMTbcXUOJS8FHGcMWaDCh179ygQy7c5xE9l9MBrctYQCJZrscuL2qDTz80-SxUJ2L5UsDf7q-XXz4op1eOqiUUpAxrKg7FaZ8xcDiBQrZP-HHMgq2yUYtm6Q17D324jVhYQIc_3DEB-otsaFo-sb9iH9DKQXoH166eDM3COv7ylyBMrfqvCLrH_8X0oyYCmamEH2XvwehWlV4B0wLgzTeOi3hYQB-3W-IFyl1ATK2RO5ktsCls-7N9hAheltxt_-yGzc779Psz_KbYF9mWpUQ1_XehDMaOV4ilySmAQrOPgCAvFKFYQJRkqfn9L_fE2gH55Xc2Z1kM601URF-sof2DQSPwWKebqiCGtTJt2bos_hkvbqGzPwHX54wmWqTwKYmfdz1vs_GDZy9pc3N1ZXJqL3ZhbGlkRnJvbXEvY3JlZGVudGlhbFN0YXR1cw',
-  },
 });
 
-export const ECDSA_W3C_DERIVED_DOCUMENT_V2_0 = freezeObject({
-  '@context': [
-    'https://www.w3.org/ns/credentials/v2',
-    'https://w3id.org/security/data-integrity/v2',
-    'https://w3id.org/vc/status-list/2021/v1',
-    'https://trustvc.io/context/transferable-records-context.json',
-    'https://trustvc.io/context/attachments-context.json',
-    'https://trustvc.io/context/qrcode-context.json',
-    'https://trustvc.io/context/bill-of-lading.json',
-  ],
-  id: 'urn:uuid:0198a36a-e37b-7aa6-a715-cf85b6019301',
-  type: ['VerifiableCredential'],
-  issuer: 'did:web:trustvc.github.io:did:1',
-  validFrom: '2024-04-01T12:19:52Z',
-  credentialSubject: {
-    type: ['BillOfLading'],
-    billOfLadingName: 'TrustVC Bill of Lading',
-  },
-  proof: {
-    type: 'DataIntegrityProof',
-    created: '2025-08-13T12:32:28Z',
-    verificationMethod: 'did:web:trustvc.github.io:did:1#multikey-1',
-    cryptosuite: 'ecdsa-sd-2023',
-    proofPurpose: 'assertionMethod',
-    proofValue:
-      'u2V0BhVhAX3jgXNIsqyCUgAexhykylzIFcd3e5IYSZUcENyh5-dGj9dofOMWl_KZF4evDJdzgUAmeDLnqcR9CpqAZbRTKVFgjgCQDmbT57c_Tgi3whdpjj8xECa73XTJlKIQPCA3BTPGDFuuDWEBCVN5vUuK3hhOioujlJD9hvc1t8XvFnNBOlIpn9aKrbRShOkkjF7ykaJHDkNPRw7VUYKeWXnfJZi5dzN_Mcnp7WEDDY3Y6r-Vzebgc8sTCxTfKV0hCN8DFTTTe1wOqcdJ9Eh5rHveJJTGuxEHowVucYw_gtPCq3MWd5_My-F1IvepFWECR9pCL1XYfV1Lji0ha6kKaZvJMh7jOASRSbFJnQU_jsV_fhRwrSIBgK3CJcV_5FbqJPurL_X7zuvm7540V6vCXoQBYIMN9Xgpjiq0TdOyfvtotDMTAv150nwqhFrWdtIFgOhfwgwACAw',
-  },
-});
-
-export const ECDSA_W3C_DERIVED_DOCUMENT_V1_1 = freezeObject({
+// v1.1 analogue of W3C_RAW_CREDENTIAL_V2_0 — same BoL payload but using the
+// v1.1 data model (issuanceDate/expirationDate + v1 contexts). No credentialStatus.
+export const W3C_RAW_CREDENTIAL_V1_1 = freezeObject({
   '@context': [
     'https://www.w3.org/2018/credentials/v1',
     'https://w3id.org/security/data-integrity/v2',
-    'https://w3id.org/vc/status-list/2021/v1',
-    'https://trustvc.io/context/transferable-records-context.json',
-    'https://trustvc.io/context/render-method-context.json',
     'https://trustvc.io/context/attachments-context.json',
     'https://trustvc.io/context/qrcode-context.json',
     'https://trustvc.io/context/bill-of-lading.json',
-  ],
-  id: 'urn:uuid:0198a75a-de81-7ff8-9ee1-78c4dd730bd3',
-  type: ['VerifiableCredential'],
-  issuer: 'did:web:trustvc.github.io:did:1',
-  issuanceDate: '2024-04-01T12:19:52Z',
-  credentialSubject: {
-    type: ['BillOfLading'],
-    billOfLadingName: 'TrustVC Bill of Lading',
-  },
-  proof: {
-    type: 'DataIntegrityProof',
-    created: '2025-08-14T06:53:27Z',
-    verificationMethod: 'did:web:trustvc.github.io:did:1#multikey-1',
-    cryptosuite: 'ecdsa-sd-2023',
-    proofPurpose: 'assertionMethod',
-    proofValue:
-      'u2V0BhVhA3CXgOMU0EF4qmDn6RSOu7WPpuxjeYbVEk0-tyGCrH3yjG3YY7IXfMz-cL-ligsoQyCWAovEVNvzUB2m0KOUdPlgjgCQD5O3ZFudt4c2ulEYKV5eG7CGWez-e0hoPCYDpm72VGX2DWECLRAcjn-vZFIVZvDw53RpNPBsafE4LW_1A565bZL79-KuFQua5LW7FIUvzKJJs7R1N9iZr0UgQ4poXaOsmVuaUWEB8L389YKMZOS-v0TZ6gmcgorTyeFGS0hCG6A-wpvDlvlvNjQlVGCVFKPokYuIBqWa6bsae93-j3zfX_kbvw0p3WEBb1hc959fOgYowJVy3XAUfBUm6eWnWlMILP51XdzcN4qW8eZ_3fIT02XDQ11ez8yddErKkLRN8bpx32F-UwwXboQBYIFDsDNQlJGfWpg0PWoTxndRra142ri4cbifmOKiInsHWgwACAw',
-  },
-});
-
-export const ECDSA_W3C_VERIFIABLE_DOCUMENT_V1_1 = freezeObject({
-  '@context': [
-    'https://www.w3.org/2018/credentials/v1',
-    'https://w3id.org/security/data-integrity/v2',
-    'https://w3id.org/vc/status-list/2021/v1',
-    'https://trustvc.io/context/transferable-records-context.json',
     'https://trustvc.io/context/render-method-context.json',
-    'https://trustvc.io/context/attachments-context.json',
-    'https://trustvc.io/context/qrcode-context.json',
-    'https://trustvc.io/context/bill-of-lading.json',
   ],
   qrCode: { type: 'TrustVCQRCode', uri: 'https://localhost:3000/qrcode' },
-  credentialStatus: {
-    type: 'TransferableRecords',
-    tokenNetwork: { chain: 'MATIC', chainId: '80001' },
-    tokenRegistry: '0xE0a94770B8e969B5D9179d6dA8730B01e19279e2',
-    tokenId: '044905d97399d520ee96e08fe13621e45810e404e9b16ffd43a11dea52a72c91',
-  },
   credentialSubject: {
     billOfLadingName: 'TrustVC Bill of Lading',
     scac: 'SGPU',
@@ -1535,23 +1457,14 @@ export const ECDSA_W3C_VERIFIABLE_DOCUMENT_V1_1 = freezeObject({
   issuer: 'did:web:trustvc.github.io:did:1',
   type: ['VerifiableCredential'],
   issuanceDate: '2024-04-01T12:19:52Z',
-  id: 'urn:uuid:0198a75a-de81-7ff8-9ee1-78c4dd730bd3',
-  proof: {
-    type: 'DataIntegrityProof',
-    created: '2025-08-14T06:53:27Z',
-    verificationMethod: 'did:web:trustvc.github.io:did:1#multikey-1',
-    cryptosuite: 'ecdsa-sd-2023',
-    proofPurpose: 'assertionMethod',
-    proofValue:
-      'u2V0AhVhA3CXgOMU0EF4qmDn6RSOu7WPpuxjeYbVEk0-tyGCrH3yjG3YY7IXfMz-cL-ligsoQyCWAovEVNvzUB2m0KOUdPlgjgCQD5O3ZFudt4c2ulEYKV5eG7CGWez-e0hoPCYDpm72VGX1YILfHPtzGHotFmZE0vGWFsH5T_mliaK_VXZRZaqVlkS6NmDFYQFNp6GH_bDmDGlCb3f4hhIpE5vCY8v3vc9xEeR6elSND7XlmdXbYpfXfzeDgMkNrGv9Awpt8q_cNTGuZ-Py_bTRYQFMU55RQG280KLBU3KpLXNXfBqaVzIq0oA9zhQZuEkKPpUhKfwHBYGVXj0jzOdLSIe7-5925ivAlYD8-xCrKQA1YQC4YuskhD6qyu058dcYb8gFan83OTts9WpNdpLIgelUkLztuG_31-nc0zJtSoknuyA-v_On7FGnmne1zJ3S_9P1YQItEByOf69kUhVm8PDndGk08Gxp8Tgtb_UDnrltkvv34q4VC5rktbsUhS_MokmztHU32JmvRSBDimhdo6yZW5pRYQAmaDDThptdD3KEXfWzGgBBn5kK_VrrvazQ4bzaYtwlqEZDFCaLePMP9CY8iUUbyQ1JvRX_4HPschYrubl_SliBYQM_90CuoXHgIsO9W0eTxi1YbVioCPOcBAykqYGoQmDoK3Mr1GGCsbZ_tcTw7uGXFWLPZOjNJL1QQ40jaPFkLcFdYQHxdfcvJsoIHJyUi_6yfmGffYgkUGspLEASaicOMRRkQDnt3u1vLElAF8e8HApVD1JjWAYYgP7H8mFZU8_ZqM-NYQBUhIJCPnSBtyBI59FDm5dN5MluYtgouJJmMRWnwz_rXDEuheKMrWaBfO_GhSRIuEbuChSUiF2yxiwCa3ARedDtYQCXzZOV9hPPg8qhHUYYrRhLL0xGau9-oPHCdtFONSiaUAK6FTpwMl26qeBHKnBT8ZYe87KQbhgjFAEC4XTt9CVpYQBzXkKy9B75xEqSKgZ5t0WETWjs18Mew6EPRbAxu-hkGMu2IV5_j-da_MaP3SdyDVKWW5UXGiZXcDNL2yTH6QzJYQNZLKD0MIbDGkK51RSefR2r3SRw9qRZpjfIHNHI-EI_klkKUgTvzT6mIn6il7kb2lEorcfBCnbQsQTF72oRzl4BYQMUWmS1kOEX6zaLurcFTf0qUi-Pr5QipxwRx7zqn0-Nf4V25L5eGC3O5s-zVQVh3YmHw5zN_Ilt35-6N23bfZRhYQGdZiNKgfhsjjaomqm_XtYcWoAfI4NI12foNiArZosb-uTU1nt8YY408RXOCc5r2KbUcAPoLyKP_y8d3l8wgFb1YQETMUxQLarqOhmXJQNRENHdQgiPuhfS4-v_Qutdixnzf5FPWaFJa68cGqfZedZrdJtB84PQ9mKwfUOPvyqMVCa1YQA2B_DMpryEbZz2_LhwIyFDaEz-GQkbHgnNTc02U_eYuVDb6u9VQHLaGh8Xf2X8lCQWLV4-M--_qdA7SYggRChZYQP36at2BmNsBu5mCVUj_cYI2cdRpWRtLpU3V1MvbRap0yl8yFugjmCYhVr_FX0Z1pmy6PIFjOi9Ek3tLTYQnCFhYQKIojqtv-O343E_oKB0IonrzK23TbhnYLUZIvdT3tBSNKJOcsP37D38FoAUQo6ujz92dwGfnGLNuraFMoyuP8EFYQBiILoJ2CDQmvDTkOUeT7l8HTI24ok4-Rod7BiieT_52Kk9fIBOJb0J3yxz8tcJ7Er5fI4GTuGz8sK2fyZzKbwJYQHYQSaSA4ng1mY0M5vsESj6wsUQ3OKT5ZKcI5I85zzB7z33ajC5D72dZpJ27euGQZoij0fDHyB3Bzjs-rzD0ZoJYQDzpKNkh8edZb12ESX-2ANfMbaupt_lgXfYn3X-P1V5yZQ-AtWWH4tKo9ZB13KdNgiV_tok98H6wiRZOhWX6xLlYQHwvfz1goxk5L6_RNnqCZyCitPJ4UZLSEIboD7Cm8OW-W82NCVUYJUUo-iRi4gGpZrpuxp73f6PfN9f-Ru_DSndYQFvWFz3n186BijAlXLdcBR8FSbp5adaUwgs_nVd3Nw3ipbx5n_d8hPTZcNDXV7PzJ10SsqQtE3xunHfYX5TDBdtYQMXPmVJBWMvyyZ6xK-bTDa91uJwPMnpuTpr9J6FNu07vgajiawNwfnUaLkEwac_3xaWtThnqLJKPLHOcE_IeYEJYQBhkGzbcCAFTF03u2Rm2lHUVyQhcZ5KbVuiZHz_lR53BhOCCz4ra47lNLFiS4X7kSBhEtwQ8ZOcqOtM9oBTaikZYQF_ivjUPc6PjNlaANCW9nwDKZjLahZNSq-bh2QckN3yPx7XRN9fHtLNEU1cpmgKrti4p-7r23YwUSor7pWwDHdZYQLr6dyAHcJRaY1PUQhX3jHHNP5ewPY52O6ylBdzrPGcNpJcgBrNhxw1Q6oZaCRAmH8Guq2a8QyYVeVnlkXKXszhYQASCBN5CVB1rxS3Pa2VCw6Z60MwumIlqArUVo-pAa8h6yydyqyC6rCZQW2xP33KxIr7bpMLw2Ii_fqTxuw2tbPZYQBDGQ8CNVHvLyV_XFaCWcOwCNJRoq_hA3PF4sGQWSyLLY3hP7jmH0mwC_JSqsejowQrm-E2vWEu45CSHbrklCEJYQKch-XDAV0uJJ0KSfX02tyC1Yd1y3_aEskRJtPTc40CbIf0vxb0ViR2Zlcrrl-W4RZZ2QBuqZj1S9039_Y51nElYQPzNf34Ae3oi7F9KXrKLYhatXwFsGAmfhLVYsbytmFneTTY4tlu28GzeVofsxoMQfJSOKfAvZPIjOi41-Ge6F6pYQESu3zp8w1-nZA1V0rP-7-MtRHxghwVamsoMlxyNpvsy83FzfEzVYDmArVPWa2DFBlfy3QW9wApblgPDT0cpDONYQPa-1KuGZk1CmZnw4zS2WdC7E6LloIiiS2luFQmBvswty8FKl_aBUSD8E1hiPF9dob8ywhK2t-RrxblUX-zgwypYQCDS6ek8fzFVYStPVciblZoZZj8h-jGiJavg3y8qMVjhc558zekPTYuLseSxXy_VeaLj8UVWeZgiq4OdkZro81hYQEr2Jkj05F-O-ggBabmOlPh7tajG-BEjIEuhDHhE6oKQUARVuGo_sbcJPbAKvBqNDeD7P8F_tNwhK91S2lao9xRYQOsZGPEFIKPzocTX9gkuzuYkzDmS8UrZK8hExnKeLZt4f5zmHV81znitcGe-olTCpvEMt3tp1S9H6mclIxcTF5xYQKx7MZiCYjBGo-O7csc8Eo-aEhjU_1mL5M2VpUXEN0DDRyZuKNlXfu2KhKGecHYh3mBi1BQoOa301A483MPFJ05YQEBJBkhFQT2Ne5dt7QpJJPC6f432ufaibx9p2NDUuaxEUEjxL7plXIwFUIkbugqEMzM7FEp_R2ePMsVJEJRDHmBYQDhEPSM9Bxgtx2rW7Z8BbznEnMZ9uiQWdgWd8CJc1pg2ORYhoxk7LfUMHVmMiCZG175wq88OK9R4GjtVHGTN0eZYQDIFbMaBycQ5DsPp_AxTxkjAH8IKdAUtfsP173xfLmDPUP0FgchQ1hd02LSlTtEhgDYg0hLbJhzJWYt24H3zvbVYQEQaVNVyrVw6XgPrQeqreuR-1Oi29rIaqoWx0riJuCQerAN0MHBWdwgFcWhXftzhnGWhH9Gn7hFj8tRECcT8BghYQD0xlUOIxleK0jMJJBO46yLRYnfwHS8r8QEEV63EYBMTt1dX9YNbB77jDZkZ2ZO6g-O6BBoJtG3P1KvV09D3HixYQLIf5c_l5JNY8vVPBPDOdz4G-EhAX1MIZHn1bgXoPtTRGUEuvNQIy94A8NcjtFPky2t9XnHOoo0emSMxiEZTmb9YQEfu6GoEvOyGMRJZASZDS53O_j4YxuTVtc12Vqfuuc7z9Ed-lMlmDFMltm8YciXfbBEkx4xk8v5w20enAkYhrKNYQMJYmPp6KY6ocP1ZDBAfNBbmEGVqdV9BXXLgnNhg9zQN1bHiEHh_Sx3p3BtPd6FETjs9Yb5nadjWFMX8tvoqEk5YQOfjQpsPlZKx3oyAl9Cqq22t1SJNpgSWD2XC44q1-vancr4XyxNt4KEuINKzwJOzwtOJXbZrSMkaOEuVNTQHi45YQJXXJr5AnDEUEWYMzdRPN-0G2fr4FQNNDTeZNzh2weVfNEqpwfNcaz2dGvFytCk1WBZl5aw0UCRP8kk8rDSsupdYQOD8HclLNZr1XYB_XFusbUp_jjco7k_SMKVLNL1wiIOq-18lwQvafroOj1m4FeeS83dZEVYTlbsTEiFm9KLb6qlYQBBLvuQk5A_KDqcCNTPf2dvJ0LTbr9X30FtxN9cq3093Yy5kke0zhBcbn6FzL5BnqGQf2-k7RWZfJG9M3oipZaBYQPGaq3YmgoBA51P7Hq8VSvNdYDcg6VtpQP8xumCgnElHHZZ9KwOqa1q-Ud8xOIvuEImOT3aWFXdDb4y_V4GZshyCZy9pc3N1ZXJtL2lzc3VhbmNlRGF0ZQ',
-  },
 });
+// Regenerated did:web fixtures — derived from W3C_RAW_CREDENTIAL_V{1_1,2_0} via signW3C + deriveW3C.
+// No credentialStatus — fully verifiable on-the-wire without minting any token registry entry.
 
-export const BBS2023_W3C_VERIFIABLE_DOCUMENT_V2_0 = freezeObject({
+export const ECDSA_W3C_VERIFIABLE_DOCUMENT_V2_0 = freezeObject({
   '@context': [
     'https://www.w3.org/ns/credentials/v2',
     'https://w3id.org/security/data-integrity/v2',
-    'https://trustvc.io/context/transferable-records-context.json',
     'https://trustvc.io/context/attachments-context.json',
     'https://trustvc.io/context/qrcode-context.json',
     'https://trustvc.io/context/bill-of-lading.json',
@@ -1560,15 +1473,6 @@ export const BBS2023_W3C_VERIFIABLE_DOCUMENT_V2_0 = freezeObject({
   qrCode: {
     type: 'TrustVCQRCode',
     uri: 'https://localhost:3000/qrcode',
-  },
-  credentialStatus: {
-    type: 'TransferableRecords',
-    tokenNetwork: {
-      chain: 'MATIC',
-      chainId: '80001',
-    },
-    tokenRegistry: '0xE0a94770B8e969B5D9179d6dA8730B01e19279e2',
-    tokenId: '15648d77abd5a02ebde2c072dd3378c1b2f89ac1bb40d9a2b2612b0f497f02d9',
   },
   credentialSubject: {
     billOfLadingName: 'TrustVC Bill of Lading',
@@ -1624,14 +1528,230 @@ export const BBS2023_W3C_VERIFIABLE_DOCUMENT_V2_0 = freezeObject({
   issuer: 'did:web:trustvc.github.io:did:1',
   type: ['VerifiableCredential'],
   validFrom: '2024-04-01T12:19:52Z',
-  id: 'urn:uuid:0199c3d9-47a1-7aad-ab31-f17c85c35b24',
+  id: 'urn:uuid:019e5e8e-ecb6-799c-99b0-0cde7b9d9164',
+  proof: {
+    type: 'DataIntegrityProof',
+    created: '2026-05-25T09:54:45Z',
+    verificationMethod: 'did:web:trustvc.github.io:did:1#multikey-1',
+    cryptosuite: 'ecdsa-sd-2023',
+    proofPurpose: 'assertionMethod',
+    proofValue:
+      'u2V0AhVhA-X5Ml0UrSX1OEVLvtyxuJSc7DQRMmLmr5yHxSqOIXhGoy57kazSlllrczQ0Aoa1yGUTFDL4VaGxfXMNeMstDY1gjgCQD-y7dJ_HspjywU8YO7G8BZgtmHncoWrcRGxyLpMiFyuVYID8FP5lf_6B_7JvD9Lg7PPmtFFdIOPCBn8oDJK8w-T4NmCZYQFHmSKkrC2VxbLFvsxVDqDKS5bE3M2XLMOTxiosdgd7zEyF9mO7mWf7fHFLSLALiX_3WnMOHlynzEQCbtJS9nRdYQPRi_QMr7z6M_ob2zZ4ISzN-kMldC-jnO7FWBLzrNql_L4Bm2XNOqguOSR19foCdvup2o-s1ZKNsHs5wjpdc-CxYQHvN7NoDzYoG0L3D2bLHk7YsBR1M9iDAmY877uQI9Cm4Tnj44lT0a5cbKe7Dx6o51IqitV5ddjRB7ypXxvsuQJlYQBA-iU-tMfO8-Vsosv7yb2W-Ebt5K5eQ5BCNubsZb6jIn7BMD52cjdoOMDZwQnOD0MHbJ38Jdr2Sbu8z67PA_DFYQJsFpA8PXTlXaIm0IQ-V3r4xpnP99QC-ebCCs6h3Omao9_C5p4ijNBaGaFrdHIN6o8-bycOh9zKf-_9lwem6IIVYQPrng53UoPfCCr1EpXkTroYPdEFvmF3nfz7ADK9BY3CGk-A84-0yGM-TeFr7AxWisTKIQRl4uEoKPbeL6jIOTqdYQEDlG-DwmalWMeuEKm3DZ6otZD6H5eFM01h5utTjwZlJY27cH9NQ2xG_aOp19dvO8hMhH4UcWiEkbrl5bZHMgsNYQMu0Ytam4zee9QdXz7cBaxV7llkxUIAggNaNYjo716owvDLC3BEOeWB4V6cgo8MLD2eIYI0pqPGop8RyzjEq0OlYQExih5C8xpgQ7h5Y-4_VBTTm3WEeFiNpkzozdir1l05aftfz_TDQGbFGicmRhdtw6rmyBjnxxZXEUqkVtllpuJdYQJszpQd96w3ecGgAI8fAGVo5Kp5OMbPHqNOVmlgwOXOvGFERFvPZDP3IF4qpsnp6rI9jzpuiAMPoDrvofocEccFYQH9d4KNSC4o4XYcP1aJlFeNRu76-NGbbFfHp8HkBvTXTkm8N1Ae2OAMZmKcaUXjAzvuM5EvoWNSSySN65wwvNMdYQPzHof02wJAuZBHnCzpZ1Kvvh4gpwSipZlEQklLYm5mjh7bUSOc723Wx4o-UQniL9gFKhEhRIf-tJkWxdxUIPMVYQDV3Ng6hEEWbZ0CHChWHr7OcMB1ZobvREEb_KzrhpX6dcV-EdxocuoVYk2z9IDPQuKRjdbjK1yOPcAHoUJtUrgVYQGJUkw2a-vC6yF95H94296C3MbUxJ3kHPJnpA7dc5tOs2PBcGLy3YT5VqEyCCzJ4PQNBEmhZA0JUJ8fQs_WMal1YQLnxVSBeTt290dZOFYwsC4pm0iqmlNsdHfPMicGL77BwmpaNhnoa7S2-xtmFs1eyS89B7sahkgmDE2EpKiM30PZYQIFNZkUemvc8Jm_4SrVYfVhMZxWz0KSrgjcpP_bfzo9YvJ7tbmdibYFv6dvwMPMrWmRF8AeUkp-R6zGxTga8ZPpYQEe3O9VVjzQ-5pxa-d7L7m8hWAvJw65KHgEt6xfletex3c5ox3E2r3V9ArzYZLL6a-asBbABWfP--QEacbV0FfxYQG05J3ErmlzJ1paDhAgUjlBlTe2ZzSlDWKhzd587cW8Rcu0dNWOhO9Z4PDlZE2DTFNghiiguohmy7Mqga25y_vNYQOsfJ3v4ng5bUdo2RTCeoZbBlhtq16EmMp1khmoakWyK723kKXAlhXlHkb--_T0svmRB2RSBZcaDFcmIt50TwmRYQLvXHP_KVNOuFofeWupLqbeO8n1vFdqn-69WJLwobEu5xwTTfgKVj65lBbH8umIGKKNiJ8Uvwy-YEkuyLpKweL9YQF8dNbaAPaexh1ugUZZX3aF5yQWY0fe9gekZSf7JAlrv3V3pWDd0EdFb7vhsxuZnhdESieyzKTKhGw9HpP1crw1YQENFR37PBwAQRxiI-bQ7YRqrs2bLtteLLFaz2NkkHAcQ7mB933FSp9hRTMsbcTcMTJTjYPOpYxoMkzyBwqzQzV1YQJTFGkKSVSAG4aXYv8_s-us2DXzqyl3EoO-86g6GwTUDcldEh1UXbJEmw5SByIsrOuxgACHSZhivba5r2_pF04JYQGhdcyTZ87T0WIoga6tevf4CO3MB4bOnooVuCiWe3Y6QdsmgUf-exbwv48D53LNn3vODZ5BZYdozWsVbLjIGa6JYQDodBQixYjv8PiiiVOzd41ZCkvevnHK6G7VPH4e6Yk_fWXyMR6nrc5wtzJMh03fUU4QxHCyKpWp3uoPXmNPedFJYQCGQpGrUuyzCJb5IeuilkZDlF28AcVjx0biLDUr-QbUDq9T2HY4le-YjUoRZFNre5inS6_vwGiFRrRn9VJ4EDSFYQDk-NhGc7Tm3cqWIu-E-dWDUEVFJoUTXdYdG5uXdL8WaDRi0ioRLs17inhFZY0GKLIlkA26b5yoH1pvf0gQzxaRYQHaSqfp6EzYgy2axePiV9WEtPXwqAT-FHBGJ-06VOXirzbdAzroTkj2Za9MxkDU682F2TTmumUusP9jWZ2C1FEBYQNQBfnVEBZn6AcUuWSmBmNEGza9Ca3_hrh6KybjLXZhIaka9WrpjEZJQTSlqWsTwaGMDyybYyl8J7NHSWtEiW_FYQObIRCAdQPbLDHN--AJ37gRpf0cuSMq0u0PKw4T0CCrbk1f04qNdyiErhIwmnAN9WqoW0tdTFSOCPX7WKj1dp4FYQEY-DBrP2SqXdfK-NIoIHD-fSLXnf-Asl_TLzVgeYgCH7iZJZPJPmCsWwgVu3c3_EFxq2g-INZhBpgznf8B0QS1YQDmj2hbSbJoI3w-mv--jrSkJquat2qoMMw4pLT2s-x-0ZiuhG7LuWnMIYjaTjoqFX8D4pdLeUj4TjKMzbghvjeVYQJEizzZrOxA9gVWDvQPJIzmpV3BCStG8javTEnVBKPUo4FJNPJnfB5-Qfd9A3fvnVZ6yn07Uf36BVMbXaHeG_vdYQLbXe-LBrkkyvYGTBj9q2IUwj4sU5hBTqtXMQYhAFmsCJFjNVR-JivJkYYyyjzMHsPONDeBJRlPifDFaGxHpBptYQMmKD0erXqoykuaRYPe3M2nw4V6TKMr5BQX9Atq0_z1MY8ljtZKHC7ulJl5mL2j_n9E3Db8nPNdhi_TAIGlgNfdYQJjZl47GyuwhCiI474TaXLILSeykYLUjP3pJYIHvs1Dt0g0EseVP-MP5PshDlgaNzt0PSFnO9n4pv1I0vpoYo5dYQD-782fE3A982NCXrP_jde-hxxP--7tEeo0pSn_nRXR67AtDzKihHe7ppvv4bGJdQGNbAdXr24J6xXatQaUS2rBYQEXycx2FWh-oAkxDczS7q1BJc4q1FwWsdKWgss9ASe3HiCb5m4lbt04YtzhTMjaU4UdBpk175Daz0YajL3LnFHODZy9pc3N1ZXJqL3ZhbGlkRnJvbXgjL2NyZWRlbnRpYWxTdWJqZWN0L2JpbGxPZkxhZGluZ05hbWU',
+  },
+});
+
+export const ECDSA_W3C_DERIVED_DOCUMENT_V2_0 = freezeObject({
+  '@context': [
+    'https://www.w3.org/ns/credentials/v2',
+    'https://w3id.org/security/data-integrity/v2',
+    'https://trustvc.io/context/attachments-context.json',
+    'https://trustvc.io/context/qrcode-context.json',
+    'https://trustvc.io/context/bill-of-lading.json',
+    'https://trustvc.io/context/render-method-context-v2.json',
+  ],
+  id: 'urn:uuid:019e5e8e-ecb6-799c-99b0-0cde7b9d9164',
+  type: ['VerifiableCredential'],
+  issuer: 'did:web:trustvc.github.io:did:1',
+  validFrom: '2024-04-01T12:19:52Z',
+  credentialSubject: {
+    type: ['BillOfLading'],
+    billOfLadingName: 'TrustVC Bill of Lading',
+    blNumber: 'SGCNM21566325',
+  },
+  proof: {
+    type: 'DataIntegrityProof',
+    created: '2026-05-25T09:54:45Z',
+    verificationMethod: 'did:web:trustvc.github.io:did:1#multikey-1',
+    cryptosuite: 'ecdsa-sd-2023',
+    proofPurpose: 'assertionMethod',
+    proofValue:
+      'u2V0BhVhA-X5Ml0UrSX1OEVLvtyxuJSc7DQRMmLmr5yHxSqOIXhGoy57kazSlllrczQ0Aoa1yGUTFDL4VaGxfXMNeMstDY1gjgCQD-y7dJ_HspjywU8YO7G8BZgtmHncoWrcRGxyLpMiFyuWBWEC71xz_ylTTrhaH3lrqS6m3jvJ9bxXap_uvViS8KGxLuccE034ClY-uZQWx_LpiBiijYifFL8MvmBJLsi6SsHi_oQBYIMgdvoAGZRZDAYwEGSVeS9BRzi7DNysBMXEQeEXdHiubhgABAgMEBQ',
+  },
+});
+
+export const ECDSA_W3C_DERIVED_DOCUMENT_V1_1 = freezeObject({
+  '@context': [
+    'https://www.w3.org/2018/credentials/v1',
+    'https://w3id.org/security/data-integrity/v2',
+    'https://trustvc.io/context/attachments-context.json',
+    'https://trustvc.io/context/qrcode-context.json',
+    'https://trustvc.io/context/bill-of-lading.json',
+    'https://trustvc.io/context/render-method-context.json',
+  ],
+  id: 'urn:uuid:019e5e8e-fad5-799c-99b0-1d8e49cd2a4f',
+  type: ['VerifiableCredential'],
+  issuer: 'did:web:trustvc.github.io:did:1',
+  issuanceDate: '2024-04-01T12:19:52Z',
+  credentialSubject: {
+    type: ['BillOfLading'],
+    billOfLadingName: 'TrustVC Bill of Lading',
+    blNumber: 'SGCNM21566325',
+  },
+  proof: {
+    type: 'DataIntegrityProof',
+    created: '2026-05-25T09:54:49Z',
+    verificationMethod: 'did:web:trustvc.github.io:did:1#multikey-1',
+    cryptosuite: 'ecdsa-sd-2023',
+    proofPurpose: 'assertionMethod',
+    proofValue:
+      'u2V0BhVhAQb0tAFjqheBS4tkdXGPfRrbeEnyMmP4JCGkLnD7iZQ2zDbQQyc8d62H8bJnF4WC6wRjP_jySOrCumAdlK0V9wVgjgCQDO5DFKfQAvf1OjOKI4TvQNkDnKgtgwWrjJueA7GQLMNeBWEClctUVGp8lCL52NiyIRuylfwMqJAqahMQ85e7F_Suq-cFUVO1SXlvJvn42pJ8xkCz7KFbMH_CCYAms5cyiDlc2oQBYIEvN9jLiVQoD3rfl4kkNNK35rbHpKqkIlYS7r2g1YxJphgABAgMEBQ',
+  },
+});
+
+export const ECDSA_W3C_VERIFIABLE_DOCUMENT_V1_1 = freezeObject({
+  '@context': [
+    'https://www.w3.org/2018/credentials/v1',
+    'https://w3id.org/security/data-integrity/v2',
+    'https://trustvc.io/context/attachments-context.json',
+    'https://trustvc.io/context/qrcode-context.json',
+    'https://trustvc.io/context/bill-of-lading.json',
+    'https://trustvc.io/context/render-method-context.json',
+  ],
+  qrCode: {
+    type: 'TrustVCQRCode',
+    uri: 'https://localhost:3000/qrcode',
+  },
+  credentialSubject: {
+    billOfLadingName: 'TrustVC Bill of Lading',
+    scac: 'SGPU',
+    blNumber: 'SGCNM21566325',
+    vessel: 'vessel',
+    voyageNo: 'voyageNo',
+    portOfLoading: 'Singapore',
+    portOfDischarge: 'Paris',
+    carrierName: 'A.P. Moller',
+    placeOfReceipt: 'Beijing',
+    placeOfDelivery: 'Singapore',
+    packages: [
+      {
+        packagesDescription: 'package 1',
+        packagesWeight: '10',
+        packagesMeasurement: '20',
+      },
+      {
+        packagesDescription: 'package 2',
+        packagesWeight: '10',
+        packagesMeasurement: '20',
+      },
+    ],
+    shipperName: 'Shipper Name',
+    shipperAddressStreet: '101 ORCHARD ROAD',
+    shipperAddressCountry: 'SINGAPORE',
+    consigneeName: 'Consignee name',
+    notifyPartyName: 'Notify Party Name',
+    links: 'https://localhost:3000/url',
+    attachments: [
+      {
+        data: 'BASE64_ENCODED_FILE',
+        filename: 'sample1.pdf',
+        mimeType: 'application/pdf',
+      },
+      {
+        data: 'BASE64_ENCODED_FILE',
+        filename: 'sample2.pdf',
+        mimeType: 'application/pdf',
+      },
+    ],
+    type: ['BillOfLading'],
+  },
+  renderMethod: [
+    {
+      id: 'https://localhost:3000/renderer',
+      type: 'EMBEDDED_RENDERER',
+      templateName: 'BILL_OF_LADING',
+    },
+  ],
+  expirationDate: '2029-12-03T12:19:52Z',
+  issuer: 'did:web:trustvc.github.io:did:1',
+  type: ['VerifiableCredential'],
+  issuanceDate: '2024-04-01T12:19:52Z',
+  id: 'urn:uuid:019e5e8e-fad5-799c-99b0-1d8e49cd2a4f',
+  proof: {
+    type: 'DataIntegrityProof',
+    created: '2026-05-25T09:54:49Z',
+    verificationMethod: 'did:web:trustvc.github.io:did:1#multikey-1',
+    cryptosuite: 'ecdsa-sd-2023',
+    proofPurpose: 'assertionMethod',
+    proofValue:
+      'u2V0AhVhAQb0tAFjqheBS4tkdXGPfRrbeEnyMmP4JCGkLnD7iZQ2zDbQQyc8d62H8bJnF4WC6wRjP_jySOrCumAdlK0V9wVgjgCQDO5DFKfQAvf1OjOKI4TvQNkDnKgtgwWrjJueA7GQLMNdYIEHpP3bcpr6SAM7z6X409bap-3SGEFT_P82DATvTJZ3EmCdYQMcXGiLpMDoRTGDdVgTkn1iPiAMa1GAKm-LEe_P7v9Odldj6QZtFg1xA-B-2ejmrT4nc9ulCUpeKOUKx0b3G59NYQAHEn9b4QEl3yG24kgOhW1LfiRa_yYF0q64ILY1BJ13fSKWyulnBytC8HvT1DdTqc6guV_XFukiIHmUenMGI2ShYQODUKZ2UrSmky3I8uIKg5Zq43TzzvY7RRIjpcKLZ3D9MRp66RIdcgQTjCDYx7QSLU2oACfQLGEFItWpgUYiYE0tYQBMVyqcsvUVKgU0Y5i6J_YkpfqTM5H0E9QrUKHSJ3KH6u5C5oAL4ESyakaR6uGMqEagR4zbc2JUgn-iybuA8Yu1YQIdiX_y7zC4lGzqILLddkJ3nFZ_lqo7Fw86WlsoOXDnxYX9lUDx4IfRTPVGFC6glzu-xFWeaeAB0VnvaWp3zFEBYQLSbstqJBGYCc4ZZwY7aK8jrn0V35TGL1FJg7KTS4sQ-VidiRkXIhq0pcm37t0Cq38V4Yh-6PVXgpPdM7jbXl0dYQKq_wxQ3IVTt8Piuh1fYTl9FUn2_dQ1MmrAaJ_rN8uK7O74SsmuhN5JP2ewGC5ZWlgEkI3TUp03HNuINO6hrkFVYQAlrft2jTSGbrR8oeqXK5qoC4YdTwTzVxSSxlID1g0aoVzL9Rj-NhBcF3xsn6cQcD_SK9Mxo-Dd6VWtcIV7sg1FYQP4tFcI7YOiSycbNF7AR00_bXoM2q9jhPuUbESTQ_3JqniRs73Mdm4HBLSSljp4Gqvvf97Uies4KLjABFFsm9nJYQAAXvpJJnk9Ll8nNUHdtAqao6Gjq5RCBWbYbaTRl3NtbnDEVaFy0r5ZGDMt7GZGISClN0FrW-Fi5QhYtOUyGVLVYQA1xGSpx2p7B3P_xQ3nwAfe4N4KAVu_1-rTWmj-bwa2-UuHmeg_5JYwpcSDa0rNGJXWtAD-CQjWTYBLgUAViOC9YQG8QNGswzrv-ORXX98HbvNLXnP1BysqMTupG1IKO9mE-1scclV_gRECL8iNXZ7r3swqHqKRKHBiaUyG73nfUNt1YQDihO6fvzvIEJunhcVNwa2m86wpyzK3q3N7whsZov0ueiVDmwmWsakEeSUC_ZgXWRu-vXmlA-WLgv_y9BKmMjdFYQCzRxm-K19KoE2qykWd47P0VTtE4hMpqLvF-_HepbKQQZmr4QVAjo6YpAMSvN9KDpwgAzI0Zs23UCAbhxMphKvpYQFVhswYFTLCXQyTzeMULvy4IROvqjcwJ3jQ0hpbNyN1o4u0IUyJOaQPXGTUzf0Eo4Fh1DU2-X9Aj-8hMla1-1SVYQKVy1RUanyUIvnY2LIhG7KV_AyokCpqExDzl7sX9K6r5wVRU7VJeW8m-fjaknzGQLPsoVswf8IJgCazlzKIOVzZYQJkaXb-JU5ULLnWK296LcRhAIUespnjxi0w06yUICKudIWvcBDlbBqrGuT1e_NMNS1-z4PrSgzn-1eGTv7VvzHJYQMrYmgV0duhg4McrMegY12L6w0Nxxm-YRBLPyPiWmnR8UbZC1XMbaXjrTdQSsEm_mvNMfH7EyBiVDCz9SqYkTBNYQE3Koosrt8I4lsKrZlhOwGpJAM5wjxjpjZx8BE6f6bptfcwPUrmm4nOTgQRhcloSfx_J_FFktThKL8aIb1scs6RYQLWmQb26hkQYaMv7N4dqm8Qs4ckWmk0OETlz__Utc_mThf6W873TZDdrlFdBND5zbnUNpT1oN-mRZwLaBe5wgP1YQAjOe7yVsch-VVO4lbilt2xTTrrBtpvFdnKs68eUcl-vu6UXYxSDUXFjbUQzjaDfcYgSpUuJ4ALV77WDJAHlgk9YQFG-XmQSkdL8O_fjuPKfMoTivxkf2-SAZY4ShkPwbIWrLOtiRTWHGsLxI46vrSSlWii9Ge-o0gbHLsrzAHD0M2JYQMBIbBKZNvgHBWqIiN-HoEduntnJrYVD1TXjUXcuPGnKQkqhm9L6lytfU3hYlLUqsvRFg_WPskVKPwU-dNjyDFdYQFXny5_9nnt_PeVdcaOSw8AQpsIX4-8Zm9hnS7UWCvx_lS_8sNJYCQtUmVdlafH6gKMz3NWMlFHNyZjauk1JdzpYQHQG9cO2MvPZ7bjsQYtA3cCCEyARDjn-4peQlthh395hZ1Eq5Aq8hHxYNA65qbpA0kg_0OyWRfqi8r8gJmnIW7VYQKqELTQaY24KWUjUmVXwZRUaHtOpHrC50QWST3aEhnmt_tFLgE2AnKcKfVPLnX0BVj7psMp02yFo5CpYYz29p59YQHQxOUpZIz4dFjCmqUsL9qX2vu-Mdc8oO6SNuDS1mpzPTzoPd0fA5BVqwinWp4nLoz3F57sfMdrBB5-uWpddwmlYQLp0HmBGRF4JRXJJo8pJOLvlSITvuKXMyukvXfd8fpLAltvaC3EyDftFFkfbXMSpkL7AXTTdp92X7lRlffnAtpxYQJzdyIVrB525csb1iOpctYu_wsJr5P6zK5TFADWZR-BtJiV58BqRjHH2dHE9jULB2CWh5A1RKAH5nMGrZ5w0gs5YQGkIZzRYlgL9L6YUkst4qhrer2pqZ1oYHYhNaPN7PsfdtCwGCAs-bsIFUVYTnVYCgI-Z4lKmxiL6tXbBEiF2BWhYQN8PhrWz3sl9rkIXTaihGXDWE5XHv2BbWnDV0jSKkTMMzPOzcQ6HADYUSFbZBmiOEkSbkGP50qUZ5nv3GrCP6hhYQOGblM-7fX11dbfHdthYw3SwCivHauyA6sX5JfwP0OXOD2PInqPGGvCXrEJkT8E5_wCU69D4rDSHCyrp2Kkxv15YQG63jBwHG00Sr2mJf1EfXYrCvFYFZ3C6cCELR9zBds63d_Id45GQH2TOsD96cEvFwtQVr60jdwTdyW0T7rdT2qdYQJYbEXoXTIUkoif50tOF0dX7qwG5q8PSs68DSdvRa63-1Tc2jzaeoDhB9Au6EvXKMTmLZpsMWfwuKxy_ufud9t9YQNIblFlwj_Svfpfa6VONuXHyrfUSpLDy6B0SH7VFNBcYHdQZOFKL6PT3bg7SgdR6E0ELNEblyeggRN0V7nFY7v5YQEMb_dhXuvHfpIFu1PwZEOV8FUgySG9V8OPgLnKot2JKQ2EtvGzGHfGVeyhQLWvVwCU9zlmjHz6In_ZbjSagZ3RYQA_e_PdfDQP01UzPGok4xiT_7uX3egkx9w12R3Qm_KVlit18bY7dy__bx5hSfIE_ODE9k3LyMXDinF_hOsl8mBpYQD3IJtFsMls2bMiv_uez45sTdAswjZWdp8eAXZ7w3im9fkC3k2h43Gy19j97nnPRv1oLVUrHO-UeqO43B7lgF5dYQH0VmkL1uxmGFzVp38HoK2RqZWyb6HkLdaN45diEQB9TG0L3CBxWvibR-tWUxr_vu-SUjygIMYiAH88arZWGQZuDZy9pc3N1ZXJtL2lzc3VhbmNlRGF0ZXgjL2NyZWRlbnRpYWxTdWJqZWN0L2JpbGxPZkxhZGluZ05hbWU',
+  },
+});
+
+export const BBS2023_W3C_VERIFIABLE_DOCUMENT_V2_0 = freezeObject({
+  '@context': [
+    'https://www.w3.org/ns/credentials/v2',
+    'https://w3id.org/security/data-integrity/v2',
+    'https://trustvc.io/context/attachments-context.json',
+    'https://trustvc.io/context/qrcode-context.json',
+    'https://trustvc.io/context/bill-of-lading.json',
+    'https://trustvc.io/context/render-method-context-v2.json',
+  ],
+  qrCode: {
+    type: 'TrustVCQRCode',
+    uri: 'https://localhost:3000/qrcode',
+  },
+  credentialSubject: {
+    billOfLadingName: 'TrustVC Bill of Lading',
+    scac: 'SGPU',
+    blNumber: 'SGCNM21566325',
+    vessel: 'vessel',
+    voyageNo: 'voyageNo',
+    portOfLoading: 'Singapore',
+    portOfDischarge: 'Paris',
+    carrierName: 'A.P. Moller',
+    placeOfReceipt: 'Beijing',
+    placeOfDelivery: 'Singapore',
+    packages: [
+      {
+        packagesDescription: 'package 1',
+        packagesWeight: '10',
+        packagesMeasurement: '20',
+      },
+      {
+        packagesDescription: 'package 2',
+        packagesWeight: '10',
+        packagesMeasurement: '20',
+      },
+    ],
+    shipperName: 'Shipper Name',
+    shipperAddressStreet: '101 ORCHARD ROAD',
+    shipperAddressCountry: 'SINGAPORE',
+    consigneeName: 'Consignee name',
+    notifyPartyName: 'Notify Party Name',
+    links: 'https://localhost:3000/url',
+    attachments: [
+      {
+        data: 'BASE64_ENCODED_FILE',
+        filename: 'sample1.pdf',
+        mimeType: 'application/pdf',
+      },
+      {
+        data: 'BASE64_ENCODED_FILE',
+        filename: 'sample2.pdf',
+        mimeType: 'application/pdf',
+      },
+    ],
+    type: ['BillOfLading'],
+  },
+  renderMethod: [
+    {
+      id: 'https://localhost:3000/renderer',
+      type: 'EMBEDDED_RENDERER',
+      templateName: 'BILL_OF_LADING',
+    },
+  ],
+  validUntil: '2029-12-03T12:19:52Z',
+  issuer: 'did:web:trustvc.github.io:did:1',
+  type: ['VerifiableCredential'],
+  validFrom: '2024-04-01T12:19:52Z',
+  id: 'urn:uuid:019e5e8e-ed29-799c-99b0-11fff34bc886',
   proof: {
     type: 'DataIntegrityProof',
     verificationMethod: 'did:web:trustvc.github.io:did:1#multikey-2',
     cryptosuite: 'bbs-2023',
     proofPurpose: 'assertionMethod',
     proofValue:
-      'u2V0ChVhQicHeGgo-ngEAkIlaL1O_b2XhL8XEX94FRrW5AOC9Hnx0FQTFqA9iVz2HSese9dNpJKDYhTUGpH0ctt8ZZB5_doDVwYVFRXmTAJk7kqK-_h5YQD9WZttHrlLy5Yt4KX5JlbD4AqxyPhcyoKk-Wo6FkAtpDWl0V5eBqRG3QfLSfc4qG9tRFNkt0RSNMTTit-pOc6JYYLDx2EM7LXGzSqyTOC8ZKJ9hgD0GHrf59LhRlLV3-pK34L5ohGo8I-g81SD6xVKofBMNiXxFLrp7w56sQlEOkcpISekB2jtn0DeTWzNHrnVwuejhZPM1PPtOuxtkbzj6J1ggaQbwf84CJ4iQHGBFKYxYIBQP3qvdSn1isizeXkY-fGODZy9pc3N1ZXJqL3ZhbGlkRnJvbXEvY3JlZGVudGlhbFN0YXR1cw',
+      'u2V0ChVhQuM2eQsfoHNjaPd5NBTfgLMJVdDNdHFsEZ7HBb_eFj7lr4kWWL2CjMrIkCgz9vd1GP0BuZcXbY3rFFrLbmy6TDAsXmL8LwdTBbguXKk-JPDJYQD9WZttHrlLy5Yt4KX5JlbD4AqxyPhcyoKk-Wo6FkAtpNILqsy3Y1gO1PwDras8MhliMw2wBTRc1Jhe-beRb0g9YYLDx2EM7LXGzSqyTOC8ZKJ9hgD0GHrf59LhRlLV3-pK34L5ohGo8I-g81SD6xVKofBMNiXxFLrp7w56sQlEOkcpISekB2jtn0DeTWzNHrnVwuejhZPM1PPtOuxtkbzj6J1ggwq5Gsv4LUhtXKTDxJf064Wk1CJrZia42FddJSYxepLODZy9pc3N1ZXJqL3ZhbGlkRnJvbXgjL2NyZWRlbnRpYWxTdWJqZWN0L2JpbGxPZkxhZGluZ05hbWU',
   },
 });
 
@@ -1639,33 +1759,212 @@ export const BBS2023_W3C_DERIVED_DOCUMENT_V2_0 = freezeObject({
   '@context': [
     'https://www.w3.org/ns/credentials/v2',
     'https://w3id.org/security/data-integrity/v2',
-    'https://trustvc.io/context/transferable-records-context.json',
     'https://trustvc.io/context/attachments-context.json',
     'https://trustvc.io/context/qrcode-context.json',
     'https://trustvc.io/context/bill-of-lading.json',
     'https://trustvc.io/context/render-method-context-v2.json',
   ],
-  id: 'urn:uuid:0199c3d9-47a1-7aad-ab31-f17c85c35b24',
+  id: 'urn:uuid:019e5e8e-ed29-799c-99b0-11fff34bc886',
   type: ['VerifiableCredential'],
   issuer: 'did:web:trustvc.github.io:did:1',
   validFrom: '2024-04-01T12:19:52Z',
-  credentialStatus: {
-    type: 'TransferableRecords',
-    tokenNetwork: {
-      chain: 'MATIC',
-      chainId: '80001',
-    },
-    tokenRegistry: '0xE0a94770B8e969B5D9179d6dA8730B01e19279e2',
-    tokenId: '15648d77abd5a02ebde2c072dd3378c1b2f89ac1bb40d9a2b2612b0f497f02d9',
+  credentialSubject: {
+    type: ['BillOfLading'],
+    billOfLadingName: 'TrustVC Bill of Lading',
+    blNumber: 'SGCNM21566325',
   },
-  credentialSubject: { type: ['BillOfLading'], billOfLadingName: 'TrustVC Bill of Lading' },
   proof: {
     type: 'DataIntegrityProof',
     verificationMethod: 'did:web:trustvc.github.io:did:1#multikey-2',
     cryptosuite: 'bbs-2023',
     proofPurpose: 'assertionMethod',
     proofValue:
-      'u2V0DhVkF0IoMJuP2cjbd_u5EDovRaWnAazxjEwFveZdWE9ovyg7ES9qgAidZbuY8-AGIU9HdV4pSNvqj0GSuXml7K3dT8SjCkyQQQ357nPfVkGPOtBFwcfCOw1BURZscQb16MB7nLYyTvAKHaC20Xw3thMyqZU_g6h8RWYRyljBesFgwpzdJuoCVS-FKjiDus99iLrYx9BOmVCfIGwtcox4vvW5cxrdQ2_71L0ZgRtctpkUbQ1rdDw_nD5Bjc9fnoeAX0_AZRnx6k6ITPDxzfTScwrk9f3pU6hTR5yWpjETAEmWgkq1vgVQghMNispZznFgJ01NedwY8hqRRFrnympaW2aKxyT1YenMSusyTwLdLu37k4xrcW2X1vLesOPVkzpxsGYIRsby6cJs8fHyWPKsUBCR7N2kWt2k1MVZM8wEpPR1c-hkjgEqoPxjcRJWLKoGLbcGEgUdik68FFz7TGvgY8VEIgTz-t4Hs_I2LtgFcwkPMW5W2Qp6eISFn08smoWR874uI7AlW7j56-Z0VTILPcfsD1TVDl4pvP3_SB87hBEb9ixi-tKf_7YcrmvnAZnGOfgr7wBaXP_WgzD3Ms7BJAYC-IAcxpXlKCTbQcvw6dM9VjMNAR8xFqadlfz2pGkMPjMiXb1Sg6QAtLp6COMnFL1x7pRxO9jNK8b2v4PC08r1cUeRKdx1ZveMG8J4zFp8RzwQAvDVsAffpG3j528csobWUeo-B5HLoVJyUoQMuBrjVlBnbMEdaAdMh5VScDfaPM4m6s1OgEtEOuI9WpHUzQgkY4O9w7M1CWFX0I9M2NIn662KS3yZXRlpNcFQPuxjBCbIuCR36E0b_KbLWS9_e0Etsm8qQkQzUt-w8m7Ja6RUEK6-wE_zBGzNZ0PaqqlqDjpqxzleCaXWf2aKNYC_VeRGiGlZx0mxEltC6WySJbCeVzM51zVgxyTR3XqIg0tNS-0BoHwpb4WLvJQpIbFlSvnxWRfJx6nTHaBgBKLrYTPFt1tPRQ9VNF42DmgTcXzS34cifLsj12UNdXld91nD4JaFIw2c6BJ5wrB_Gbe5kJ4Q1IQSOJbSM-2RZAUxpt2pg-aIhSwSxhq3fvxN9fyWEs1_Vy8Jui5PXLg8NfQ6xNza8qGZEKiJTXu2gFKjOxZhORbem3c0mTlvsGgmcvXOnxd2sLddeEPs3tWCSgdJwnlpV2osZZrJi3_l1TJThbeMN9qKTiVuXQRbA4jvBsYy4iyCNBRzqsYPW6-M2mmx7D_KPqxaXVzM_13hcSI8OXACQ4Lu8Z-HvrQKJ9_CsFwNTERWbvVUQnLSl-GStX1n6Y-ow2XKLxr4KIhjyHVCqQdXV6oIZzzLogEfiQLLGvSjt90ozMoWkPVl1OJlYah2lVJaPpekdOlh0d-6dQowaMGGVmxfNfpjAXFbYmIaX96GgBf-b-1cyqGD3hg7UnKTQzhtbCVSuggrsf_jVLg3wBxRgmrD4AmY9gZZsirdRyCIXSIzgT3YRb4sDfY-V-OzA6pRLBpfRZKT8mSiGHH4VuLWGD3L7w5rSOGoFmeDXmtqjDBq73OpO-4j08YAMStjPFFip8zklkPEGJ_zY0nrqj_FIBpLNDSbz13VIacX07aMn7ofLa6Gy2zQ5EgdO3lgL3Motg6E8XgRbwsrI_qFRcqfQ4Ok1KBaVvURjwe8fOPDpV805QZsVUVPwFlcErdoXTIlxEPwZpBYvea6HQUx7PCA5rxdAA0tMzLhr_Ic2mLZ_UdIxXOdhyy9hrn55SldDk1xKA2rMLLolbIsZeReks1-HBmheDhukb9Ogb4UVIss3zgpfES1CBCrkMbhFs3LIbGl0yamlgo0u5w48yVpvwLcT2jK-GALpZBlirOYqVf9N9ymWod-U4RfM5c-e-e1ZnHuf3usgM9G0rf_0nUv-V9EFVSnzTBp55LIWf5J3sGqg2yDDEOxDv0IPb422D3mE7jqJuUpldBTaMh63zbF7Hq3jcaZ9l6MABAECAgGKAAEDBAUGBwgLDIMDCQpA',
+      'u2V0DhVkFsJF2t-InYqPpoI3lEYV5zYBsXC8auFCsUJ_s8f8-hpVDCsa2GQAl9MWwMv2L5CmZxaRzo7l19z44sROBmJFsKSqrf8zRJggcvgQxGgwT3vm9KcuDDWLW3W12uR5AQGtbf4m9izOQndbMkU1f6Y3gL8vzpWz9vWKMmdKJlgqh_UDZvewnkxF1qLTr__hBfwJ36BazrZPGagNTKfYSOGS8oTV7t-NzcSWMtobvgqNeW--3U7J-kPBag9Vaw7wZCuNwd4y65DeIzUKqRJyCd2m_Nz9Efj9ZKTZRpSNX65FE9pNoTS-zadZR9RDS7kSAmZqOdS1K5niD5lCXCiaV88FnHWtTRtJmEhcngrf60RGpEkiUIjQaFcbyQxbw2T3Hc6ncC_a2lpoihYMo63BoCB4L5DBAuBTrTlVY_derZqYh7u9KFUmokFjbYPMQqRcGCPznXRtKZl2RvTpjorwqR89inGP5o3Px72MrDujLXqXIHXlhT7Q0ckfJaorljEFEXNSMcIsO7uHjD-ZteJMggfQYnctCG4wcjJouFV7Qwed7fj83FeJ148jhlYltguIzzrH02HOpuqohTbnSIl6_QDjXV_QEEeSgkKvK4tota6iNM_ygJsVRG-mDiEHvRArA0fO_-Cyp6ZQp7kKclJTPYybHR-8THdVS4eKcKk6DO3BR-djis-3iI1mmJgWUVKwz7slA32CVtKzkZnUkyLtsTFTr_JuWgxy7EjOEy2-e-djZAfGebTuG2o7fpHkiLW4EhE7P2gKwnQ1RGUf6YJeKo2e_ar00yNIga0PKeZF1VU113mW0th__Hqcu1O0EC86l5EjdOBugWTpnN4zYecw4ecmJE_-3G5Eb_x4h4PNGIxGEt29EE-PSaeAMd2NJhruTgvokCe6H4HCvCGrJWuPJEgoG8MQPr_FIwOGl6NmNZjp-RWc4kLxJCb2eg_26QJ74vOUDYUr2jBm9pqsofkJKbpEp0eNcmpJ7NY-_inszsLduHUL0AYhLrLeQA-Smj4WBtnh81PgS_MvCKk5bx5fCJI_EXi0Ayrc34vnBgHwcZ1khA3Q2KE1Y-6pL9pL3yRs2MOMEijexW6LLVpzowk732A-JA6w3AoHQfAB-zy0NBTPmjDAGQYrRHVKMORY0m2xSipt5Pzu98Y9ik9DNLp8_9LiqxgNDwR9JHT9jMO1_Jd5Sj9BIaENAF7RRY-yhVSWkCI4WalxwGXRn3i5BMROPT5szlUaCJVrgOguXGE72x2L51p2XL4MOvRjbUpSmpzYduBNbP2-MvV-FoCtORJBxTauTmDFagtAz2olnEk6H7aL9EM23gWlQXVjdeKmMJCELsb6cpztn7ysh13HZoluL1rFly_jCyQzx8uicBU-Z9-vEH8gaSNE0fHnbqaqe2prqrCcEPIrM6eh8gq2IOAlVglwWBTBu28Zam4QazEqwO81OhG4V_QzBq3Vy0dxNFntMgAlHHD2hioz2p5aoQ6KUl7DGjXHhcOniUjF9LlDqHyGXL36RI9PR33JEjUXFNg4iNIlkh8u-hAfTuUgss6-nZIEJ-O5YTd_d4SFSQU8tGECPazbardLaGLtFxQh_mOMZ2wmpQA3pixOHDysOEf8x-Q0EaL8BHut9X2qrjuX4VXLLf9CJMJw195q3fz3eE24SIXY9mpNXfj34wknN0Q2z7m52QsRxP5DKDcBWbX5ekZscC5Y7xzdTYONyn-gFT073QahtGSIPHV4iLPkkxvCRGvOB8qDqUAMDydVkkN_fZ6JTb7AAEejXS1KITw8s6JFW1dShSLtBfF6pXgaBTLf7p8M0ljwksIXJK2V_WYVC05LTirPPHRtrx5pPsk9hOpMkh2Xj9R_41Qt-BeKDn4mLUbUozciVe0AQCcT57JqxJXP2qDwsDzQ2L7lXLFMOfgLnjuOaH9qpDRbwoGeHKAOaf10YTN6hAAGGAAECAwQFgQdA',
+  },
+});
+
+// did:key fixtures (generated once via signW3C + deriveW3C from W3C_RAW_CREDENTIAL_V2_0,
+// then frozen for stability). No credentialStatus — fully verifiable offline with no
+// token registry minting or hosted status list required.
+export const ECDSA_DIDKEY_W3C_VERIFIABLE_DOCUMENT_V2_0 = freezeObject({
+  '@context': [
+    'https://www.w3.org/ns/credentials/v2',
+    'https://w3id.org/security/data-integrity/v2',
+    'https://trustvc.io/context/attachments-context.json',
+    'https://trustvc.io/context/qrcode-context.json',
+    'https://trustvc.io/context/bill-of-lading.json',
+    'https://trustvc.io/context/render-method-context-v2.json',
+  ],
+  qrCode: { type: 'TrustVCQRCode', uri: 'https://localhost:3000/qrcode' },
+  credentialSubject: {
+    billOfLadingName: 'TrustVC Bill of Lading',
+    scac: 'SGPU',
+    blNumber: 'SGCNM21566325',
+    vessel: 'vessel',
+    voyageNo: 'voyageNo',
+    portOfLoading: 'Singapore',
+    portOfDischarge: 'Paris',
+    carrierName: 'A.P. Moller',
+    placeOfReceipt: 'Beijing',
+    placeOfDelivery: 'Singapore',
+    packages: [
+      { packagesDescription: 'package 1', packagesWeight: '10', packagesMeasurement: '20' },
+      { packagesDescription: 'package 2', packagesWeight: '10', packagesMeasurement: '20' },
+    ],
+    shipperName: 'Shipper Name',
+    shipperAddressStreet: '101 ORCHARD ROAD',
+    shipperAddressCountry: 'SINGAPORE',
+    consigneeName: 'Consignee name',
+    notifyPartyName: 'Notify Party Name',
+    links: 'https://localhost:3000/url',
+    attachments: [
+      { data: 'BASE64_ENCODED_FILE', filename: 'sample1.pdf', mimeType: 'application/pdf' },
+      { data: 'BASE64_ENCODED_FILE', filename: 'sample2.pdf', mimeType: 'application/pdf' },
+    ],
+    type: ['BillOfLading'],
+  },
+  renderMethod: [
+    {
+      id: 'https://localhost:3000/renderer',
+      type: 'EMBEDDED_RENDERER',
+      templateName: 'BILL_OF_LADING',
+    },
+  ],
+  validUntil: '2029-12-03T12:19:52Z',
+  issuer: 'did:key:zDnaemDNwi4G5eTzGfRooFFu5Kns3be6yfyVNtiaMhWkZbwtc',
+  type: ['VerifiableCredential'],
+  validFrom: '2024-04-01T12:19:52Z',
+  id: 'urn:uuid:019e5e70-ca9d-7dd8-b6c0-a2dcb9bdd8d7',
+  proof: {
+    type: 'DataIntegrityProof',
+    created: '2026-05-25T09:21:50Z',
+    verificationMethod:
+      'did:key:zDnaemDNwi4G5eTzGfRooFFu5Kns3be6yfyVNtiaMhWkZbwtc#zDnaemDNwi4G5eTzGfRooFFu5Kns3be6yfyVNtiaMhWkZbwtc',
+    cryptosuite: 'ecdsa-sd-2023',
+    proofPurpose: 'assertionMethod',
+    proofValue:
+      'u2V0AhVhAKAuXygH3ApPqtcvCzN_3Dlot5HhDA4RWa362uvo1dlE7NURO2vmee4Fh9oDMvNSUDT-49dPYLnTcQUwszfj1R1gjgCQD0WFeE3lns89pDzzpx9WmkCn1TvupN_O-rvFcjMUzmSpYIItepfPUe5dQWhU6EJmsoODPxUo2CE-nhPJCnThGT_8qmCZYQF_ou7xzCcA5o4GIGclJMj10QVELSeXwDaN9LyCBQVzMRZTDedHF2nyATSP1O8_N3ia2dghU675GxJ-9GP7XCyFYQOiv-b65RIdYf-Iq0Z_GUXxMVBtQDJno_uFeWb1iPh9Et7UMhqZfWgCgeSwNxGw4gfwVtl5cRH7YYCLgbHYV5LVYQDV_tyIJ2IzUzJjrqRzdPjeVXpD43iQkuB-wJh_YEEKcQheBQBPJbmUGxeugLNUNWpCtHFY_Y33VDYwbhjfyUjNYQB_L4tnhYWxcFwoXF_Hv8akmRDAJl__qlfLCp9MT0qzqIMbC3Aeff86oDOvyjfomPBKgKIwM3NtgGlnpDppbWSVYQJD0y24pJgs3O0DD2_9gvr2KsmHnpCDAJK4hrEjl4vtQihx1M1pArOoUhZUqGF1qPh941PWBhN_hErtvmCY_mMVYQL4uh0TPslWWXtKTEIKDXBAHa11_WJAFER5AYpTfdAJ8X0aqx6IIJ_OdcuW18AE9ZbCLP8mr0GplZrmLpVfd3mpYQDiMT0sm6QsBfp-N-I6Lcr8fL8BoWwHV3lqWRzZBkYCYFua-xEHokXtwBEsPB9bt2qGQwVzuQwz9YO2dQNJZyB5YQJD_j_WxyTdSQHEaF_k4S1dRpU3XV6SFIzUAC6fIrZnqyDKnu2hYQrKAjMcbZzpP4MZmpqbpBwXZFCwG4__OUuxYQMRLs2e0pGfEWPDya26cptIybkf3lGifRb7SgW0LxT5UZ5L_pb5exHSD2H5n3-4IKuG3YRy9HdO5ggoGd4boejxYQCwd8I8myXt3yXRMhxbPoTcbeCd1FJ1ZF_r3tR64c-GLPS9fHGcbzRIhpUa5szGmx8gZvNSac7z9LFyClT5TcZVYQOpZEoD6yfX1XzuCY0ThLmrcMpBgKi18K-dS4VZgHOt7FyWVvoF17G_TGH5IilqE3xdhvkwb0T7yjX9D8ZQh5TBYQHf-5che7MTizXCx6JT78zTKqihbmKiYR5Nqd41Wl4A68n7f4mgqnRMMNoRyU-KjcioUEKiWzHPkV8M6mxFnI1xYQHEiX4JV6ae5oPbrIFGsQgFSCoIjZOR9sKBa60509bUX_TUDaLSS3b9ZvnUIcn6IhfaZrN5Phst_ytjxeevIaWtYQEdmJHmO9Cx0XVPCp01ABAk1GF9hsO099P51xTONbhRvSBHEjmXlIMV8GG_LMCxwRdxaB8Y_zmmQuK9qW58rqklYQEgMAZP6FJ8J_zBxV1JnBumCzYhIw3dB3IDu8w82SJie9LJxlgCvDV1ijzQHDYoHNjKcNJguHZfqCDdnefRP-tFYQFvk7WFilKjL5F7I5RU_sY2VOZSisiAcxYGqrCgTh9GFDrRIhLGtU-R-WMjNAbf9BNM-tDcHS2zHUr4nIj5sP_tYQKcN8DGDe5_DM9ZWpmOHKkLEHyVXC5cmHeV9X7fDfD0VLu2l77RQcE04Jp_4mktVbCcvHaXCEpqymYIlxIbbfxZYQPyewW3px5hD00nsKBBxa91zfZyh3tttlEYu8tXgyGEoEaIpt-l5k3d3qu5klpMIdi9OXtUu1et4iqSTHhq9VmVYQFiCKnDUk4pGqdZ3MZ9ztSZ970uWtZidwII5Le6oM9N2Vtvu9_YipZU_f2WpMYwXE0LD2eFd3Qa_viCE8f8b3gZYQO06HHdvh7ZhaRf4yCqXx1lJOnF-BpsRcRh0e5PfTJJ01HJSy3We_2aYm9yxBUZrzSw2n2gh8Lf6By2x76C290ZYQBBHAivm3oEBav_W_7hmFsTqpR_gEqM5eufA0FTA9nWYpD75YK6E26ou0pb7KRN7tjij9JhdtC6as9WsWR1RC3RYQLBR-VDyquJnc30o2XbBTFZ57Tdy7Kh35rmKswxemH_M_WlNEKpaArhS9OFwGP7gMktTRMnF-8e-LpM6GX_-srpYQAdioHNeKuKNLUkJ1tJsVl7eo76kfvL_h-NWgLxijYHiMjY4VolMpPdbhd7OmupqBGhcKHtm7BwqvkaucddXpFxYQEcVHU1QKJAiNryXWDwjNpmUzwpCVc5yUXQF6_CG8LSDCwWvvJmy5hlAB8hlSofMdRM_fEqS5QxMEA0os_M6ZpFYQOyZM4MgddTHNISBihcfYnObRUOq86Nw3NcYpypHR70LQalyF1uuK9ZOOUzFlBNFx116r45wdDzLpmJTgUevfWlYQJUs2czonEYpiL0B-JULjjqwbnPjP3HLX0GOhdkR4_0rXiodnFCI0V8pnX-z5fe_J5vn4gFPiZotqXilofUx5eNYQH7CbhSiuU3byprSTVqV4VEeowD46LwInnKLYL6cRgwJFz8d-TPVQXynNczkJTUUtGiEpf0m6lrrZLK9MAJH5d9YQJRUUnOXALfSfdc9KmSlE1quq8JVkmxFgklPT81VehL41mzaStt-QmNkWbHvAB6LockTRmYZFssUWNHMkdbAN6xYQBfo8onu0heoesqSnk61SsEdBhE_Oi6XaHKWAoz62xnR4vRSdkks-oSvH08FQfQ7BeN9bhVQWPQhE6IsKW5R72ZYQNSZYoPIyfJaiLKJGUva-2QzsTCmLK9as6aTHGrlehuJMuIzlxR-fHy-R8lN3qNq7ZwTij2OH_q7tVcKJPKxnJRYQMFLL7f6eKh4QxzIeEAu6rZ12Q2GosI2dpBt3a9UtnBGPaVyKRH6cv1zMMaKbU6FVhtSuwFI1pl1c7SoCu2_PTxYQFAbW8Po1vYy77_tzFHw_s9z_djvRVwYxW_iXx8WhrS4J3kMekfr_SggXycODW_QXGnb7JwLA9A9OHbmZGYqs8ZYQFfdX3pHtGur1deNgO7f9mGv9F6Mnuod6vORpVVq-RTtcvMyt9wjLVslI4wto7nMhFOoTfnm4rzjqJ6cuEU_U1tYQGB9vy8cvznRwqFlkV4grW5s0LnkTIguWrf88NSPHMaZkdkAae6xx3D3JykmgzeF3lI5fiKx1AJaq1sSdRfnCmJYQNB_Lx-bvNI54ry_yuVPiE0GiwDcG6XnPSZKeu6uiN6v1mvxpbMjp6Zf2qwjMJWhJk_PhOKg0qEIpQuskIUvOqtYQFua7tEVnfxO-9TOb86gdYdMGLhEAOA4PrBghPVOpvGt0L4WAIxuhcDKB6RcDkG7tozjQa0IXBLEeRITCvx88QRYQDB4mpr0DeUaPtUr3NPftSWsHPWuh0-MiyPKIA-9MSA1ayEgNpWs1UXLMasdpNc37LDHs9UoXqi8Uo0lQ8V_AZZYQCAIMCBdpEQUIwhSuHVul9a3BwRlOQTmaBSEFiNubcmPwZHFVsuo87yYHh1h7IvuIoLHikyJyuaUY50bPMAh2OqDZy9pc3N1ZXJqL3ZhbGlkRnJvbXgjL2NyZWRlbnRpYWxTdWJqZWN0L2JpbGxPZkxhZGluZ05hbWU',
+  },
+});
+
+export const ECDSA_DIDKEY_W3C_DERIVED_DOCUMENT_V2_0 = freezeObject({
+  '@context': [
+    'https://www.w3.org/ns/credentials/v2',
+    'https://w3id.org/security/data-integrity/v2',
+    'https://trustvc.io/context/attachments-context.json',
+    'https://trustvc.io/context/qrcode-context.json',
+    'https://trustvc.io/context/bill-of-lading.json',
+    'https://trustvc.io/context/render-method-context-v2.json',
+  ],
+  id: 'urn:uuid:019e5e70-ca9d-7dd8-b6c0-a2dcb9bdd8d7',
+  type: ['VerifiableCredential'],
+  issuer: 'did:key:zDnaemDNwi4G5eTzGfRooFFu5Kns3be6yfyVNtiaMhWkZbwtc',
+  validFrom: '2024-04-01T12:19:52Z',
+  credentialSubject: {
+    type: ['BillOfLading'],
+    billOfLadingName: 'TrustVC Bill of Lading',
+    blNumber: 'SGCNM21566325',
+  },
+  proof: {
+    type: 'DataIntegrityProof',
+    created: '2026-05-25T09:21:50Z',
+    verificationMethod:
+      'did:key:zDnaemDNwi4G5eTzGfRooFFu5Kns3be6yfyVNtiaMhWkZbwtc#zDnaemDNwi4G5eTzGfRooFFu5Kns3be6yfyVNtiaMhWkZbwtc',
+    cryptosuite: 'ecdsa-sd-2023',
+    proofPurpose: 'assertionMethod',
+    proofValue:
+      'u2V0BhVhAKAuXygH3ApPqtcvCzN_3Dlot5HhDA4RWa362uvo1dlE7NURO2vmee4Fh9oDMvNSUDT-49dPYLnTcQUwszfj1R1gjgCQD0WFeE3lns89pDzzpx9WmkCn1TvupN_O-rvFcjMUzmSqBWEDtOhx3b4e2YWkX-Mgql8dZSTpxfgabEXEYdHuT30ySdNRyUst1nv9mmJvcsQVGa80sNp9oIfC3-gctse-gtvdGoQBYIM_gRt2Df4MI_VE2mCrQEd0yaOINEiqyJh_rRjRrmy4bhgABAgMEBQ',
+  },
+});
+
+export const BBS2023_DIDKEY_W3C_VERIFIABLE_DOCUMENT_V2_0 = freezeObject({
+  '@context': [
+    'https://www.w3.org/ns/credentials/v2',
+    'https://w3id.org/security/data-integrity/v2',
+    'https://trustvc.io/context/attachments-context.json',
+    'https://trustvc.io/context/qrcode-context.json',
+    'https://trustvc.io/context/bill-of-lading.json',
+    'https://trustvc.io/context/render-method-context-v2.json',
+  ],
+  qrCode: { type: 'TrustVCQRCode', uri: 'https://localhost:3000/qrcode' },
+  credentialSubject: {
+    billOfLadingName: 'TrustVC Bill of Lading',
+    scac: 'SGPU',
+    blNumber: 'SGCNM21566325',
+    vessel: 'vessel',
+    voyageNo: 'voyageNo',
+    portOfLoading: 'Singapore',
+    portOfDischarge: 'Paris',
+    carrierName: 'A.P. Moller',
+    placeOfReceipt: 'Beijing',
+    placeOfDelivery: 'Singapore',
+    packages: [
+      { packagesDescription: 'package 1', packagesWeight: '10', packagesMeasurement: '20' },
+      { packagesDescription: 'package 2', packagesWeight: '10', packagesMeasurement: '20' },
+    ],
+    shipperName: 'Shipper Name',
+    shipperAddressStreet: '101 ORCHARD ROAD',
+    shipperAddressCountry: 'SINGAPORE',
+    consigneeName: 'Consignee name',
+    notifyPartyName: 'Notify Party Name',
+    links: 'https://localhost:3000/url',
+    attachments: [
+      { data: 'BASE64_ENCODED_FILE', filename: 'sample1.pdf', mimeType: 'application/pdf' },
+      { data: 'BASE64_ENCODED_FILE', filename: 'sample2.pdf', mimeType: 'application/pdf' },
+    ],
+    type: ['BillOfLading'],
+  },
+  renderMethod: [
+    {
+      id: 'https://localhost:3000/renderer',
+      type: 'EMBEDDED_RENDERER',
+      templateName: 'BILL_OF_LADING',
+    },
+  ],
+  validUntil: '2029-12-03T12:19:52Z',
+  issuer:
+    'did:key:zUC7HnpncVAkTjtL6B8prX6bQM2WA5sJ7rXFeCqyrvPnrzoFBjYsVUTNwzhhPUazja73tWwPeEBWCUgq5qBSrtrXiYhVvBCgZPTCiWANj7TSiZJ6SnyC3pkt94GiuChhAvmRRbt',
+  type: ['VerifiableCredential'],
+  validFrom: '2024-04-01T12:19:52Z',
+  id: 'urn:uuid:019e5e70-cc54-7dd8-b6c0-a902bc0062d2',
+  proof: {
+    type: 'DataIntegrityProof',
+    verificationMethod:
+      'did:key:zUC7HnpncVAkTjtL6B8prX6bQM2WA5sJ7rXFeCqyrvPnrzoFBjYsVUTNwzhhPUazja73tWwPeEBWCUgq5qBSrtrXiYhVvBCgZPTCiWANj7TSiZJ6SnyC3pkt94GiuChhAvmRRbt#zUC7HnpncVAkTjtL6B8prX6bQM2WA5sJ7rXFeCqyrvPnrzoFBjYsVUTNwzhhPUazja73tWwPeEBWCUgq5qBSrtrXiYhVvBCgZPTCiWANj7TSiZJ6SnyC3pkt94GiuChhAvmRRbt',
+    cryptosuite: 'bbs-2023',
+    proofPurpose: 'assertionMethod',
+    proofValue:
+      'u2V0ChVhQsas6y95YDaJbLUcqJS59AntlFvIzllxQ45dj51A1R6UH2WFlKZnMT3jgaXYe4TckOLnDO3m7IIpEF7_cpdo2eaEIC9cVKsR14HA3QSqn7IVYQCzgfABWMhdDSs6ONVf2y2GgZJG7FtF4UWdlSwnPjbXGlD85MxZES8DhIOeK9yqY8TEzvt8x86PtI7Ua0ZUJ7CBYYLDx2EM7LXGzSqyTOC8ZKJ9hgD0GHrf59LhRlLV3-pK34L5ohGo8I-g81SD6xVKofBMNiXxFLrp7w56sQlEOkcpISekB2jtn0DeTWzNHrnVwuejhZPM1PPtOuxtkbzj6J1ggo6i8W9JSHQEs_t3-DXIWysQGn1jJ4agdyaMuVL6j4A2DZy9pc3N1ZXJqL3ZhbGlkRnJvbXgjL2NyZWRlbnRpYWxTdWJqZWN0L2JpbGxPZkxhZGluZ05hbWU',
+  },
+});
+
+export const BBS2023_DIDKEY_W3C_DERIVED_DOCUMENT_V2_0 = freezeObject({
+  '@context': [
+    'https://www.w3.org/ns/credentials/v2',
+    'https://w3id.org/security/data-integrity/v2',
+    'https://trustvc.io/context/attachments-context.json',
+    'https://trustvc.io/context/qrcode-context.json',
+    'https://trustvc.io/context/bill-of-lading.json',
+    'https://trustvc.io/context/render-method-context-v2.json',
+  ],
+  id: 'urn:uuid:019e5e70-cc54-7dd8-b6c0-a902bc0062d2',
+  type: ['VerifiableCredential'],
+  issuer:
+    'did:key:zUC7HnpncVAkTjtL6B8prX6bQM2WA5sJ7rXFeCqyrvPnrzoFBjYsVUTNwzhhPUazja73tWwPeEBWCUgq5qBSrtrXiYhVvBCgZPTCiWANj7TSiZJ6SnyC3pkt94GiuChhAvmRRbt',
+  validFrom: '2024-04-01T12:19:52Z',
+  credentialSubject: {
+    type: ['BillOfLading'],
+    billOfLadingName: 'TrustVC Bill of Lading',
+    blNumber: 'SGCNM21566325',
+  },
+  proof: {
+    type: 'DataIntegrityProof',
+    verificationMethod:
+      'did:key:zUC7HnpncVAkTjtL6B8prX6bQM2WA5sJ7rXFeCqyrvPnrzoFBjYsVUTNwzhhPUazja73tWwPeEBWCUgq5qBSrtrXiYhVvBCgZPTCiWANj7TSiZJ6SnyC3pkt94GiuChhAvmRRbt#zUC7HnpncVAkTjtL6B8prX6bQM2WA5sJ7rXFeCqyrvPnrzoFBjYsVUTNwzhhPUazja73tWwPeEBWCUgq5qBSrtrXiYhVvBCgZPTCiWANj7TSiZJ6SnyC3pkt94GiuChhAvmRRbt',
+    cryptosuite: 'bbs-2023',
+    proofPurpose: 'assertionMethod',
+    proofValue:
+      'u2V0DhVkFsLgPvLNrKi03uATWLAZs9D-cYvufhVXeI9lNrw81PamuPRxocpzACB_MQJgm-gw3l42-A71HFc8wFeSq2kS6Aor-_6PNxFGZcFL6K76vnWBmjT7pPR3bALKKoc_Tys0PUaN5NNIVy0cftlUKtEtRvhkl9YXNxViEcTgO8F4cuOGoafXFjDXUX1sxH2rnOTDuKWBfIzaDF2N1MftgV8z-XMzjOLM9-J29OCmWyLbjYGumahX3OGc6ibRQnnHKIXi0LiusPRQJZkxGlM-3mXw_WZZPOEi1aLgotwHLhZN9ZFWWMzgdEphVxQrKmPzNRRrdsQkawXf50UbKRgduk-d7TRDjajZF3Lwe761RMOx5a8PdOf_9zF5Bmf9kIfQxzmRGb5vKoPX5mNCK6SIc2-uB3dwLWU5g43HbssXpfbQwozwxYFwsbquWINJUlykMYmy_4y7b8o5yJrAX23DVIG3BMLa9l8doX4bsA3i0zz61dxTyQpKHB-2z3cF6DUoDT-k6ugQ57nFGFalv8inCo1BuUrYCsmvHQjHDvXaGCXvOxknTUIizObrUDS84g_M4WjyyKTVOn2gIvUNLwSsxxKRYUqmjD6B-eL34Lum9ALq5r-WpRYOI8L7gK2s2EBB2o_mYnA9OsJMbWvN6OmNFD8PynkBoz80XMazQZ6RfkSA8zb17cNKspmw2v5F4suTWjKWwWh224TFrcuvzk30S-aVeUd2-Emj3GXLdgRjAmXkVG_7qOlTI3RIAsqF4KRKd3-9xsTkanIpjcIFH9eC8dbUZBVtv7zu7T_t0I5759ZTgtBIW3QXZe4EdfeutkrX1baBAOlBd4khCeK5FD18saFRU1aEBhIQibGXTnvZdNVPIutbWcd9MtIXyCjyqtBeAOOiP5AgzaAkmhz64I6yfsRFONDsvK3Ub_1Xy0K1PenpJhAkkcblvZPd3w0lp4eF7ANKrUTk3YkNFPs0ZR143yE6PzcF4QKFRZcOGP90WZitkKBNvaQtYbjfbbK9R9GdvXJ21uGlAyS8gG8bWZzvl3HFbdMdrIaHwsm57_iaBxu9_aMMeFl6Z0Pj9xqEN4n09xYebWReUBgoaHKMn-rQsDvi8jiDN1M--FBDvJvAOd3__VNzCC71XczC22unWbmxZQv-FuTUu98F4_jTp10x4-Hcujew1QdLgV54DSwewdqMBcSYomU0mzM59OwYEuVJbrUHK8G6RoFFxNCa2scDC_77CqtgEq5J71wFYnMl0Rrnw6pLcMEqgL8vRDWVpP7WfKkIVCzxQnrpAqDCga10qU52gMZ8PzjSU1fsxyWASZDRy8m392M8VfoL8TkDZVC3CkaqyDSLuIiQxAgISsyR3Sx6khoCKPjtiej0vz-HcMdCCWG2OKM5yG8kmlXIsv-Cpk4tWslsaIZpZx9lNMu1dE0j43-8XjEjcaqFPOgySQECjrdR0afDdWa5hSI1XXO9tWSaPjWlzdiBC9cjHqsJUTtnRzEDV7A9TtpUO_lj_hLArdSpuPiwVR9qXmhHfU0h2jIwzPUylumE7a4i5V_y-d0_q-RcVQubYYxbY4_e7V28blRgpdPEXQbFkFIrvMIwjBlyGqw5JTq8YgdWMgzx7yM7BUH0EhR6QJ09KwueZyEQu7vY4JgEIvIro8t_VjsdXlc3qHrQU973mVuBY0ecQdR10yxdrlzh9cyCqXgDvqbc-zwp7r99FuFM_RiBg8ybDQ0IsrRndi9HpCca2YYAf8aI_jH1Q7TkdkB1JTTeGgofpDxYVcNumpxIb0Ffm_qJvBRbf0FNLOjmr_XSIWsX9b_1ZxApSaBt8jvrur8vb4RKEu8JosRtaWnxAAld7Inye2AwqeAkP6UREDtNCE8cNh3fKjY0Owts-h9p7us1vY94mqy8bUqdPvLMtScVZ5sf__IOG-qikNSmGbkcXHuK4JILUgN2hAAGGAAECAwQFgQhA',
   },
 });
 

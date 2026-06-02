@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
-  ECDSA_W3C_VERIFIABLE_DOCUMENT_V2_0,
+  BBS2023_DIDKEY_W3C_VERIFIABLE_DOCUMENT_V2_0,
   BBS2023_W3C_VERIFIABLE_DOCUMENT_V2_0,
+  ECDSA_DIDKEY_W3C_VERIFIABLE_DOCUMENT_V2_0,
+  ECDSA_W3C_VERIFIABLE_DOCUMENT_V2_0,
+  W3C_VERIFIABLE_DOCUMENT,
 } from '../fixtures/fixtures';
 import { deriveW3C } from 'src/w3c';
 import { SignedVerifiableCredential } from '@trustvc/w3c-vc';
@@ -16,6 +19,14 @@ describe('W3C derive', () => {
     {
       name: 'BBS-2023',
       document: BBS2023_W3C_VERIFIABLE_DOCUMENT_V2_0,
+    },
+    {
+      name: 'ECDSA-SD-2023 (did:key issuer)',
+      document: ECDSA_DIDKEY_W3C_VERIFIABLE_DOCUMENT_V2_0,
+    },
+    {
+      name: 'BBS-2023 (did:key issuer)',
+      document: BBS2023_DIDKEY_W3C_VERIFIABLE_DOCUMENT_V2_0,
     },
   ];
 
@@ -38,7 +49,19 @@ describe('W3C derive', () => {
     },
   ];
 
-  // Note: CredentialStatus is defined since the document has been signed with credentialStatus as mandatory parameter
+  // BbsBlsSignature2020 is deprecated for derivation. The library should return
+  // an explicit error rather than attempt the operation. Mirrors the BBS2020
+  // signing-deprecation test in sign.test.ts.
+  it('should return a deprecation error when deriving a BbsBlsSignature2020 credential', async () => {
+    const result = await deriveW3C(W3C_VERIFIABLE_DOCUMENT as SignedVerifiableCredential, []);
+    expect(result.derived).toBeUndefined();
+    expect(result.error).toBe(
+      'BbsBlsSignature2020 is no longer supported for derivation. Please use the latest cryptosuite versions instead.',
+    );
+  });
+
+  // All fixtures (did:web and did:key) were signed without credentialStatus, so we
+  // assert structural shape + selective disclosure semantics, not status preservation.
   testCases.forEach(({ name, document }) => {
     scenarioTests.forEach(({ scenario, selectivePointers, expectations }) => {
       it(`should derive a W3C v2.0 document using ${name} ${scenario}`, async () => {
@@ -47,7 +70,6 @@ describe('W3C derive', () => {
         expect(result.derived).toBeDefined();
         expect(result.derived.proof).toBeDefined();
         expect(result.derived['@context']).toBeDefined();
-        expect(result.derived.credentialStatus).toBeDefined();
 
         if (expectations.renderMethodDefined) {
           expect(result.derived.renderMethod).toBeDefined();

@@ -43,6 +43,19 @@ const bbs2023KeyPair: Bbs2023PrivateKeyPair = {
   secretKeyMultibase: 'z488ur1KSFDd3Y1L6pXcPrZRjE18PNBhgzwJvMeoSxKPNysj',
 };
 
+// did:key variant of the ECDSA-SD-2023 key pair. Same secret material, but the
+// id/controller use the canonical did:key form so the issuer is self-certifying.
+const ECDSA_DIDKEY_PK_MB = 'zDnaemDNwi4G5eTzGfRooFFu5Kns3be6yfyVNtiaMhWkZbwtc';
+const ECDSA_DIDKEY_DID = `did:key:${ECDSA_DIDKEY_PK_MB}`;
+const ECDSAtestPrivateKeyDidKey: PrivateKeyPair = {
+  '@context': 'https://w3id.org/security/multikey/v1',
+  id: `${ECDSA_DIDKEY_DID}#${ECDSA_DIDKEY_PK_MB}`,
+  type: VerificationType.Multikey,
+  controller: ECDSA_DIDKEY_DID,
+  publicKeyMultibase: ECDSA_DIDKEY_PK_MB,
+  secretKeyMultibase: 'z42tmUXTVn3n9BihE6NhdMpvVBTnFTgmb6fw18o5Ud6puhRW',
+};
+
 describe('DocumentBuilder data model 2.0 using ECDSA', () => {
   let documentBuilder: DocumentBuilder;
 
@@ -199,6 +212,21 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
       });
       const signedDocument = await documentBuilder.sign(bbs2023KeyPair, CryptoSuite.Bbs2023);
       expect(signedDocument).toBeDefined();
+      const derivedDocument = await documentBuilder.derive([]);
+      expect(derivedDocument).toBeDefined();
+      const verificationResult = await documentBuilder.verify();
+      expect(verificationResult).toBe(true);
+    }, 10000);
+
+    it('should sign, derive and verify the document successfully for verifiableDocument using a did:key issuer (ECDSA-SD-2023)', async () => {
+      documentBuilder.credentialStatus({
+        url: 'https://trustvc.github.io/did/credentials/statuslist/1',
+        index: 10, // Not revoked
+      });
+      const signedDocument = await documentBuilder.sign(ECDSAtestPrivateKeyDidKey);
+      expect(signedDocument).toBeDefined();
+      expect(signedDocument.issuer).toBe(ECDSA_DIDKEY_DID);
+      expect(signedDocument.proof.verificationMethod).toBe(ECDSAtestPrivateKeyDidKey.id);
       const derivedDocument = await documentBuilder.derive([]);
       expect(derivedDocument).toBeDefined();
       const verificationResult = await documentBuilder.verify();
