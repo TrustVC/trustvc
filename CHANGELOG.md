@@ -1,3 +1,10 @@
+## [2.13.0](https://github.com/TrustVC/trustvc/compare/v2.12.5...v2.13.0) (2026-06-02)
+
+
+### Features
+
+* add did:key issuer support ([#145](https://github.com/TrustVC/trustvc/issues/145)) ([934cacb](https://github.com/TrustVC/trustvc/commit/934cacbbd860eac4d7cea440f3b0b82a107f4cc0))
+
 ## [2.12.5](https://github.com/TrustVC/trustvc/compare/v2.12.4...v2.12.5) (2026-05-21)
 
 
