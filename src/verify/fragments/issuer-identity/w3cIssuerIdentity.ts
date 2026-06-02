@@ -1,13 +1,16 @@
 import { VerificationFragment, Verifier, VerifierOptions } from '@tradetrust-tt/tt-verify';
 import { DocumentLoader } from '@trustvc/w3c-context';
-import { queryDidDocument } from '@trustvc/w3c-issuer';
+import { isDidKey, parseDidKey, queryDidDocument } from '@trustvc/w3c-issuer';
 import { SignedVerifiableCredential } from '@trustvc/w3c-vc';
 
-const checkDidWebResolve = async (
-  did: string,
-  documentLoader?: DocumentLoader,
-): Promise<boolean> => {
+const checkDidResolve = async (did: string, documentLoader?: DocumentLoader): Promise<boolean> => {
   try {
+    if (isDidKey(did)) {
+      // did:key is self-certifying: the public key is encoded in the identifier.
+      parseDidKey(did);
+      return true;
+    }
+
     if (documentLoader) {
       return !!(await documentLoader(did)).document;
     }
@@ -57,7 +60,7 @@ export const w3cIssuerIdentity: Verifier<VerificationFragment> = {
         status: 'INVALID',
       };
     }
-    const resolutionResult = await checkDidWebResolve(issuerId, verifierOptions?.documentLoader);
+    const resolutionResult = await checkDidResolve(issuerId, verifierOptions?.documentLoader);
 
     if (resolutionResult) {
       return {
