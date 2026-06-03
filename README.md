@@ -2,7 +2,7 @@
 
 ## About
 
-TrustVC is a comprehensive wrapper library designed to simplify the signing and verification processes for TrustVC W3C [Verifiable Credentials (VC)](https://github.com/TrustVC/w3c) and OpenAttestation Verifiable Documents (VD), including OpenCert Verifiable Documents, adhering to the W3C [VC](https://www.w3.org/TR/vc-data-model/) Data Model v2.0 (W3C Standard). It ensures compatibility and interoperability for Verifiable Credentials while supporting OpenAttestation [Verifiable Documents (VD)](https://github.com/Open-Attestation/open-attestation) v6.9.5. TrustVC seamlessly integrates functionalities for handling W3C Verifiable Credentials and OpenAttestation Verifiable Documents, leveraging existing TradeTrust libraries and smart contracts for [Token Registry](https://github.com/TradeTrust/token-registry) (V4 and V5). Additionally, it includes essential utility functions for strings, networks, and chains, making it a versatile tool for developers working with decentralized identity and verifiable data solutions.
+TrustVC is a comprehensive wrapper library designed to simplify the signing and verification processes for TrustVC W3C [Verifiable Credentials (VC)](https://github.com/TrustVC/w3c) and OpenAttestation Verifiable Documents (VD), including OpenCert Verifiable Documents, adhering to the W3C [VC](https://www.w3.org/TR/vc-data-model/) Data Model v2.0 (W3C Standard). It ensures compatibility and interoperability for Verifiable Credentials while supporting OpenAttestation [Verifiable Documents (VD)](https://github.com/Open-Attestation/open-attestation) v6.9.5. TrustVC seamlessly integrates functionalities for handling W3C Verifiable Credentials and OpenAttestation Verifiable Documents, leveraging existing TradeTrust libraries and smart contracts for [Token Registry](https://github.com/TradeTrust/token-registry) (V4 and V5). For W3C credentials it supports both [`did:web`](https://w3c-ccg.github.io/did-method-web/) (**recommended for production**; host a DID document on a domain you control, which acts as the trust anchor) and [`did:key`](https://w3c-ccg.github.io/did-key-spec/) (self-certifying, no hosting required; best for ad-hoc or ephemeral issuers, but requires an out-of-band trust binding) issuers across the `ecdsa-sd-2023` and `bbs-2023` cryptosuites. Additionally, it includes essential utility functions for strings, networks, and chains, making it a versatile tool for developers working with decentralized identity and verifiable data solutions.
 
 ## Table of Contents
 
@@ -246,6 +246,48 @@ const signingResultWithBbs = await signW3C(
 );
 
 ```
+
+##### Signing with a `did:key` issuer (self-certifying, no hosting)
+
+The examples above use [`did:web`](https://w3c-ccg.github.io/did-method-web/), which requires hosting a DID document at `https://<domain>/.well-known/did.json`. For use cases where you don't want to host anything — ad-hoc credentials, ephemeral issuers, mobile wallets — use [`did:key`](https://w3c-ccg.github.io/did-key-spec/) instead: the public key is encoded directly into the DID identifier, so the verifier reconstructs the DID document deterministically with no network call.
+
+```ts
+import { generateDidKeyPair, CryptoSuite } from '@trustvc/w3c-issuer';
+import { signW3C } from '@trustvc/trustvc';
+
+// 1) Mint a fresh did:key DID + private key. Supported cryptosuites:
+//    - CryptoSuite.EcdsaSd2023 (P-256)
+//    - CryptoSuite.Bbs2023 (BLS12-381 G2)
+const { did, didKeyPairs } = await generateDidKeyPair(CryptoSuite.EcdsaSd2023);
+// did:           'did:key:zDna...'
+// didKeyPairs:   Multikey private key pair scoped to the new DID
+
+// 2) Sign a credential issued by the new did:key. No hosting required.
+const rawDocument = {
+  '@context': [
+    'https://www.w3.org/ns/credentials/v2',
+    'https://w3id.org/security/data-integrity/v2',
+  ],
+  type: ['VerifiableCredential'],
+  issuer: did,                       // ← string form, OR { id: did, name: 'My Org' }
+  validFrom: '2024-04-01T12:19:52Z',
+  credentialSubject: {
+    type: ['Person'],
+    givenName: 'TrustVC',
+  },
+};
+
+const signingResult = await signW3C(rawDocument, didKeyPairs, 'ecdsa-sd-2023', {
+  mandatoryPointers: ['/credentialSubject/givenName'],
+});
+// signingResult.signed.proof.verificationMethod === didKeyPairs.id
+//   (which is the canonical did:key form `did:key:<multibase>#<multibase>`)
+// signingResult.signed.issuer === did
+```
+
+> __Trust model caveat:__ `did:key` proves *the holder of this private key signed this credential*, not *who in the real world holds that key*. For regulated contexts (Bills of Lading, KYC, etc.), bind the `did:key` to a real-world entity out-of-band — via a trust registry, a chained credential issued by a known `did:web` authority, or a sidechannel exchange. The cryptographic identity check alone is not a substitute for issuer attestation. See the [`did:key` guide in `@trustvc/w3c-issuer`](https://github.com/TrustVC/w3c/tree/main/packages/w3c-issuer/src/did-key) for the full discussion.
+
+Verification of `did:key`-issued credentials works through the same `verifyDocument` call shown below — no extra configuration. The default document loader resolves `did:key` URIs entirely in memory.
 
 ---
 
