@@ -280,7 +280,8 @@ const rawDocument = {
 const signingResult = await signW3C(rawDocument, didKeyPairs, 'ecdsa-sd-2023', {
   mandatoryPointers: ['/credentialSubject/givenName'],
 });
-// signingResult.signed.proof.verificationMethod === `${did}#${publicKeyMultibase}`
+// signingResult.signed.proof.verificationMethod === didKeyPairs.id
+//   (which is the canonical did:key form `did:key:<multibase>#<multibase>`)
 // signingResult.signed.issuer === did
 ```
 
