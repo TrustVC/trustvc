@@ -1,6 +1,7 @@
 export const networks = [
   'local',
   'mainnet',
+  'pol',
   'matic',
   'maticmum',
   'amoy',
@@ -17,4 +18,4 @@ export type networkName = (typeof networks)[number];
 
 export type networkType = 'production' | 'test' | 'development';
 
-export type networkCurrency = 'ETH' | 'MATIC' | 'XDC' | 'FREE' | 'ASTRON';
+export type networkCurrency = 'ETH' | 'MATIC' | 'POL' | 'XDC' | 'FREE' | 'ASTRON';

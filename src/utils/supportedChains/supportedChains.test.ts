@@ -21,14 +21,29 @@ describe('supportedChains', () => {
     expect(explorerUrl).toBe('https://etherscan.io');
   });
 
-  it('should matic chain info correctly', () => {
+  it('should return pol chain info for CHAIN_ID.pol (Polygon PoS mainnet)', () => {
+    const { id, name, type, currency, explorerUrl } = SUPPORTED_CHAINS[CHAIN_ID.pol];
+
+    expect(id).toBe(CHAIN_ID.pol);
+    expect(name).toBe('pol');
+    expect(type).toBe('production');
+    expect(currency).toBe('POL');
+    expect(explorerUrl).toBe('https://polygonscan.com');
+  });
+
+  it('should return pol chain info when accessing via CHAIN_ID.matic (backward-compat alias for chain 137)', () => {
     const { id, name, type, currency, explorerUrl } = SUPPORTED_CHAINS[CHAIN_ID.matic];
 
-    expect(id).toBe(CHAIN_ID.matic);
-    expect(name).toBe('matic');
+    expect(id).toBe(CHAIN_ID.pol);
+    expect(name).toBe('pol');
     expect(type).toBe('production');
-    expect(currency).toBe('MATIC');
+    expect(currency).toBe('POL');
     expect(explorerUrl).toBe('https://polygonscan.com');
+  });
+
+  it('CHAIN_ID.pol and CHAIN_ID.matic should be the same chain ID value', () => {
+    expect(CHAIN_ID.pol).toBe(CHAIN_ID.matic);
+    expect(SUPPORTED_CHAINS[CHAIN_ID.pol]).toBe(SUPPORTED_CHAINS[CHAIN_ID.matic]);
   });
 
   it('should get polygon amoy chain info correctly', () => {

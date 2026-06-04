@@ -6,7 +6,9 @@ import { networkCurrency, networkName, networkType } from './../network';
 export enum CHAIN_ID {
   local = '1337',
   mainnet = '1',
-  matic = '137',
+  pol = '137',
+  // eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values
+  matic = '137', // backward-compat alias for chain 137 (Polygon PoS)
   amoy = '80002',
   sepolia = '11155111',
   xdc = '50',
@@ -58,19 +60,19 @@ export const SUPPORTED_CHAINS: supportedChains = {
     explorerUrl: 'https://etherscan.io',
     rpcUrl: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
   },
-  [CHAIN_ID.matic]: {
-    id: CHAIN_ID.matic,
-    label: 'Polygon',
-    name: 'matic',
+  [CHAIN_ID.pol]: {
+    id: CHAIN_ID.pol,
+    label: 'Polygon (POL)',
+    name: 'pol',
     type: 'production',
-    currency: 'MATIC',
+    currency: 'POL',
     iconImage: iconPolygon,
     explorerUrl: 'https://polygonscan.com',
     rpcUrl: `https://polygon-mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
     gasStation: gasStation('https://gasstation.polygon.technology/v2'),
     nativeCurrency: {
-      name: 'MATIC',
-      symbol: 'MATIC',
+      name: 'POL',
+      symbol: 'POL',
       decimals: 18,
     },
   },
