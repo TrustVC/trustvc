@@ -25,7 +25,7 @@ describe('supportedChains', () => {
     const { id, name, type, currency, explorerUrl } = SUPPORTED_CHAINS[CHAIN_ID.pol];
 
     expect(id).toBe(CHAIN_ID.pol);
-    expect(name).toBe('pol');
+    expect(name).toBe('matic'); // ethers.js network name — unchanged by the POL rebrand
     expect(type).toBe('production');
     expect(currency).toBe('POL');
     expect(explorerUrl).toBe('https://polygonscan.com');
@@ -35,7 +35,7 @@ describe('supportedChains', () => {
     const { id, name, type, currency, explorerUrl } = SUPPORTED_CHAINS[CHAIN_ID.matic];
 
     expect(id).toBe(CHAIN_ID.pol);
-    expect(name).toBe('pol');
+    expect(name).toBe('matic'); // ethers.js network name — unchanged by the POL rebrand
     expect(type).toBe('production');
     expect(currency).toBe('POL');
     expect(explorerUrl).toBe('https://polygonscan.com');

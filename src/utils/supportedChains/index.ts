@@ -63,7 +63,7 @@ export const SUPPORTED_CHAINS: supportedChains = {
   [CHAIN_ID.pol]: {
     id: CHAIN_ID.pol,
     label: 'Polygon (POL)',
-    name: 'pol',
+    name: 'matic',
     type: 'production',
     currency: 'POL',
     iconImage: iconPolygon,

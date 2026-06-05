@@ -1,7 +1,6 @@
 export const networks = [
   'local',
   'mainnet',
-  'pol',
   'matic',
   'maticmum',
   'amoy',
