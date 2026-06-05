@@ -3,7 +3,8 @@ import { verifyDocument } from '../../core/verify';
 import { W3C_TRANSFERABLE_RECORD_POL } from '../fixtures/fixtures';
 import { CHAIN_ID, SUPPORTED_CHAINS } from '../../utils/supportedChains';
 
-// Public Polygon mainnet RPC — no API key required for read-only calls.
+// Live-network tests are skipped in CI unless RUN_LIVE_TESTS=true is set explicitly.
+const RUN_LIVE_TESTS = !!process.env.RUN_LIVE_TESTS;
 const POL_RPC_URL = process.env.POL_RPC || 'https://polygon-rpc.com';
 
 describe('Polygon (POL) network support', () => {
@@ -57,7 +58,7 @@ describe('Polygon (POL) network support', () => {
       },
     );
 
-    it(
+    it.skipIf(!RUN_LIVE_TESTS)(
       'should reach Polygon mainnet (chain 137) for DOCUMENT_STATUS check',
       { timeout: 300000 },
       async () => {
