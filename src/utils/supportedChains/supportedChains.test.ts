@@ -52,7 +52,7 @@ describe('supportedChains', () => {
     expect(id).toBe(CHAIN_ID.amoy);
     expect(name).toBe('amoy');
     expect(type).toBe('test');
-    expect(currency).toBe('MATIC');
+    expect(currency).toBe('POL');
     expect(explorerUrl).toBe('https://www.oklink.com/amoy');
     expect(rpcUrl).toContain('https://polygon-amoy.infura.io/v3/');
   });
