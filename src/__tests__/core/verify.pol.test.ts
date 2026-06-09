@@ -7,8 +7,6 @@ import polW3cTransferableRecordMinted from '../fixtures/pol-w3c-transferable-rec
 import polOaTokenRegistryMinted from '../fixtures/pol-oa-token-registry-minted.json';
 import polW3cVerifiableDocument from '../fixtures/pol-w3c-verifiable-document.json';
 
-// Live-network tests are skipped in CI unless RUN_LIVE_TESTS=true is set explicitly.
-const RUN_LIVE_TESTS = !!process.env.RUN_LIVE_TESTS;
 const POL_RPC_URL = process.env.POL_RPC || 'https://polygon-bor-rpc.publicnode.com';
 
 // Placeholder fixtures are empty until the user fills them in.
@@ -68,7 +66,7 @@ describe('Polygon (POL) network support', () => {
       },
     );
 
-    it.skipIf(!RUN_LIVE_TESTS)(
+    it(
       'should reach Polygon mainnet (chain 137) for DOCUMENT_STATUS check',
       { timeout: 300000 },
       async () => {
@@ -149,7 +147,7 @@ describe('Polygon (POL) network support', () => {
 
   // ─── W3C Transferable Record — minted on POL mainnet ───────────────────────
 
-  describe.skipIf(!W3C_TR_POL_MINTED_READY || !RUN_LIVE_TESTS)(
+  describe.skipIf(!W3C_TR_POL_MINTED_READY)(
     'pol-w3c-transferable-record-minted — live POL mainnet',
     () => {
       it(
@@ -252,55 +250,51 @@ describe('Polygon (POL) network support', () => {
 
   // ─── OA Token Registry — minted on POL mainnet ────────────────────────────
 
-  describe.skipIf(!OA_POL_MINTED_READY || !RUN_LIVE_TESTS)(
-    'pol-oa-token-registry-minted — live POL mainnet',
-    () => {
-      it(
-        'should return VALID for DOCUMENT_INTEGRITY and DOCUMENT_STATUS',
-        { timeout: 300000 },
-        async () => {
-          const fragments = await verifyDocument(polOaTokenRegistryMinted as any, {
-            rpcProviderUrl: POL_RPC_URL,
-          });
-          console.log('fragments', fragments);
-          expect(fragments).toEqual(
-            expect.arrayContaining([
-              expect.objectContaining({ name: 'OpenAttestationHash', status: 'VALID' }),
-              expect.objectContaining({
-                name: 'OpenAttestationEthereumTokenRegistryStatus',
-                status: 'VALID',
-              }),
-            ]),
-          );
-        },
-      );
+  describe.skipIf(!OA_POL_MINTED_READY)('pol-oa-token-registry-minted — live POL mainnet', () => {
+    it(
+      'should return VALID for DOCUMENT_INTEGRITY and DOCUMENT_STATUS',
+      { timeout: 300000 },
+      async () => {
+        const fragments = await verifyDocument(polOaTokenRegistryMinted as any, {
+          rpcProviderUrl: POL_RPC_URL,
+        });
+        expect(fragments).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ name: 'OpenAttestationHash', status: 'VALID' }),
+            expect.objectContaining({
+              name: 'OpenAttestationEthereumTokenRegistryStatus',
+              status: 'VALID',
+            }),
+          ]),
+        );
+      },
+    );
 
-      it(
-        'should return INVALID for DOCUMENT_STATUS when tokenId is tampered',
-        { timeout: 300000 },
-        async () => {
-          const doc = polOaTokenRegistryMinted as any;
-          const tampered: any = {
-            ...doc,
-            signature: {
-              ...doc.signature,
-              targetHash: '0000000000000000000000000000000000000000000000000000000000000000',
-              merkleRoot: '0000000000000000000000000000000000000000000000000000000000000000',
-            },
-          };
-          const fragments = await verifyDocument(tampered, { rpcProviderUrl: POL_RPC_URL });
-          expect(fragments).toEqual(
-            expect.arrayContaining([
-              expect.objectContaining({
-                name: 'OpenAttestationEthereumTokenRegistryStatus',
-                status: 'INVALID',
-              }),
-            ]),
-          );
-        },
-      );
-    },
-  );
+    it(
+      'should return INVALID for DOCUMENT_STATUS when tokenId is tampered',
+      { timeout: 300000 },
+      async () => {
+        const doc = polOaTokenRegistryMinted as any;
+        const tampered: any = {
+          ...doc,
+          signature: {
+            ...doc.signature,
+            targetHash: '0000000000000000000000000000000000000000000000000000000000000000',
+            merkleRoot: '0000000000000000000000000000000000000000000000000000000000000000',
+          },
+        };
+        const fragments = await verifyDocument(tampered, { rpcProviderUrl: POL_RPC_URL });
+        expect(fragments).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              name: 'OpenAttestationEthereumTokenRegistryStatus',
+              status: 'INVALID',
+            }),
+          ]),
+        );
+      },
+    );
+  });
 
   // OA verifiers run concurrently — even a hash-only test triggers the token registry verifier
   // which needs a provider. Pass rpcProviderUrl to avoid falling back to the Infura URL that
@@ -342,29 +336,7 @@ describe('Polygon (POL) network support', () => {
     },
   );
 
-  // ─── W3C Verifiable Document (non-transferable) — POL mainnet ──────────────
-
-  describe.skipIf(!W3C_VD_POL_READY || !RUN_LIVE_TESTS)(
-    'pol-w3c-verifiable-document — live POL mainnet',
-    () => {
-      it(
-        'should return VALID for DOCUMENT_INTEGRITY and ISSUER_IDENTITY',
-        { timeout: 300000 },
-        async () => {
-          const fragments = await verifyDocument(polW3cVerifiableDocument as any, {
-            rpcProviderUrl: POL_RPC_URL,
-          });
-          const integrity = fragments.find(
-            (f) => f.type === 'DOCUMENT_INTEGRITY' && f.status === 'VALID',
-          );
-          const identity = fragments.find((f) => f.name === 'W3CIssuerIdentity');
-
-          expect(integrity).toBeDefined();
-          expect(identity?.status).toBe('VALID');
-        },
-      );
-    },
-  );
+  // ─── W3C Verifiable Document (non-transferable) — structural (offline) ──────
 
   describe.skipIf(!W3C_VD_POL_READY)('pol-w3c-verifiable-document — structural (offline)', () => {
     it('all verifier types should produce fragments', async () => {

@@ -5,9 +5,10 @@ import { CHAIN_ID, SUPPORTED_CHAINS } from '../../utils/supportedChains';
 import amoyOaTokenRegistryMinted from '../fixtures/amoy-oa-token-registry-minted.json';
 import amoyW3cTransferableRecordMinted from '../fixtures/amoy-w3c-transferable-record-minted.json';
 
-// Live-network tests are skipped in CI unless RUN_LIVE_TESTS=true is set explicitly.
-const RUN_LIVE_TESTS = !!process.env.RUN_LIVE_TESTS;
 const AMOY_RPC_URL = process.env.AMOY_RPC || 'https://rpc-amoy.polygon.technology/';
+
+const OA_AMOY_MINTED_READY = Object.keys(amoyOaTokenRegistryMinted).length > 0;
+const W3C_AMOY_TR_MINTED_READY = Object.keys(amoyW3cTransferableRecordMinted).length > 0;
 
 describe('Polygon Amoy (testnet) network support', () => {
   // ─── Chain constants ────────────────────────────────────────────────────────
@@ -28,53 +29,59 @@ describe('Polygon Amoy (testnet) network support', () => {
 
   // ─── OA Token Registry — minted on Amoy testnet ───────────────────────────
 
-  describe.skipIf(!RUN_LIVE_TESTS)('amoy-oa-token-registry-minted — live Amoy testnet', () => {
-    it(
-      'should return VALID for DOCUMENT_INTEGRITY and DOCUMENT_STATUS',
-      { timeout: 300000 },
-      async () => {
-        const fragments = await verifyDocument(amoyOaTokenRegistryMinted as any, {
-          rpcProviderUrl: AMOY_RPC_URL,
-        });
-        expect(fragments).toEqual(
-          expect.arrayContaining([
-            expect.objectContaining({ name: 'OpenAttestationHash', status: 'VALID' }),
-            expect.objectContaining({
-              name: 'OpenAttestationEthereumTokenRegistryStatus',
-              status: 'VALID',
-            }),
-          ]),
-        );
-      },
-    );
+  describe.skipIf(!OA_AMOY_MINTED_READY)(
+    'amoy-oa-token-registry-minted — live Amoy testnet',
+    () => {
+      it(
+        'should return VALID for DOCUMENT_INTEGRITY and DOCUMENT_STATUS',
+        { timeout: 300000 },
+        async () => {
+          const fragments = await verifyDocument(amoyOaTokenRegistryMinted as any, {
+            rpcProviderUrl: AMOY_RPC_URL,
+          });
+          expect(fragments).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({ name: 'OpenAttestationHash', status: 'VALID' }),
+              expect.objectContaining({
+                name: 'OpenAttestationEthereumTokenRegistryStatus',
+                status: 'VALID',
+              }),
+            ]),
+          );
+        },
+      );
 
-    it(
-      'should return INVALID for DOCUMENT_STATUS when tokenId is tampered',
-      { timeout: 300000 },
-      async () => {
-        const doc = amoyOaTokenRegistryMinted as any;
-        const tampered: any = {
-          ...doc,
-          signature: {
-            ...doc.signature,
-            targetHash: '0000000000000000000000000000000000000000000000000000000000000000',
-            merkleRoot: '0000000000000000000000000000000000000000000000000000000000000000',
-          },
-        };
-        const fragments = await verifyDocument(tampered, { rpcProviderUrl: AMOY_RPC_URL });
-        expect(fragments).toEqual(
-          expect.arrayContaining([
-            expect.objectContaining({
-              name: 'OpenAttestationEthereumTokenRegistryStatus',
-              status: 'INVALID',
-            }),
-          ]),
-        );
-      },
-    );
-  });
+      it(
+        'should return INVALID for DOCUMENT_STATUS when tokenId is tampered',
+        { timeout: 300000 },
+        async () => {
+          const doc = amoyOaTokenRegistryMinted as any;
+          const tampered: any = {
+            ...doc,
+            signature: {
+              ...doc.signature,
+              targetHash: '0000000000000000000000000000000000000000000000000000000000000000',
+              merkleRoot: '0000000000000000000000000000000000000000000000000000000000000000',
+            },
+          };
+          const fragments = await verifyDocument(tampered, { rpcProviderUrl: AMOY_RPC_URL });
+          expect(fragments).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                name: 'OpenAttestationEthereumTokenRegistryStatus',
+                status: 'INVALID',
+              }),
+            ]),
+          );
+        },
+      );
+    },
+  );
 
-  describe.skipIf(!RUN_LIVE_TESTS)(
+  // OA verifiers run concurrently — even a hash-only test triggers the token registry verifier
+  // which needs a provider. Pass rpcProviderUrl to avoid falling back to the Infura URL that
+  // has no API key set in the test environment.
+  describe.skipIf(!OA_AMOY_MINTED_READY)(
     'amoy-oa-token-registry-minted — structural (hash + verifier selection)',
     () => {
       it('should return VALID for OpenAttestationHash (pure hash check)', async () => {
@@ -119,9 +126,8 @@ describe('Polygon Amoy (testnet) network support', () => {
   );
 
   // ─── W3C Transferable Record — minted on Amoy testnet ─────────────────────
-  // Fill in amoy-w3c-transferable-record-minted.json to enable these tests.
 
-  describe.skipIf(!RUN_LIVE_TESTS)(
+  describe.skipIf(!W3C_AMOY_TR_MINTED_READY)(
     'amoy-w3c-transferable-record-minted — live Amoy testnet',
     () => {
       it(
@@ -169,7 +175,7 @@ describe('Polygon Amoy (testnet) network support', () => {
     },
   );
 
-  describe.skipIf(!RUN_LIVE_TESTS)(
+  describe.skipIf(!W3C_AMOY_TR_MINTED_READY)(
     'amoy-w3c-transferable-record-minted — structural (offline)',
     () => {
       it('should have chain POL and chainId 80002', () => {
