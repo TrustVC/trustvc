@@ -373,12 +373,16 @@ describe('Polygon (POL) network support', () => {
       expect(names).toContain('W3CIssuerIdentity');
     });
 
-    it('DOCUMENT_STATUS should be SKIPPED when no credentialStatus', async () => {
-      const doc = polW3cVerifiableDocument as any;
-      if (doc.credentialStatus) return; // skip if it does have credentialStatus
+    it('W3CCredentialStatus should be SKIPPED and W3CEmptyCredentialStatus VALID when no credentialStatus', async () => {
+      const doc: any = { ...polW3cVerifiableDocument };
+      delete doc.credentialStatus;
       const fragments = await verifyDocument(doc);
       const statusFragments = fragments.filter((f) => f.type === 'DOCUMENT_STATUS');
-      expect(statusFragments.every((f) => f.status === 'SKIPPED')).toBe(true);
+      const credentialStatusFrag = statusFragments.find((f) => f.name === 'W3CCredentialStatus');
+      const emptyStatusFrag = statusFragments.find((f) => f.name === 'W3CEmptyCredentialStatus');
+      expect(credentialStatusFrag?.status).toBe('SKIPPED');
+      expect(emptyStatusFrag?.status).toBe('VALID');
+      expect(statusFragments.every((f) => f.status !== 'INVALID')).toBe(true);
     });
 
     it('should return INVALID for DOCUMENT_INTEGRITY when proof is tampered', async () => {

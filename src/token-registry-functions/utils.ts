@@ -75,14 +75,6 @@ export const isSupportedTitleEscrowFactory = async (
   factoryAddress: string,
   provider: providers.Provider | ProviderV6,
 ): Promise<boolean> => {
-  const bytecode = await provider.getCode(factoryAddress);
-  if (!bytecode || bytecode === '0x') {
-    throw new Error(
-      `Title Escrow Factory ${factoryAddress} is not a contract (no bytecode). ` +
-        'Use the network default TitleEscrowFactory address, or leave the factory field empty in the CLI.',
-    );
-  }
-
   const Contract = getEthersContractFromProvider(provider);
   const titleEscrowFactoryContract = new Contract(
     factoryAddress,
@@ -90,16 +82,7 @@ export const isSupportedTitleEscrowFactory = async (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     provider as any,
   ) as unknown as v5Contracts.TitleEscrowFactory;
-
-  let implAddr: string;
-  try {
-    implAddr = await titleEscrowFactoryContract.implementation();
-  } catch {
-    throw new Error(
-      `Title Escrow Factory ${factoryAddress} does not expose implementation(). ` +
-        'Ensure this is a v5 TitleEscrowFactory contract, or leave the factory field empty to use the network default.',
-    );
-  }
+  const implAddr = await titleEscrowFactoryContract.implementation();
 
   const implContract = new Contract(
     implAddr,

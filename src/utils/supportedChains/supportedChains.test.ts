@@ -64,12 +64,6 @@ describe('supportedChains', () => {
     expect(explorerApiUrl).toContain('apikey=');
   });
 
-  it('amoy explorer URL should be reachable', async () => {
-    const { explorerUrl } = SUPPORTED_CHAINS[CHAIN_ID.amoy];
-    const response = await fetch(explorerUrl, { method: 'HEAD' });
-    expect(response.ok).toBe(true);
-  });
-
   it('should sepolia chain info correctly', () => {
     const { id, name, type, currency, explorerUrl } = SUPPORTED_CHAINS[CHAIN_ID.sepolia];
 

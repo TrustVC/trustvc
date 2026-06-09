@@ -41,7 +41,6 @@
     "type": [
       "VerifiableCredential"
     ],
-    // credentialStatus removed - this is a non-transferable fixture
     "issuer": "did:web:trustvc.github.io:did:1",
     "validFrom": "2024-04-01T12:19:52Z",
     "id": "urn:uuid:019ea68d-006c-7887-9ea8-3f54f562ac65",
