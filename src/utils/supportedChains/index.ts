@@ -83,8 +83,8 @@ export const SUPPORTED_CHAINS: supportedChains = {
     type: 'test',
     currency: 'POL',
     iconImage: iconPolygon,
-    explorerUrl: 'https://www.oklink.com/amoy',
-    explorerApiUrl: `https://www.oklink.com/${process.env.OKLINK_API_KEY}`,
+    explorerUrl: 'https://amoy.polygonscan.com',
+    explorerApiUrl: `https://api-amoy.polygonscan.com/api?apikey=${process.env.POLYGONSCAN_API_KEY}`,
     rpcUrl: `https://polygon-amoy.infura.io/v3/${process.env.INFURA_API_KEY}`,
     gasStation: gasStation('https://gasstation.polygon.technology/amoy'),
     nativeCurrency: {

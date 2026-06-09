@@ -53,8 +53,21 @@ describe('supportedChains', () => {
     expect(name).toBe('amoy');
     expect(type).toBe('test');
     expect(currency).toBe('POL');
-    expect(explorerUrl).toBe('https://www.oklink.com/amoy');
+    expect(explorerUrl).toBe('https://amoy.polygonscan.com');
     expect(rpcUrl).toContain('https://polygon-amoy.infura.io/v3/');
+  });
+
+  it('should use PolygonScan as the explorer API for amoy', () => {
+    const { explorerApiUrl } = SUPPORTED_CHAINS[CHAIN_ID.amoy];
+
+    expect(explorerApiUrl).toContain('https://api-amoy.polygonscan.com/api');
+    expect(explorerApiUrl).toContain('apikey=');
+  });
+
+  it('amoy explorer URL should be reachable', async () => {
+    const { explorerUrl } = SUPPORTED_CHAINS[CHAIN_ID.amoy];
+    const response = await fetch(explorerUrl, { method: 'HEAD' });
+    expect(response.ok).toBe(true);
   });
 
   it('should sepolia chain info correctly', () => {
