@@ -48,7 +48,7 @@ vi.mock('../../utils/ethers', async (importOriginal) => {
     ...original, // Keep all original exports
     getEthersContractFromProvider: vi.fn(() => MockContractConstructor),
     getEthersContractFactoryFromProvider: vi.fn(() => vi.fn()),
-    isV6EthersProvider: vi.fn(() => true),
+    isV6EthersProvider: vi.fn().mockImplementation(original.isV6EthersProvider),
   };
 });
 
