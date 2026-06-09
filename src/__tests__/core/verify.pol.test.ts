@@ -6,16 +6,16 @@ import { CHAIN_ID, SUPPORTED_CHAINS } from '../../utils/supportedChains';
 import polW3cTransferableRecordMinted from '../fixtures/pol-w3c-transferable-record-minted.json';
 import polOaTokenRegistryMinted from '../fixtures/pol-oa-token-registry-minted.json';
 import polW3cVerifiableDocument from '../fixtures/pol-w3c-verifiable-document.json';
+import {
+  expectTransferableRecordError,
+  isMintedFixtureReady,
+  oaTokenRegistryMintedTests,
+  w3cTransferableRecordMintedTests,
+} from './verify.polygon-network.helpers';
 
 const POL_RPC_URL = process.env.POL_RPC || 'https://polygon-bor-rpc.publicnode.com';
 
-const W3C_TR_POL_MINTED_READY = Object.keys(polW3cTransferableRecordMinted).length > 0;
-const OA_POL_MINTED_READY = Object.keys(polOaTokenRegistryMinted).length > 0;
-const W3C_VD_POL_READY = Object.keys(polW3cVerifiableDocument).length > 0;
-
 describe('Polygon (POL) network support', () => {
-  // ─── Chain constants ────────────────────────────────────────────────────────
-
   describe('CHAIN_ID and SUPPORTED_CHAINS', () => {
     it('CHAIN_ID.pol should equal chain ID 137', () => {
       expect(CHAIN_ID.pol).toBe('137');
@@ -33,8 +33,6 @@ describe('Polygon (POL) network support', () => {
       expect(SUPPORTED_CHAINS[CHAIN_ID.pol]).toBe(SUPPORTED_CHAINS[CHAIN_ID.matic]);
     });
   });
-
-  // ─── Unminted fixture (structural + offline) ────────────────────────────────
 
   describe('W3C_TRANSFERABLE_RECORD_POL fixture structure', () => {
     it('should have chain POL and chainId 137 in credentialStatus', () => {
@@ -78,41 +76,27 @@ describe('Polygon (POL) network support', () => {
       },
     );
 
-    it('should return ERROR when tokenRegistry is missing', async () => {
-      const tampered: any = {
-        ...W3C_TRANSFERABLE_RECORD_POL,
-        credentialStatus: { ...W3C_TRANSFERABLE_RECORD_POL.credentialStatus, tokenRegistry: '' },
-      };
-      const fragments = await verifyDocument(tampered);
-      expect(fragments).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            name: 'TransferableRecords',
-            status: 'ERROR',
-            reason: expect.objectContaining({ codeString: 'UNRECOGNIZED_DOCUMENT' }),
-          }),
-        ]),
-      );
-    });
-
-    it('should return ERROR when tokenNetwork.chainId is missing', async () => {
-      const tampered: any = {
-        ...W3C_TRANSFERABLE_RECORD_POL,
+    it.each([
+      {
+        label: 'tokenRegistry is missing',
+        credentialStatus: {
+          ...W3C_TRANSFERABLE_RECORD_POL.credentialStatus,
+          tokenRegistry: '',
+        },
+      },
+      {
+        label: 'tokenNetwork.chainId is missing',
         credentialStatus: {
           ...W3C_TRANSFERABLE_RECORD_POL.credentialStatus,
           tokenNetwork: { chain: 'POL', chainId: '' },
         },
+      },
+    ])('should return ERROR when $label', async ({ credentialStatus }) => {
+      const tampered: any = {
+        ...W3C_TRANSFERABLE_RECORD_POL,
+        credentialStatus,
       };
-      const fragments = await verifyDocument(tampered);
-      expect(fragments).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            name: 'TransferableRecords',
-            status: 'ERROR',
-            reason: expect.objectContaining({ codeString: 'UNRECOGNIZED_DOCUMENT' }),
-          }),
-        ]),
-      );
+      expectTransferableRecordError(await verifyDocument(tampered));
     });
 
     it('should return INVALID for DOCUMENT_INTEGRITY when proof is tampered', async () => {
@@ -129,147 +113,59 @@ describe('Polygon (POL) network support', () => {
     });
   });
 
-  // ─── W3C Transferable Record — minted on POL mainnet ───────────────────────
-
-  describe.skipIf(!W3C_TR_POL_MINTED_READY)('pol-w3c-transferable-record-minted', () => {
-    it('should have chain POL and chainId 137', () => {
-      const doc = polW3cTransferableRecordMinted as any;
-      expect(doc.credentialStatus.tokenNetwork.chain).toBe('POL');
-      expect(doc.credentialStatus.tokenNetwork.chainId).toBe(137);
-    });
-
-    it('should return SKIPPED for W3CCredentialStatus (not a status-list credential)', async () => {
-      const fragments = await verifyDocument(polW3cTransferableRecordMinted as any);
-      expect(fragments).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ name: 'W3CCredentialStatus', status: 'SKIPPED' }),
-        ]),
-      );
-    });
-
-    it(
-      'should return VALID for all fragments (signature + minted token + issuer)',
-      { timeout: 300000 },
-      async () => {
-        const fragments = await verifyDocument(polW3cTransferableRecordMinted as any, {
-          rpcProviderUrl: POL_RPC_URL,
-        });
-        const integrity = fragments.find(
-          (f) => f.type === 'DOCUMENT_INTEGRITY' && f.status === 'VALID',
-        );
-        const status = fragments.find((f) => f.name === 'TransferableRecords');
-        const identity = fragments.find((f) => f.name === 'W3CIssuerIdentity');
-        expect(integrity).toBeDefined();
-        expect(status?.status).toBe('VALID');
-        expect(identity?.status).toBe('VALID');
-      },
-    );
-
-    it(
-      'should return INVALID for TransferableRecords when tokenId is tampered',
-      { timeout: 300000 },
-      async () => {
-        const tampered: any = {
-          ...polW3cTransferableRecordMinted,
-          credentialStatus: {
-            ...(polW3cTransferableRecordMinted as any).credentialStatus,
-            tokenId: '0000000000000000000000000000000000000000000000000000000000000000',
-          },
-        };
-        const fragments = await verifyDocument(tampered, { rpcProviderUrl: POL_RPC_URL });
-        expect(fragments).toEqual(
-          expect.arrayContaining([
-            expect.objectContaining({ name: 'TransferableRecords', status: 'INVALID' }),
-          ]),
-        );
-      },
-    );
-  });
-
-  // ─── OA Token Registry — minted on POL mainnet ────────────────────────────
-
-  describe.skipIf(!OA_POL_MINTED_READY)('pol-oa-token-registry-minted', () => {
-    it('should return VALID for OpenAttestationHash (pure hash check)', async () => {
-      const fragments = await verifyDocument(polOaTokenRegistryMinted as any, {
-        rpcProviderUrl: POL_RPC_URL,
+  describe.skipIf(!isMintedFixtureReady(polW3cTransferableRecordMinted))(
+    'pol-w3c-transferable-record-minted',
+    () => {
+      w3cTransferableRecordMintedTests({
+        fixture: polW3cTransferableRecordMinted,
+        rpcUrl: POL_RPC_URL,
+        chainId: 137,
       });
-      expect(fragments).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ name: 'OpenAttestationHash', status: 'VALID' }),
-        ]),
-      );
-    });
+    },
+  );
 
-    it('should return INVALID for OpenAttestationHash when document data is tampered', async () => {
-      const doc = polOaTokenRegistryMinted as any;
-      const tampered: any = { ...doc, data: { ...doc.data, TAMPERED: true } };
-      const fragments = await verifyDocument(tampered, { rpcProviderUrl: POL_RPC_URL });
-      expect(fragments).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ name: 'OpenAttestationHash', status: 'INVALID' }),
-        ]),
-      );
-    });
-
-    it('OpenAttestationEthereumTokenRegistryStatus verifier should be selected (not skipped)', async () => {
-      const fragments = await verifyDocument(polOaTokenRegistryMinted as any, {
-        rpcProviderUrl: POL_RPC_URL,
+  describe.skipIf(!isMintedFixtureReady(polOaTokenRegistryMinted))(
+    'pol-oa-token-registry-minted',
+    () => {
+      oaTokenRegistryMintedTests({
+        fixture: polOaTokenRegistryMinted,
+        rpcUrl: POL_RPC_URL,
       });
-      const statusFragment = fragments.find(
-        (f) => f.name === 'OpenAttestationEthereumTokenRegistryStatus',
-      );
-      expect(statusFragment?.status).not.toBe('SKIPPED');
-    });
+    },
+  );
 
-    it(
-      'should return VALID for DOCUMENT_INTEGRITY and DOCUMENT_STATUS',
-      { timeout: 300000 },
-      async () => {
-        const fragments = await verifyDocument(polOaTokenRegistryMinted as any, {
-          rpcProviderUrl: POL_RPC_URL,
-        });
-        expect(fragments).toEqual(
-          expect.arrayContaining([
-            expect.objectContaining({ name: 'OpenAttestationHash', status: 'VALID' }),
-            expect.objectContaining({
-              name: 'OpenAttestationEthereumTokenRegistryStatus',
-              status: 'VALID',
-            }),
-          ]),
+  describe.skipIf(!isMintedFixtureReady(polW3cVerifiableDocument))(
+    'pol-w3c-verifiable-document — structural (offline)',
+    () => {
+      it('all verifier types should produce fragments', async () => {
+        const fragments = await verifyDocument(polW3cVerifiableDocument as any);
+        expect(fragments.map((f) => f.name)).toContain('W3CIssuerIdentity');
+      });
+
+      it('W3CCredentialStatus should be SKIPPED and W3CEmptyCredentialStatus VALID when no credentialStatus', async () => {
+        const doc: any = { ...polW3cVerifiableDocument };
+        delete doc.credentialStatus;
+        const fragments = await verifyDocument(doc);
+        const statusFragments = fragments.filter((f) => f.type === 'DOCUMENT_STATUS');
+        expect(statusFragments.find((f) => f.name === 'W3CCredentialStatus')?.status).toBe(
+          'SKIPPED',
         );
-      },
-    );
-  });
+        expect(statusFragments.find((f) => f.name === 'W3CEmptyCredentialStatus')?.status).toBe(
+          'VALID',
+        );
+        expect(statusFragments.every((f) => f.status !== 'INVALID')).toBe(true);
+      });
 
-  // ─── W3C Verifiable Document (non-transferable) ────────────────────────────
-
-  describe.skipIf(!W3C_VD_POL_READY)('pol-w3c-verifiable-document — structural (offline)', () => {
-    it('all verifier types should produce fragments', async () => {
-      const fragments = await verifyDocument(polW3cVerifiableDocument as any);
-      expect(fragments.map((f) => f.name)).toContain('W3CIssuerIdentity');
-    });
-
-    it('W3CCredentialStatus should be SKIPPED and W3CEmptyCredentialStatus VALID when no credentialStatus', async () => {
-      const doc: any = { ...polW3cVerifiableDocument };
-      delete doc.credentialStatus;
-      const fragments = await verifyDocument(doc);
-      const statusFragments = fragments.filter((f) => f.type === 'DOCUMENT_STATUS');
-      expect(statusFragments.find((f) => f.name === 'W3CCredentialStatus')?.status).toBe('SKIPPED');
-      expect(statusFragments.find((f) => f.name === 'W3CEmptyCredentialStatus')?.status).toBe(
-        'VALID',
-      );
-      expect(statusFragments.every((f) => f.status !== 'INVALID')).toBe(true);
-    });
-
-    it('should return INVALID for DOCUMENT_INTEGRITY when proof is tampered', async () => {
-      const doc = polW3cVerifiableDocument as any;
-      if (!doc.proof) return;
-      const tampered: any = { ...doc, proof: { ...doc.proof, proofValue: 'uINVALID' } };
-      const fragments = await verifyDocument(tampered);
-      const integrityFragment = fragments.find(
-        (f) => f.type === 'DOCUMENT_INTEGRITY' && f.status !== 'SKIPPED',
-      );
-      expect(integrityFragment?.status).toBe('INVALID');
-    });
-  });
+      it('should return INVALID for DOCUMENT_INTEGRITY when proof is tampered', async () => {
+        const doc = polW3cVerifiableDocument as any;
+        if (!doc.proof) return;
+        const tampered: any = { ...doc, proof: { ...doc.proof, proofValue: 'uINVALID' } };
+        const fragments = await verifyDocument(tampered);
+        const integrityFragment = fragments.find(
+          (f) => f.type === 'DOCUMENT_INTEGRITY' && f.status !== 'SKIPPED',
+        );
+        expect(integrityFragment?.status).toBe('INVALID');
+      });
+    },
+  );
 });
