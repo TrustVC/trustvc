@@ -60,8 +60,9 @@ describe('supportedChains', () => {
   it('should use PolygonScan as the explorer API for amoy', () => {
     const { explorerApiUrl } = SUPPORTED_CHAINS[CHAIN_ID.amoy];
 
-    expect(explorerApiUrl).toContain('https://api-amoy.polygonscan.com/api');
+    expect(explorerApiUrl).toContain('https://api.etherscan.io/v2/api');
     expect(explorerApiUrl).toContain('apikey=');
+    expect(explorerApiUrl).toContain('chainid=80002');
   });
 
   it('should sepolia chain info correctly', () => {
