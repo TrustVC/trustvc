@@ -1,3 +1,10 @@
+## [2.14.1](https://github.com/TrustVC/trustvc/compare/v2.14.0...v2.14.1) (2026-06-10)
+
+
+### Bug Fixes
+
+* replace deprecated Polygon explorer API with Etherscan v2 ([#150](https://github.com/TrustVC/trustvc/issues/150)) ([69d37a9](https://github.com/TrustVC/trustvc/commit/69d37a9eb22820783c133caaf068336982404f21))
+
 ## [2.14.0](https://github.com/TrustVC/trustvc/compare/v2.13.0...v2.14.0) (2026-06-10)
 
 
