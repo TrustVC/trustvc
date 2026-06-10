@@ -57,11 +57,12 @@ describe('supportedChains', () => {
     expect(rpcUrl).toContain('https://polygon-amoy.infura.io/v3/');
   });
 
-  it('should use PolygonScan as the explorer API for amoy', () => {
+  it('should use Etherscan v2 as the explorer API for amoy', () => {
     const { explorerApiUrl } = SUPPORTED_CHAINS[CHAIN_ID.amoy];
 
-    expect(explorerApiUrl).toContain('https://api-amoy.polygonscan.com/api');
+    expect(explorerApiUrl).toContain('https://api.etherscan.io/v2/api');
     expect(explorerApiUrl).toContain('apikey=');
+    expect(explorerApiUrl).toContain('chainid=80002');
   });
 
   it('should sepolia chain info correctly', () => {

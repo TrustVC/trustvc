@@ -84,7 +84,7 @@ export const SUPPORTED_CHAINS: supportedChains = {
     currency: 'POL',
     iconImage: iconPolygon,
     explorerUrl: 'https://amoy.polygonscan.com',
-    explorerApiUrl: `https://api-amoy.polygonscan.com/api?apikey=${process.env.POLYGONSCAN_API_KEY}`,
+    explorerApiUrl: `https://api.etherscan.io/v2/api?apikey=${process.env.POLYGONSCAN_API_KEY}&chainid=80002`,
     rpcUrl: `https://polygon-amoy.infura.io/v3/${process.env.INFURA_API_KEY}`,
     gasStation: gasStation('https://gasstation.polygon.technology/amoy'),
     nativeCurrency: {
