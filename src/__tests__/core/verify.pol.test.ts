@@ -45,8 +45,8 @@ describe('Polygon (POL) network support', () => {
       expect(W3C_TRANSFERABLE_RECORD_POL.proof.cryptosuite).toBe('ecdsa-sd-2023');
     });
 
-    it('issuer should be did:web:didhost.vercel.app', () => {
-      expect(W3C_TRANSFERABLE_RECORD_POL.issuer).toBe('did:web:didhost.vercel.app');
+    it('issuer should be did:web:trustvc.github.io:did:1', () => {
+      expect(W3C_TRANSFERABLE_RECORD_POL.issuer).toBe('did:web:trustvc.github.io:did:1');
     });
   });
 
