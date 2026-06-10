@@ -22,7 +22,17 @@ const getTxOptions = async (
       maxPriorityFeePerGas = gasFees?.maxPriorityFeePerGas ?? 0;
     }
   }
-  return maxFeePerGas && maxPriorityFeePerGas ? { maxFeePerGas, maxPriorityFeePerGas } : {};
+  if (!maxFeePerGas || !maxPriorityFeePerGas) {
+    return {};
+  }
+  // Gas station returns ethers v5 BigNumber; ethers v6 requires bigint/BigNumberish
+  if (isV6EthersProvider(signer.provider)) {
+    return {
+      maxFeePerGas: BigInt(maxFeePerGas.toString()),
+      maxPriorityFeePerGas: BigInt(maxPriorityFeePerGas.toString()),
+    };
+  }
+  return { maxFeePerGas, maxPriorityFeePerGas };
 };
 
 // 🔍 Handles both Ethers v5 and v6 signer types

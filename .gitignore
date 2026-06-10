@@ -40,3 +40,6 @@ testem.log
 .DS_Store
 Thumbs.db
 .env
+#local yalc configuration for help build and test local environment
+.yalc/
+yalc.lock

@@ -21,14 +21,29 @@ describe('supportedChains', () => {
     expect(explorerUrl).toBe('https://etherscan.io');
   });
 
-  it('should matic chain info correctly', () => {
+  it('should return pol chain info for CHAIN_ID.pol (Polygon PoS mainnet)', () => {
+    const { id, name, type, currency, explorerUrl } = SUPPORTED_CHAINS[CHAIN_ID.pol];
+
+    expect(id).toBe(CHAIN_ID.pol);
+    expect(name).toBe('matic'); // ethers.js network name — unchanged by the POL rebrand
+    expect(type).toBe('production');
+    expect(currency).toBe('POL');
+    expect(explorerUrl).toBe('https://polygonscan.com');
+  });
+
+  it('should return pol chain info when accessing via CHAIN_ID.matic (backward-compat alias for chain 137)', () => {
     const { id, name, type, currency, explorerUrl } = SUPPORTED_CHAINS[CHAIN_ID.matic];
 
-    expect(id).toBe(CHAIN_ID.matic);
-    expect(name).toBe('matic');
+    expect(id).toBe(CHAIN_ID.pol);
+    expect(name).toBe('matic'); // ethers.js network name — unchanged by the POL rebrand
     expect(type).toBe('production');
-    expect(currency).toBe('MATIC');
+    expect(currency).toBe('POL');
     expect(explorerUrl).toBe('https://polygonscan.com');
+  });
+
+  it('CHAIN_ID.pol and CHAIN_ID.matic should be the same chain ID value', () => {
+    expect(CHAIN_ID.pol).toBe(CHAIN_ID.matic);
+    expect(SUPPORTED_CHAINS[CHAIN_ID.pol]).toBe(SUPPORTED_CHAINS[CHAIN_ID.matic]);
   });
 
   it('should get polygon amoy chain info correctly', () => {
@@ -37,9 +52,16 @@ describe('supportedChains', () => {
     expect(id).toBe(CHAIN_ID.amoy);
     expect(name).toBe('amoy');
     expect(type).toBe('test');
-    expect(currency).toBe('MATIC');
-    expect(explorerUrl).toBe('https://www.oklink.com/amoy');
+    expect(currency).toBe('POL');
+    expect(explorerUrl).toBe('https://amoy.polygonscan.com');
     expect(rpcUrl).toContain('https://polygon-amoy.infura.io/v3/');
+  });
+
+  it('should use PolygonScan as the explorer API for amoy', () => {
+    const { explorerApiUrl } = SUPPORTED_CHAINS[CHAIN_ID.amoy];
+
+    expect(explorerApiUrl).toContain('https://api-amoy.polygonscan.com/api');
+    expect(explorerApiUrl).toContain('apikey=');
   });
 
   it('should sepolia chain info correctly', () => {

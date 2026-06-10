@@ -1352,6 +1352,48 @@ export const W3C_TRANSFERABLE_RECORD = freezeObject({
   },
 } as SignedVerifiableCredential);
 
+// W3C Transferable Record fixture for Polygon mainnet (POL, chain ID 137).
+// Signed with did:web:didhost.vercel.app using ecdsa-sd-2023.
+// DOCUMENT_INTEGRITY passes offline (signature is valid).
+// DOCUMENT_STATUS requires the token to be minted on Polygon mainnet at the tokenRegistry address.
+export const W3C_TRANSFERABLE_RECORD_POL = freezeObject({
+  '@context': [
+    'https://www.w3.org/2018/credentials/v1',
+    'https://w3c-ccg.github.io/citizenship-vocab/contexts/citizenship-v1.jsonld',
+    'https://w3id.org/security/bbs/v1',
+    'https://trustvc.io/context/transferable-records-context.json',
+    'https://w3id.org/security/data-integrity/v2',
+  ],
+  type: ['VerifiableCredential'],
+  issuer: 'did:web:didhost.vercel.app',
+  issuanceDate: '2024-04-01T12:19:52Z',
+  expirationDate: '2029-12-03T12:19:52Z',
+  credentialStatus: {
+    type: 'TransferableRecords',
+    tokenNetwork: {
+      chain: 'POL',
+      chainId: 137,
+    },
+    tokenRegistry: '0xF94f95014304dC45B097439765A4D321bbE165c7',
+    tokenId: '522da91d80e973d3480107f394b33c48244c5ef1d455fe4a516efefbc37d0310',
+  },
+  credentialSubject: {
+    name: 'TrustVC',
+    birthDate: '2024-04-01T12:19:52Z',
+    type: ['PermanentResident', 'Person'],
+  },
+  id: 'urn:uuid:019e95f1-315b-7dda-bbfd-06283a6c54b1',
+  proof: {
+    type: 'DataIntegrityProof',
+    created: '2026-06-05T04:01:12Z',
+    verificationMethod: 'did:web:didhost.vercel.app#keys-1',
+    cryptosuite: 'ecdsa-sd-2023',
+    proofPurpose: 'assertionMethod',
+    proofValue:
+      'u2V0AhVhAcuRTpIgZ2E_2UOYXIljOZAaR9vgzyVMUFfYruJdE1sOWDGi_Vd379i5OUyMClfEesEo7U__9MRg3Er60lJeYN1gjgCQDBb61OwH2PchruRs5qrT5iv7CSjrQnJxbHZ-urSdV4a1YIEyqtohBGl2vFBrELmxss_WTmmGR-GMitByV-x3g8KzyjVhA3KUOWiH4RoGZHvxJnsu1fASwNyW9-vq2mltNJ9mgulfakW6vvKWyhre6rmivF5JD5o3oRl0fhaxzr0DHQQy21lhAkcGRcpuu8Sguh6nOO4wtI5Zst47zRBGh2r57WwAK55a2MDHiRYDs2BPoTtaR4d6tuO0FvIQDN9MK_tVlUCRY0lhAf6X8_Zvfmiu2mgDOyzSYSVhwE76E3h8nGDLQpOo6ihYH-1oJx71BkqTVjsSkYKtU3EfUGLqHSz_JMEQLc6dZMFhAgvlx5Fr60cSA1BIXnQ1RpZiHjDW4KNO1DCqgKUTPWy4qzPOO3H-1rWiuTh6fIPlV6YZoQZFcu55AUm0TVvc8IlhAywIiSmIi7mc43rM8jwPhLbO2FSMfKtTF1GIRM-58G16mwo8Dc2xpBOnELyL0kdEIMRMgBTFXBRpjULcI4xDNfFhAAxU-O91dPTxAgUT8FD-t2kwftvruUuXBqiriplVqHnLIaH0FeWqoXKHfhBbkZHMohFRu4PARA2LbsQpK8wXB5lhABkBefxVyG2CV_JCak8IZx_RveHJLCmfrJ5OF1j6h6766C3fQdtvKqAD_4wu8jM43ko9xAUOyxbze_52pC3ijbFhAlQs7t28G2g8i3aKeelFT_vZPkYOmJQQZy4t-aPQOLCPwgZ2rNIh-vsnDTIllPSpRTaxUdDJG-xf-gpPeekqiQ1hAbAsQrsy2yc7ZLIV4GPppijaQTDA5DjMyGaqgPh2SVeB2j-ah2wSyAlx_OzvN-uaeAxT1UAdEn11eWAWGL8Ew6VhAevByicUW72hxpt6N0aP8AO-AL5BKAm_Za_aUm0GA6FDbxS7LkB-tNs3v3gxyrw8H_Zml7Plm38DG4Jl99MOgLVhAamt5Z-HKYytwPqhy3ZEebq0BjtPJPM2eXxQUvJtpf9wQg-nI8QVpEP0gFRKybBNK-Mr0MSskP33uPwCfJUexK1hAqtAk5vm5P3ODX-wUOp9bqB5orcXbfjsSXb1tzfcTEK_QCUgeJd3tMVyf5y1VKkbVUcL2tVPo4gCorJWYDLS_0FhAz4-swM-Yw4aO6bhAfw389KvCA_Q755qEzpASrirhpxc1oLdSZnxUlP8hDQQaTI9is3LPPfduoaLTpLdDrKcWA4JnL2lzc3Vlcm0vaXNzdWFuY2VEYXRl',
+  },
+} as SignedVerifiableCredential);
+
 // Unsigned W3C v2.0 credential template — cryptosuite-agnostic. Used as input to signW3C
 // for both did:web and did:key tests across ECDSA-SD-2023 and BBS-2023. Has no `proof`
 // and no top-level `id` (generated at sign time). Tests override `issuer` when using

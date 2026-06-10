@@ -74,6 +74,10 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
   const isV5TT = titleEscrowVersion === 'v5';
   const mockTitleEscrowContract = isV5TT ? mockV5TitleEscrowContract : mockV4TitleEscrowContract;
   const titleEscrowAddress = isV5TT ? '0xv5contract' : '0xv4contract';
+  const gasTxOptions =
+    ethersVersion === 'v6'
+      ? { maxFeePerGas: 100n, maxPriorityFeePerGas: 50n }
+      : { maxFeePerGas: 100, maxPriorityFeePerGas: 50 };
 
   // Handle both v5 and v6 contract constructors
   beforeAll(() => {
@@ -166,7 +170,7 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
         maxPriorityFeePerGas: 50,
       });
 
-      const mockChainId = CHAIN_ID.mainnet;
+      const mockChainId = CHAIN_ID.pol;
 
       const originalChainData = SUPPORTED_CHAINS[mockChainId].gasStation;
       SUPPORTED_CHAINS[mockChainId] = {
@@ -182,15 +186,15 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
         },
         wallet,
         params,
-        { id: 'doc-id', titleEscrowVersion },
+        { id: 'doc-id', titleEscrowVersion, chainId: mockChainId },
       );
       const resultOptions = isV5TT ? ['0xholder', '0xencrypted_remarks'] : ['0xholder'];
 
       expect(gasStationMock).toHaveBeenCalled();
-      expect(mockTitleEscrowContract.transferHolder).toHaveBeenCalledWith(...resultOptions, {
-        maxFeePerGas: 100,
-        maxPriorityFeePerGas: 50,
-      });
+      expect(mockTitleEscrowContract.transferHolder).toHaveBeenCalledWith(
+        ...resultOptions,
+        gasTxOptions,
+      );
 
       SUPPORTED_CHAINS[mockChainId] = {
         ...SUPPORTED_CHAINS[mockChainId],
@@ -245,21 +249,8 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
       if (isV5TT) expect(encrypt).toHaveBeenCalledWith('0xencrypted_remarks', 'doc-id');
 
       const resultOptions = isV5TT
-        ? [
-            '0xholder',
-            '0xencrypted_remarks',
-            {
-              maxFeePerGas: 100,
-              maxPriorityFeePerGas: 50,
-            },
-          ]
-        : [
-            '0xholder',
-            {
-              maxFeePerGas: 100,
-              maxPriorityFeePerGas: 50,
-            },
-          ];
+        ? ['0xholder', '0xencrypted_remarks', gasTxOptions]
+        : ['0xholder', gasTxOptions];
 
       expect(mockTitleEscrowContract.transferHolder).toHaveBeenCalledWith(...resultOptions);
       expect(tx).toBe(txHash);
@@ -343,7 +334,7 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
         maxPriorityFeePerGas: 50,
       });
 
-      const mockChainId = CHAIN_ID.mainnet;
+      const mockChainId = CHAIN_ID.pol;
       if (ethersVersion === 'v5') {
         wallet = new WalletV5(PRIVATE_KEY, Provider as any);
         vi.spyOn(wallet, 'getChainId').mockResolvedValue(mockChainId as unknown as number);
@@ -367,15 +358,15 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
         },
         wallet,
         params,
-        { id: 'doc-id', titleEscrowVersion },
+        { id: 'doc-id', titleEscrowVersion, chainId: mockChainId },
       );
       const resultOptions = isV5TT ? ['0xbeneficiary', '0xencrypted_remarks'] : ['0xbeneficiary'];
 
       expect(gasStationMock).toHaveBeenCalled();
-      expect(mockTitleEscrowContract.transferBeneficiary).toHaveBeenCalledWith(...resultOptions, {
-        maxFeePerGas: 100,
-        maxPriorityFeePerGas: 50,
-      });
+      expect(mockTitleEscrowContract.transferBeneficiary).toHaveBeenCalledWith(
+        ...resultOptions,
+        gasTxOptions,
+      );
 
       SUPPORTED_CHAINS[mockChainId] = {
         ...SUPPORTED_CHAINS[mockChainId],
@@ -430,8 +421,8 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
       if (isV5TT) expect(encrypt).toHaveBeenCalledWith('0xencrypted_remarks', 'doc-id');
 
       const resultOptions = isV5TT
-        ? ['0xbeneficiary', '0xencrypted_remarks', { maxFeePerGas: 100, maxPriorityFeePerGas: 50 }]
-        : ['0xbeneficiary', { maxFeePerGas: 100, maxPriorityFeePerGas: 50 }];
+        ? ['0xbeneficiary', '0xencrypted_remarks', gasTxOptions]
+        : ['0xbeneficiary', gasTxOptions];
 
       expect(mockTitleEscrowContract.transferBeneficiary).toHaveBeenCalledWith(...resultOptions);
       expect(tx).toBe(txHash);
@@ -497,7 +488,7 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
         maxPriorityFeePerGas: 50,
       });
 
-      const mockChainId = CHAIN_ID.mainnet;
+      const mockChainId = CHAIN_ID.pol;
       if (ethersVersion === 'v5') {
         wallet = new WalletV5(PRIVATE_KEY, Provider as any);
         vi.spyOn(wallet, 'getChainId').mockResolvedValue(mockChainId as unknown as number);
@@ -521,17 +512,17 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
         },
         wallet,
         params,
-        { id: 'doc-id', titleEscrowVersion },
+        { id: 'doc-id', titleEscrowVersion, chainId: mockChainId },
       );
       const resultOptions = isV5TT
         ? ['0xbeneficiary', '0xholder', '0xencrypted_remarks']
         : ['0xbeneficiary', '0xholder'];
 
       expect(gasStationMock).toHaveBeenCalled();
-      expect(mockTitleEscrowContract.transferOwners).toHaveBeenCalledWith(...resultOptions, {
-        maxFeePerGas: 100,
-        maxPriorityFeePerGas: 50,
-      });
+      expect(mockTitleEscrowContract.transferOwners).toHaveBeenCalledWith(
+        ...resultOptions,
+        gasTxOptions,
+      );
 
       SUPPORTED_CHAINS[mockChainId] = {
         ...SUPPORTED_CHAINS[mockChainId],
@@ -586,13 +577,8 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
       if (isV5TT) expect(encrypt).toHaveBeenCalledWith('0xencrypted_remarks', 'doc-id');
 
       const resultOptions = isV5TT
-        ? [
-            '0xbeneficiary',
-            '0xholder',
-            '0xencrypted_remarks',
-            { maxFeePerGas: 100, maxPriorityFeePerGas: 50 },
-          ]
-        : ['0xbeneficiary', '0xholder', { maxFeePerGas: 100, maxPriorityFeePerGas: 50 }];
+        ? ['0xbeneficiary', '0xholder', '0xencrypted_remarks', gasTxOptions]
+        : ['0xbeneficiary', '0xholder', gasTxOptions];
 
       expect(mockTitleEscrowContract.transferOwners).toHaveBeenCalledWith(...resultOptions);
       expect(tx).toBe(txHash);
@@ -676,7 +662,7 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
         maxPriorityFeePerGas: 50,
       });
 
-      const mockChainId = CHAIN_ID.mainnet;
+      const mockChainId = CHAIN_ID.pol;
       if (ethersVersion === 'v5') {
         wallet = new WalletV5(PRIVATE_KEY, Provider as any);
         vi.spyOn(wallet, 'getChainId').mockResolvedValue(mockChainId as unknown as number);
@@ -700,15 +686,12 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
         },
         wallet,
         params,
-        { id: 'doc-id', titleEscrowVersion },
+        { id: 'doc-id', titleEscrowVersion, chainId: mockChainId },
       );
       const resultOptions = isV5TT ? ['0xbeneficiary', '0xencrypted_remarks'] : ['0xbeneficiary'];
 
       expect(gasStationMock).toHaveBeenCalled();
-      expect(mockTitleEscrowContract.nominate).toHaveBeenCalledWith(...resultOptions, {
-        maxFeePerGas: 100,
-        maxPriorityFeePerGas: 50,
-      });
+      expect(mockTitleEscrowContract.nominate).toHaveBeenCalledWith(...resultOptions, gasTxOptions);
 
       SUPPORTED_CHAINS[mockChainId] = {
         ...SUPPORTED_CHAINS[mockChainId],
@@ -759,8 +742,8 @@ describe.each(providers)('Transfers', async ({ Provider, ethersVersion, titleEsc
       if (isV5TT) expect(encrypt).toHaveBeenCalledWith('0xencrypted_remarks', 'doc-id');
 
       const resultOptions = isV5TT
-        ? ['0xbeneficiary', '0xencrypted_remarks', { maxFeePerGas: 100, maxPriorityFeePerGas: 50 }]
-        : ['0xbeneficiary', { maxFeePerGas: 100, maxPriorityFeePerGas: 50 }];
+        ? ['0xbeneficiary', '0xencrypted_remarks', gasTxOptions]
+        : ['0xbeneficiary', gasTxOptions];
 
       expect(mockTitleEscrowContract.nominate).toHaveBeenCalledWith(...resultOptions);
       expect(tx).toBe(txHash);
