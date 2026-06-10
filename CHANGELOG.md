@@ -1,3 +1,15 @@
+## [2.14.0](https://github.com/TrustVC/trustvc/compare/v2.13.0...v2.14.0) (2026-06-10)
+
+
+### Features
+
+* add support for Polygon (POL) network ([#147](https://github.com/TrustVC/trustvc/issues/147)) ([4d07053](https://github.com/TrustVC/trustvc/commit/4d070531ccae4104c6881806d0b324d171b8bf9a))
+
+
+### Miscellaneous Chores
+
+* document did:key issuer support in README ([#146](https://github.com/TrustVC/trustvc/issues/146)) ([e25106e](https://github.com/TrustVC/trustvc/commit/e25106e7cc472cd86a47b1258c2b44c6d04c67c0)), closes [#145](https://github.com/TrustVC/trustvc/issues/145)
+
 ## [2.13.0](https://github.com/TrustVC/trustvc/compare/v2.12.5...v2.13.0) (2026-06-02)
 
 
