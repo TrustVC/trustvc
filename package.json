@@ -121,6 +121,7 @@
     "@tradetrust-tt/token-registry-v5": "npm:@tradetrust-tt/token-registry@^5.5.0",
     "@tradetrust-tt/tradetrust": "^6.10.3",
     "@tradetrust-tt/tt-verify": "^9.7.5",
+    "@trustvc/eip7702": "file:../TrustVC-7702",
     "@trustvc/document-store": "^1.0.3",
     "@trustvc/w3c": "^2.2.0",
     "@trustvc/w3c-context": "^2.2.0",
@@ -132,7 +133,9 @@
     "js-sha3": "^0.9.3",
     "node-fetch": "^2.7.0",
     "node-forge": "^1.3.3",
-    "ts-chacha20": "^1.2.0"
+    "permissionless": "^0.3.6",
+    "ts-chacha20": "^1.2.0",
+    "viem": "^2.53.1"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.8.0",
