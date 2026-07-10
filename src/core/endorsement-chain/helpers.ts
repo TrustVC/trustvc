@@ -92,7 +92,8 @@ const identifyEventTypeFromLogs = (groupedEvents: TransferBaseEvent[]): Transfer
         'RETURN_TO_ISSUER_ACCEPTED',
         'RETURN_TO_ISSUER_REJECTED',
       ].includes(event.type) ||
-      event.type.startsWith('REJECT_')
+      event.type.startsWith('REJECT_') ||
+      event.type.startsWith('STATUS_')
     ) {
       return event.type;
     }

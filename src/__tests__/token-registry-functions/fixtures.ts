@@ -198,9 +198,9 @@ export const mockV5TitleEscrowContract = {
     rejectTransferBeneficiary: vi.fn(),
     rejectTransferOwners: vi.fn(),
     returnToIssuer: vi.fn(),
-    acceptBillOfExchange: vi.fn(),
-    rejectBillOfExchange: vi.fn(),
-    dischargeBillOfExchange: vi.fn(),
+    accept: vi.fn(),
+    reject: vi.fn(),
+    discharge: vi.fn(),
   },
   transferHolder: Object.assign(
     // Direct call returns hash string
@@ -239,25 +239,25 @@ export const mockV5TitleEscrowContract = {
   prevHolder: vi.fn(() => Promise.resolve('0x0000000000000000000000000000000000dEaD')),
   prevBeneficiary: vi.fn(() => Promise.resolve('0x0000000000000000000000000000000000dEaD')),
   status: vi.fn(() => Promise.resolve(0)),
-  acceptBillOfExchange: Object.assign(
+  accept: Object.assign(
     // Direct call returns hash string
-    vi.fn(() => Promise.resolve('v5_accept_bill_of_exchange_tx_hash')),
+    vi.fn(() => Promise.resolve('v5_accept_tx_hash')),
     {
       // Static call returns boolean
       staticCall: vi.fn(() => Promise.resolve(true)),
     },
   ),
-  rejectBillOfExchange: Object.assign(
+  reject: Object.assign(
     // Direct call returns hash string
-    vi.fn(() => Promise.resolve('v5_reject_bill_of_exchange_tx_hash')),
+    vi.fn(() => Promise.resolve('v5_reject_tx_hash')),
     {
       // Static call returns boolean
       staticCall: vi.fn(() => Promise.resolve(true)),
     },
   ),
-  dischargeBillOfExchange: Object.assign(
+  discharge: Object.assign(
     // Direct call returns hash string
-    vi.fn(() => Promise.resolve('v5_discharge_bill_of_exchange_tx_hash')),
+    vi.fn(() => Promise.resolve('v5_discharge_tx_hash')),
     {
       // Static call returns boolean
       staticCall: vi.fn(() => Promise.resolve(true)),

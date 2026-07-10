@@ -3,7 +3,7 @@ import { ethers as ethersV5, Wallet as WalletV5 } from 'ethers';
 import { ethers as ethersV6, Network, Wallet as WalletV6 } from 'ethersV6';
 import * as coreModule from '../../core';
 import { CHAIN_ID } from '../../utils/supportedChains';
-import { BillOfExchangeStatus } from '../../boe/types';
+import { Status } from '../../status/types';
 import {
   mockV5TitleEscrowContract,
   PRIVATE_KEY,
@@ -34,15 +34,15 @@ export interface EscrowState {
   holder?: string;
   prevBeneficiary?: string;
   prevHolder?: string;
-  status?: BillOfExchangeStatus;
+  status?: Status;
 }
 
-export interface BoeTestContext {
+export interface StatusTestContext {
   wallet: ethersV5.Wallet | ethersV6.Wallet;
   ethersVersion: 'v5' | 'v6';
 }
 
-export function installBoeMockContract(): void {
+export function installStatusMockContract(): void {
   const mockContractConstructor = (mockContract: typeof mockV5TitleEscrowContract) =>
     vi.fn(() => mockContract);
   vi.mocked(getEthersContractFromProvider).mockReturnValue(
@@ -58,7 +58,7 @@ export function configureSignerAsHolder(
 ): void {
   mockV5TitleEscrowContract.holder.mockResolvedValue(wallet.address);
   mockV5TitleEscrowContract.beneficiary.mockResolvedValue(beneficiary);
-  mockV5TitleEscrowContract.status.mockResolvedValue(BillOfExchangeStatus.Issued);
+  mockV5TitleEscrowContract.status.mockResolvedValue(Status.Issued);
 }
 
 export function configureSignerAsBeneficiary(
@@ -67,7 +67,7 @@ export function configureSignerAsBeneficiary(
 ): void {
   mockV5TitleEscrowContract.beneficiary.mockResolvedValue(wallet.address);
   mockV5TitleEscrowContract.holder.mockResolvedValue(holder);
-  mockV5TitleEscrowContract.status.mockResolvedValue(BillOfExchangeStatus.Accepted);
+  mockV5TitleEscrowContract.status.mockResolvedValue(Status.Accepted);
 }
 
 export function createWallet(Provider: ProviderInfo['Provider'], ethersVersion: 'v5' | 'v6') {
@@ -86,7 +86,7 @@ export function createWallet(Provider: ProviderInfo['Provider'], ethersVersion: 
   return wallet;
 }
 
-export function resetBoeCoreMocks(): void {
+export function resetStatusCoreMocks(): void {
   vi.spyOn(coreModule, 'getTitleEscrowAddress').mockResolvedValue(MOCK_TITLE_ESCROW_ADDRESS);
   vi.spyOn(coreModule, 'isTitleEscrowVersion').mockResolvedValue(true);
   vi.spyOn(coreModule, 'encrypt').mockReturnValue('encryptedRemarks');
@@ -97,7 +97,7 @@ export function configureEscrowState({
   holder = HOLDER,
   prevBeneficiary = DEAD,
   prevHolder = DEAD,
-  status = BillOfExchangeStatus.Issued,
+  status = Status.Issued,
 }: EscrowState = {}): void {
   mockV5TitleEscrowContract.beneficiary.mockResolvedValue(beneficiary);
   mockV5TitleEscrowContract.holder.mockResolvedValue(holder);
@@ -106,12 +106,12 @@ export function configureEscrowState({
   mockV5TitleEscrowContract.status.mockResolvedValue(status);
 }
 
-export function setupBoeTestContext(
+export function setupStatusTestContext(
   Provider: ProviderInfo['Provider'],
   ethersVersion: 'v5' | 'v6',
-): BoeTestContext {
+): StatusTestContext {
   vi.clearAllMocks();
-  resetBoeCoreMocks();
+  resetStatusCoreMocks();
   configureEscrowState();
   return { wallet: createWallet(Provider, ethersVersion), ethersVersion };
 }

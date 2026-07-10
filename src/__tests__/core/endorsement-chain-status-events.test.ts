@@ -11,7 +11,7 @@ const TOKEN_ID = 1n;
 
 const remark = (text: string): string => ethersV6.hexlify(ethersV6.toUtf8Bytes(text));
 
-describe('fetchEscrowTransfersV5 - Bill of Exchange events', () => {
+describe('fetchEscrowTransfersV5 - Status events', () => {
   const iface = new ethersV6.Interface(TitleEscrow__factory.abi);
 
   const encodeLog = (eventName: string, args: unknown[]) => {
@@ -32,31 +32,17 @@ describe('fetchEscrowTransfersV5 - Bill of Exchange events', () => {
 
   const logsByTopic = new Map<string, unknown[]>([
     [
-      iface.getEvent('BillOfExchangeAccepted')!.topicHash,
-      [
-        encodeLog('BillOfExchangeAccepted', [
-          HOLDER,
-          REGISTRY_ADDRESS,
-          TOKEN_ID,
-          remark('accepted'),
-        ]),
-      ],
+      iface.getEvent('StatusAccepted')!.topicHash,
+      [encodeLog('StatusAccepted', [HOLDER, REGISTRY_ADDRESS, TOKEN_ID, remark('accepted')])],
     ],
     [
-      iface.getEvent('BillOfExchangeRejected')!.topicHash,
-      [
-        encodeLog('BillOfExchangeRejected', [
-          HOLDER,
-          REGISTRY_ADDRESS,
-          TOKEN_ID,
-          remark('rejected'),
-        ]),
-      ],
+      iface.getEvent('StatusRejected')!.topicHash,
+      [encodeLog('StatusRejected', [HOLDER, REGISTRY_ADDRESS, TOKEN_ID, remark('rejected')])],
     ],
     [
-      iface.getEvent('BillOfExchangeDischarged')!.topicHash,
+      iface.getEvent('StatusDischarged')!.topicHash,
       [
-        encodeLog('BillOfExchangeDischarged', [
+        encodeLog('StatusDischarged', [
           BENEFICIARY,
           REGISTRY_ADDRESS,
           TOKEN_ID,
@@ -81,26 +67,26 @@ describe('fetchEscrowTransfersV5 - Bill of Exchange events', () => {
     });
   };
 
-  it('maps BillOfExchangeAccepted/Rejected/Discharged into the endorsement chain event types', async () => {
+  it('maps StatusAccepted/Rejected/Discharged into the endorsement chain event types', async () => {
     const events = await fetchEscrowTransfersV5(provider, ESCROW_ADDRESS, REGISTRY_ADDRESS);
 
     expect(events).toContainEqual(
       expect.objectContaining({
-        type: 'BILL_OF_EXCHANGE_ACCEPTED',
+        type: 'STATUS_ACCEPTED',
         holder: HOLDER,
         remark: remark('accepted'),
       }),
     );
     expect(events).toContainEqual(
       expect.objectContaining({
-        type: 'BILL_OF_EXCHANGE_REJECTED',
+        type: 'STATUS_REJECTED',
         holder: HOLDER,
         remark: remark('rejected'),
       }),
     );
     expect(events).toContainEqual(
       expect.objectContaining({
-        type: 'BILL_OF_EXCHANGE_DISCHARGED',
+        type: 'STATUS_DISCHARGED',
         owner: BENEFICIARY,
         remark: remark('discharged'),
       }),

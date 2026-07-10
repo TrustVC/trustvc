@@ -1,29 +1,29 @@
 import { describe, it, expect } from 'vitest';
-import { BoeRules } from '../../boe/BoeRules';
-import { BillOfExchangeStatus } from '../../boe/types';
+import { StatusRules } from '../../status/StatusRules';
+import { Status } from '../../status/types';
 import { HOLDER, OWNER } from './fixtures';
 
 const baseTransition = {
   currentBeneficiary: OWNER,
   currentHolder: HOLDER,
-  currentStatus: BillOfExchangeStatus.Issued,
+  currentStatus: Status.Issued,
   signerAddress: HOLDER,
 };
 
-describe('BoeRules — BOE status transitions (accept / reject / discharge)', () => {
+describe('StatusRules — status transitions (accept / reject / discharge)', () => {
   it('accept succeeds for holder at Issued with diverged roles', () => {
-    expect(() => BoeRules.assertAccept(baseTransition)).not.toThrow();
+    expect(() => StatusRules.assertAccept(baseTransition)).not.toThrow();
   });
 
   it('accept fails for non-holder', () => {
-    expect(() => BoeRules.assertAccept({ ...baseTransition, signerAddress: OWNER })).toThrow(
+    expect(() => StatusRules.assertAccept({ ...baseTransition, signerAddress: OWNER })).toThrow(
       'Only the current holder can accept',
     );
   });
 
   it('accept fails when owner equals holder', () => {
     expect(() =>
-      BoeRules.assertAccept({
+      StatusRules.assertAccept({
         ...baseTransition,
         currentBeneficiary: OWNER,
         currentHolder: OWNER,
@@ -33,32 +33,28 @@ describe('BoeRules — BOE status transitions (accept / reject / discharge)', ()
   });
 
   it('accept fails from Accepted, Rejected, and Discharged', () => {
-    for (const status of [
-      BillOfExchangeStatus.Accepted,
-      BillOfExchangeStatus.Rejected,
-      BillOfExchangeStatus.Discharged,
-    ]) {
-      expect(() => BoeRules.assertAccept({ ...baseTransition, currentStatus: status })).toThrow(
+    for (const status of [Status.Accepted, Status.Rejected, Status.Discharged]) {
+      expect(() => StatusRules.assertAccept({ ...baseTransition, currentStatus: status })).toThrow(
         'cannot be accepted or rejected again',
       );
     }
   });
 
   it('reject succeeds for holder at Issued', () => {
-    expect(() => BoeRules.assertReject(baseTransition)).not.toThrow();
+    expect(() => StatusRules.assertReject(baseTransition)).not.toThrow();
   });
 
   it('reject fails from Discharged', () => {
     expect(() =>
-      BoeRules.assertReject({ ...baseTransition, currentStatus: BillOfExchangeStatus.Discharged }),
+      StatusRules.assertReject({ ...baseTransition, currentStatus: Status.Discharged }),
     ).toThrow('cannot be accepted or rejected again');
   });
 
   it('discharge succeeds for beneficiary at Accepted', () => {
     expect(() =>
-      BoeRules.assertDischarge({
+      StatusRules.assertDischarge({
         ...baseTransition,
-        currentStatus: BillOfExchangeStatus.Accepted,
+        currentStatus: Status.Accepted,
         signerAddress: OWNER,
       }),
     ).not.toThrow();
@@ -66,25 +62,25 @@ describe('BoeRules — BOE status transitions (accept / reject / discharge)', ()
 
   it('discharge fails for non-beneficiary', () => {
     expect(() =>
-      BoeRules.assertDischarge({
+      StatusRules.assertDischarge({
         ...baseTransition,
-        currentStatus: BillOfExchangeStatus.Accepted,
+        currentStatus: Status.Accepted,
         signerAddress: HOLDER,
       }),
     ).toThrow('Only the current beneficiary (owner) can discharge');
   });
 
   it('discharge fails from Issued', () => {
-    expect(() => BoeRules.assertDischarge({ ...baseTransition, signerAddress: OWNER })).toThrow(
+    expect(() => StatusRules.assertDischarge({ ...baseTransition, signerAddress: OWNER })).toThrow(
       'has not been accepted yet',
     );
   });
 
   it('discharge fails from Rejected with reissue hint', () => {
     expect(() =>
-      BoeRules.assertDischarge({
+      StatusRules.assertDischarge({
         ...baseTransition,
-        currentStatus: BillOfExchangeStatus.Rejected,
+        currentStatus: Status.Rejected,
         signerAddress: OWNER,
       }),
     ).toThrow('was rejected and can never be discharged');
@@ -92,9 +88,9 @@ describe('BoeRules — BOE status transitions (accept / reject / discharge)', ()
 
   it('discharge fails when already Discharged', () => {
     expect(() =>
-      BoeRules.assertDischarge({
+      StatusRules.assertDischarge({
         ...baseTransition,
-        currentStatus: BillOfExchangeStatus.Discharged,
+        currentStatus: Status.Discharged,
         signerAddress: OWNER,
       }),
     ).toThrow('already been discharged');

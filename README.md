@@ -28,10 +28,10 @@ TrustVC is a comprehensive wrapper library designed to simplify the signing and 
     - [8. **Document Builder**](#8-document-builder)
     - [9. **Document Store**](#9-document-store)
     - [10. **Transaction Cancel**](#10-transaction-cancel)
-    - [11. **Bill of Exchange (Beta)**](#11-bill-of-exchange-beta)
+    - [11. **Bill of Exchange / Status (Beta)**](#11-bill-of-exchange--status-beta)
       - [Minting](#minting)
-      - [getBillOfExchangeStatus](#getbillofexchangestatus)
-      - [acceptBillOfExchange / rejectBillOfExchange / dischargeBillOfExchange](#acceptbillofexchange--rejectbillofexchange--dischargebillofexchange)
+      - [getStatus](#getstatus)
+      - [accept / reject / discharge](#accept--reject--discharge)
       - [The existing transfer/reject functions are untouched](#the-existing-transferreject-functions-are-untouched)
       - [Notes and limitations](#notes-and-limitations)
 
@@ -1212,9 +1212,9 @@ const replacementHash2 = await cancelTransaction(signer, {
 
 ---
 
-## 11. Bill of Exchange (Beta)
+## 11. Bill of Exchange / Status (Beta)
 
-> A Bill of Exchange (eBOE) is not a separate contract. It is the same `TradeTrustToken`/`TitleEscrow` (**Token Registry V5 only**) you already use for ETR, carrying one extra field — `status` — that starts at `Issued` and can move to `Accepted`/`Rejected` (holder-only) or, from `Accepted`, to `Discharged` (owner-only). Minting is the exact same `mint()` call as ETR, and the contract treats every escrow identically. There is no `documentType` concept anywhere — on-chain or in the SDK. Whether a given `TitleEscrow` is "being used as" a Bill of Exchange is determined entirely by **whether anyone ever calls** `acceptBillOfExchange`/`rejectBillOfExchange`/`dischargeBillOfExchange` on it — three new, dedicated functions described below. Everything else — `transferHolder`, `nominate`, `transferBeneficiary`, `transferOwners`, the reject-transfer family, `returnToIssuer` — is the exact same ETR functionality, completely unmodified and unaware that a Bill of Exchange lifecycle exists.
+> A Bill of Exchange (eBOE) is not a separate contract. It is the same `TradeTrustToken`/`TitleEscrow` (**Token Registry V5 only**) you already use for ETR, carrying one extra field — `status` — that starts at `Issued` and can move to `Accepted`/`Rejected` (holder-only) or, from `Accepted`, to `Discharged` (owner-only). Minting is the exact same `mint()` call as ETR, and the contract treats every escrow identically. There is no `documentType` concept anywhere — on-chain or in the SDK. Whether a given `TitleEscrow` is "being used as" a Bill of Exchange is determined entirely by **whether anyone ever calls** `accept`/`reject`/`discharge` on it — three dedicated SDK helpers that wrap the on-chain methods of the same name and emit `StatusAccepted`/`StatusRejected`/`StatusDischarged`. Everything else — `transferHolder`, `nominate`, `transferBeneficiary`, `transferOwners`, the reject-transfer family, `returnToIssuer` — is the exact same ETR functionality, completely unmodified and unaware that a status lifecycle exists.
 
 ### Minting
 
@@ -1231,7 +1231,7 @@ const tx = await mint(
 );
 ```
 
-### getBillOfExchangeStatus
+### getStatus
 
 #### Description
 
@@ -1245,38 +1245,38 @@ const tx = await mint(
 
 #### Returns
 
-**Promise&lt;BillOfExchangeStatus&gt;** — one of `BillOfExchangeStatus.Issued/Accepted/Rejected/Discharged`.
+**Promise&lt;Status&gt;** — one of `Status.Issued/Accepted/Rejected/Discharged`.
 
 #### Throws
 
 - If the registry/token/title escrow address or provider is missing.
 - If the escrow is not V5.
-- If the escrow predates the Bill of Exchange upgrade (no `status()` getter at all).
+- If the escrow predates the status upgrade (no `status()` getter at all).
 
 #### Example
 
 ```ts
-import { getBillOfExchangeStatus, BillOfExchangeStatus, BillOfExchangeStatusLabel } from '@trustvc/trustvc';
+import { getStatus, Status, StatusLabel } from '@trustvc/trustvc';
 
-const status = await getBillOfExchangeStatus({ tokenRegistryAddress, tokenId }, signer);
-console.log(BillOfExchangeStatusLabel[status]); // e.g. "Issued"
+const status = await getStatus({ tokenRegistryAddress, tokenId }, signer);
+console.log(StatusLabel[status]); // e.g. "Issued"
 ```
 
-### acceptBillOfExchange / rejectBillOfExchange / dischargeBillOfExchange
+### accept / reject / discharge
 
 #### Description
 
-> Three dedicated functions, each mapping onto the AC's lifecycle rules:
+> Three dedicated functions, each mapping onto the on-chain `accept`/`reject`/`discharge` methods and the AC's lifecycle rules:
 >
-> - **acceptBillOfExchange** — holder-only, requires `status === Issued`, moves to `Accepted`.
-> - **rejectBillOfExchange** — holder-only, requires `status === Issued`, moves to `Rejected` (terminal — nothing can move it again). Status-only: it does not revert the holder role, use the existing `rejectTransferHolder` for that.
-> - **dischargeBillOfExchange** — beneficiary(owner)-only, requires `status === Accepted`, moves to `Discharged` (terminal). Never callable from `Rejected`.
+> - **accept** — holder-only, requires `status === Issued`, moves to `Accepted`. Emits `StatusAccepted`.
+> - **reject** — holder-only, requires `status === Issued`, moves to `Rejected` (terminal — nothing can move it again). Status-only: it does not revert the holder role, use the existing `rejectTransferHolder` for that. Emits `StatusRejected`.
+> - **discharge** — beneficiary(owner)-only, requires `status === Accepted`, moves to `Discharged` (terminal). Never callable from `Rejected`. Emits `StatusDischarged`.
 >
 > All three additionally require `beneficiary != holder` at the moment they're called, and run client-side pre-flight checks — in this order — before sending the transaction, so failures surface as a specific message instead of a raw revert:
 >
 > 1. **Caller-role check** — signer must be the current holder (accept/reject) or beneficiary (discharge).
 > 2. **Owner ≠ holder check**.
-> 3. **Status-precondition check**, with a tailored message per terminal case (e.g. *"This Bill of Exchange was rejected and can never be discharged — surrender it (returnToIssuer) and reissue a new one instead."*).
+> 3. **Status-precondition check**, with a tailored message per terminal case (e.g. *"This TitleEscrow was rejected and can never be discharged — surrender it (returnToIssuer) and reissue a new one instead."*).
 
 #### Parameters
 
@@ -1293,10 +1293,10 @@ Any of the pre-flight checks above, or a failed `callStatic` dry-run.
 #### Example
 
 ```ts
-import { acceptBillOfExchange, rejectBillOfExchange, dischargeBillOfExchange } from '@trustvc/trustvc';
+import { accept, reject, discharge } from '@trustvc/trustvc';
 
 // Holder accepts
-const acceptTx = await acceptBillOfExchange(
+const acceptTx = await accept(
   { tokenRegistryAddress, tokenId },
   holderSigner,
   { remarks: 'Accepted, bound to pay at maturity' },
@@ -1305,10 +1305,10 @@ const acceptTx = await acceptBillOfExchange(
 await acceptTx.wait();
 
 // ...or, instead, the holder declines:
-// await rejectBillOfExchange({ tokenRegistryAddress, tokenId }, holderSigner, {}, options);
+// await reject({ tokenRegistryAddress, tokenId }, holderSigner, {}, options);
 
 // Owner discharges once payment is received off-chain
-const dischargeTx = await dischargeBillOfExchange(
+const dischargeTx = await discharge(
   { tokenRegistryAddress, tokenId },
   ownerSigner,
   { remarks: 'Paid at maturity' },
@@ -1323,7 +1323,7 @@ await dischargeTx.wait();
 
 > `transferHolder`, `transferBeneficiary`, `transferOwners`, `nominate`, `rejectTransferHolder`, `rejectTransferBeneficiary`, `rejectTransferOwners`, and `returnToIssuer` are **exactly** the same functions ETR integrations already call — same signatures, same exports, same import paths, same behaviour. There is no `documentType` field, no status gating, no reconvergence guard, no circulation restriction woven into any of them. They have zero awareness that `status` or the Bill of Exchange lifecycle exists.
 >
-> This is a deliberate design choice: the contract is fully permissive by itself (transfers never mutate or check `status`), and this SDK doesn't add any client-side restriction on top either. If you want reconvergence guards, terminal-state circulation limits, or surrender hints specific to your own integration, build them in your own application layer — `BoeRules` (used internally by `acceptBillOfExchange`/`rejectBillOfExchange`/`dischargeBillOfExchange` only) is not applied to these functions and never will be.
+> This is a deliberate design choice: the contract is fully permissive by itself (transfers never mutate or check `status`), and this SDK doesn't add any client-side restriction on top either. If you want reconvergence guards, terminal-state circulation limits, or surrender hints specific to your own integration, build them in your own application layer — `StatusRules` (used internally by `accept`/`reject`/`discharge` only) is not applied to these functions and never will be.
 
 #### Example: full happy path
 
@@ -1334,18 +1334,18 @@ import {
   transferBeneficiary,
   returnToIssuer,
   mint,
-  acceptBillOfExchange,
-  dischargeBillOfExchange,
+  accept,
+  discharge,
 } from '@trustvc/trustvc';
 
 const contractOptions = { tokenRegistryAddress, tokenId };
 const options = { chainId: CHAIN_ID.sepolia, id: 'encryption-id' };
 
-// Presentment: diverge holder from the drawer — plain ETR call, no BOE awareness involved
+// Presentment: diverge holder from the drawer — plain ETR call, no status awareness involved
 await (await transferHolder(contractOptions, signer, { holderAddress: draweeAddress }, options)).wait();
 
-// Drawee accepts — the dedicated function is what actually marks this escrow as a Bill of Exchange
-await (await acceptBillOfExchange(contractOptions, signer, { remarks: 'Accepted' }, options)).wait();
+// Drawee accepts — the dedicated function is what actually advances status
+await (await accept(contractOptions, signer, { remarks: 'Accepted' }, options)).wait();
 
 // Optional: owner circulates the receivable to a financing bank — holder is untouched.
 // Nothing stops the holder from also changing here; that's on your own integration to guard if desired.
@@ -1353,7 +1353,7 @@ await (await nominate(contractOptions, signer, { newBeneficiaryAddress: bankAddr
 await (await transferBeneficiary(contractOptions, signer, { newBeneficiaryAddress: bankAddress }, options)).wait();
 
 // Owner discharges once paid
-await (await dischargeBillOfExchange(contractOptions, signer, { remarks: 'Paid at maturity' }, options)).wait();
+await (await discharge(contractOptions, signer, { remarks: 'Paid at maturity' }, options)).wait();
 
 // Reconverge owner onto holder, then close it out — plain ETR calls throughout
 await (await nominate(contractOptions, signer, { newBeneficiaryAddress: draweeAddress }, options)).wait();
@@ -1364,12 +1364,12 @@ await (await returnToIssuer(contractOptions, signer, {}, options)).wait();
 #### Example: reject and reissue
 
 ```ts
-import { transferHolder, rejectTransferHolder, returnToIssuer, mint, rejectBillOfExchange } from '@trustvc/trustvc';
+import { transferHolder, rejectTransferHolder, returnToIssuer, mint, reject } from '@trustvc/trustvc';
 
 await (await transferHolder(contractOptions, signer, { holderAddress: draweeAddress }, options)).wait();
-await (await rejectBillOfExchange(contractOptions, signer, { remarks: 'Declined' }, options)).wait();
+await (await reject(contractOptions, signer, { remarks: 'Declined' }, options)).wait();
 
-// rejectBillOfExchange is status-only — separately revert the holder role to reconverge
+// reject is status-only — separately revert the holder role to reconverge
 await (await rejectTransferHolder(contractOptions, signer, {}, options)).wait();
 await (await returnToIssuer(contractOptions, signer, {}, options)).wait();
 
@@ -1380,6 +1380,7 @@ await mint({ tokenRegistryAddress }, signer, { beneficiaryAddress, holderAddress
 ### Notes and limitations
 
 - **Beta** functionality — the API may still change.
-- **Token Registry V5 only.** V4 has no `status()`/accept/reject/discharge at all.
-- `BoeRules` validation applies **only** inside `acceptBillOfExchange`/`rejectBillOfExchange`/`dischargeBillOfExchange`. It is not applied to, and cannot be applied to, `transferHolder`/`transferBeneficiary`/`transferOwners`/`nominate`/the reject-transfer family/`returnToIssuer` — those remain exactly as permissive as plain ETR, by design.
-- `getBillOfExchangeStatus`/`acceptBillOfExchange`/`rejectBillOfExchange`/`dischargeBillOfExchange` are exported flat from `@trustvc/trustvc`; `BoeRules` is internal and not exported — it only exists to keep the three dedicated functions' precondition checks in one place.
+- **Token Registry V5 only.** V4 has no `status()`/`accept`/`reject`/`discharge` at all.
+- On-chain method names are `accept`/`reject`/`discharge`; events are `StatusAccepted`/`StatusRejected`/`StatusDischarged`. The endorsement chain surfaces these as `STATUS_ACCEPTED`/`STATUS_REJECTED`/`STATUS_DISCHARGED`.
+- `StatusRules` validation applies **only** inside `accept`/`reject`/`discharge`. It is not applied to, and cannot be applied to, `transferHolder`/`transferBeneficiary`/`transferOwners`/`nominate`/the reject-transfer family/`returnToIssuer` — those remain exactly as permissive as plain ETR, by design.
+- `getStatus`/`accept`/`reject`/`discharge` (plus `Status`/`StatusLabel`) are exported flat from `@trustvc/trustvc`; `StatusRules` is internal and not exported — it only exists to keep the three dedicated functions' precondition checks in one place.

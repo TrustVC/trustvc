@@ -10,26 +10,27 @@ import { Contract as ContractV5, ContractTransaction, Signer } from 'ethers';
 import { getSignerAddressSafe, getTxOptions } from '../token-registry-functions/utils';
 import { ContractOptions, TransactionOptions } from '../token-registry-functions/types';
 import { getEthersContractFromProvider, isV6EthersProvider } from '../utils/ethers';
-import { BillOfExchangeActionParams, BillOfExchangeStatus } from './types';
-import { BoeRules } from './BoeRules';
+import { StatusActionParams, Status } from './types';
+import { StatusRules } from './StatusRules';
 
 /**
- * Beta. Holder accepts a Bill of Exchange, moving its status from Issued to Accepted. Callable on any
+ * Beta. Holder accepts a TitleEscrow, moving its status from Issued to Accepted. Callable on any
  * TitleEscrow — not gated on document type — but only makes sense once beneficiary != holder.
+ * Calls the on-chain `accept(bytes)` method.
  * @param {ContractOptions} contractOptions - Contract-related options including the token registry address, and optionally, token ID and the title escrow address.
  * @param {Signer | SignerV6} signer - Ethers signer (V5 or V6) used to sign and send the transaction. Must be the current holder.
- * @param {BillOfExchangeActionParams} params - Contains the optional `remarks` field, encrypted and sent with the transaction.
+ * @param {StatusActionParams} params - Contains the optional `remarks` field, encrypted and sent with the transaction.
  * @param {TransactionOptions} options - Includes optional `chainId`, `titleEscrowVersion`, `maxFeePerGas`, `maxPriorityFeePerGas`, and an `id` used for encryption.
  * @throws if the title escrow address or signer provider is missing.
- * @throws if the version is not V5 compatible, or the TitleEscrow predates the Bill of Exchange lifecycle.
+ * @throws if the version is not V5 compatible, or the TitleEscrow predates the status lifecycle.
  * @throws if the signer is not the current holder, if owner and holder are the same address, or if the current status isn't Issued.
  * @throws if the dry-run (`callStatic`) fails.
- * @returns {Promise<ContractTransaction>} The transaction response of the acceptBillOfExchange call.
+ * @returns {Promise<ContractTransaction>} The transaction response of the accept call.
  */
-const acceptBillOfExchange = async (
+const accept = async (
   contractOptions: ContractOptions,
   signer: Signer | SignerV6,
-  params: BillOfExchangeActionParams,
+  params: StatusActionParams,
   options: TransactionOptions,
 ): Promise<ContractTransaction> => {
   const { tokenRegistryAddress, tokenId } = contractOptions;
@@ -78,34 +79,34 @@ const acceptBillOfExchange = async (
     titleEscrowContract.holder(),
   ]);
 
-  let currentStatus: BillOfExchangeStatus;
+  let currentStatus: Status;
   try {
-    currentStatus = Number(await titleEscrowContract.status()) as BillOfExchangeStatus;
+    currentStatus = Number(await titleEscrowContract.status()) as Status;
   } catch (e) {
     console.error('status() failed:', e);
     throw new Error(
-      'This TitleEscrow does not support the Bill of Exchange lifecycle (status()) — it likely predates the eBOE contract upgrade.',
+      'This TitleEscrow does not support the status lifecycle (status()) — it likely predates the eBOE contract upgrade.',
     );
   }
 
   const signerAddress = await getSignerAddressSafe(signer);
-  BoeRules.assertAccept({ currentBeneficiary, currentHolder, currentStatus, signerAddress });
+  StatusRules.assertAccept({ currentBeneficiary, currentHolder, currentStatus, signerAddress });
 
   // Check callStatic (dry run)
   try {
     if (isV6EthersProvider(signer.provider)) {
-      await (titleEscrowContract as ContractV6).acceptBillOfExchange.staticCall(encryptedRemarks);
+      await (titleEscrowContract as ContractV6).accept.staticCall(encryptedRemarks);
     } else {
-      await (titleEscrowContract as ContractV5).callStatic.acceptBillOfExchange(encryptedRemarks);
+      await (titleEscrowContract as ContractV5).callStatic.accept(encryptedRemarks);
     }
   } catch (e) {
     console.error('callStatic failed:', e);
-    throw new Error('Pre-check (callStatic) for acceptBillOfExchange failed');
+    throw new Error('Pre-check (callStatic) for accept failed');
   }
 
   const txOptions = await getTxOptions(signer, chainId, maxFeePerGas, maxPriorityFeePerGas);
 
-  return await titleEscrowContract.acceptBillOfExchange(encryptedRemarks, txOptions);
+  return await titleEscrowContract.accept(encryptedRemarks, txOptions);
 };
 
-export { acceptBillOfExchange };
+export { accept };

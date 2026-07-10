@@ -15,13 +15,8 @@ import {
   returnToIssuer,
   acceptReturned,
 } from '../../token-registry-functions';
-import {
-  acceptBillOfExchange,
-  rejectBillOfExchange,
-  dischargeBillOfExchange,
-  getBillOfExchangeStatus,
-} from '../../boe';
-import { BillOfExchangeStatus } from '../../boe/types';
+import { accept, reject, discharge, getStatus } from '../../status';
+import { Status } from '../../status/types';
 import { getEthersContractFromProvider } from '../../utils/ethers';
 import { CHAIN_ID } from '../../utils/supportedChains';
 import {
@@ -101,19 +96,19 @@ function resetCoreMocks(): void {
 async function setRoles(params: {
   beneficiary: string;
   holder: string;
-  status?: BillOfExchangeStatus;
+  status?: Status;
   prevHolder?: string;
 }) {
   mockV5TitleEscrowContract.beneficiary.mockResolvedValue(params.beneficiary);
   mockV5TitleEscrowContract.holder.mockResolvedValue(params.holder);
-  mockV5TitleEscrowContract.status.mockResolvedValue(params.status ?? BillOfExchangeStatus.Issued);
+  mockV5TitleEscrowContract.status.mockResolvedValue(params.status ?? Status.Issued);
   mockV5TitleEscrowContract.prevHolder.mockResolvedValue(
     params.prevHolder ?? '0x0000000000000000000000000000000000dEaD',
   );
 }
 
 describe.each(providers)(
-  'Bill of Exchange end-to-end with a real signed document ($ethersVersion)',
+  'TitleEscrow status end-to-end with a real signed document ($ethersVersion)',
   ({ Provider, ethersVersion }) => {
     let ownerWallet: ethersV5.Wallet | ethersV6.Wallet;
     let holderWallet: ethersV5.Wallet | ethersV6.Wallet;
@@ -187,9 +182,7 @@ describe.each(providers)(
           options,
         );
         expect(mintTx).toEqual('v5_mint_tx_hash');
-        expect(await getBillOfExchangeStatus(contractOptions, ownerWallet)).toEqual(
-          BillOfExchangeStatus.Issued,
-        );
+        expect(await getStatus(contractOptions, ownerWallet)).toEqual(Status.Issued);
 
         // Step 1 — Presentment: diverge holder to drawee
         const presentTx = await transferHolder(
@@ -206,38 +199,34 @@ describe.each(providers)(
         });
 
         // Step 2 — Holder accepts
-        const acceptTx = await acceptBillOfExchange(
+        const acceptTx = await accept(
           contractOptions,
           holderWallet,
           { remarks: 'Accepted, bound to pay at maturity' },
           options,
         );
-        expect(acceptTx).toEqual('v5_accept_bill_of_exchange_tx_hash');
+        expect(acceptTx).toEqual('v5_accept_tx_hash');
         await setRoles({
           beneficiary: ownerAddress,
           holder: holderAddress,
-          status: BillOfExchangeStatus.Accepted,
+          status: Status.Accepted,
         });
-        expect(await getBillOfExchangeStatus(contractOptions, ownerWallet)).toEqual(
-          BillOfExchangeStatus.Accepted,
-        );
+        expect(await getStatus(contractOptions, ownerWallet)).toEqual(Status.Accepted);
 
         // Step 3 — Owner discharges after payment
-        const dischargeTx = await dischargeBillOfExchange(
+        const dischargeTx = await discharge(
           contractOptions,
           ownerWallet,
           { remarks: `Paid at maturity for ${boeRawDocument.credentialSubject.boeNumber}` },
           options,
         );
-        expect(dischargeTx).toEqual('v5_discharge_bill_of_exchange_tx_hash');
+        expect(dischargeTx).toEqual('v5_discharge_tx_hash');
         await setRoles({
           beneficiary: ownerAddress,
           holder: holderAddress,
-          status: BillOfExchangeStatus.Discharged,
+          status: Status.Discharged,
         });
-        expect(await getBillOfExchangeStatus(contractOptions, ownerWallet)).toEqual(
-          BillOfExchangeStatus.Discharged,
-        );
+        expect(await getStatus(contractOptions, ownerWallet)).toEqual(Status.Discharged);
 
         // Step 4 — Reconverge owner onto holder, then surrender
         await nominate(
@@ -255,7 +244,7 @@ describe.each(providers)(
         await setRoles({
           beneficiary: holderAddress,
           holder: holderAddress,
-          status: BillOfExchangeStatus.Discharged,
+          status: Status.Discharged,
         });
 
         const surrenderTx = await returnToIssuer(
@@ -286,30 +275,28 @@ describe.each(providers)(
           prevHolder: ownerAddress,
         });
 
-        const rejectTx = await rejectBillOfExchange(
+        const rejectTx = await reject(
           contractOptions,
           holderWallet,
           { remarks: 'Declined — goods not received' },
           options,
         );
-        expect(rejectTx).toEqual('v5_reject_bill_of_exchange_tx_hash');
+        expect(rejectTx).toEqual('v5_reject_tx_hash');
         await setRoles({
           beneficiary: ownerAddress,
           holder: holderAddress,
-          status: BillOfExchangeStatus.Rejected,
+          status: Status.Rejected,
           prevHolder: ownerAddress,
         });
-        expect(await getBillOfExchangeStatus(contractOptions, ownerWallet)).toEqual(
-          BillOfExchangeStatus.Rejected,
-        );
+        expect(await getStatus(contractOptions, ownerWallet)).toEqual(Status.Rejected);
 
         // Terminal: cannot discharge or accept a rejected bill
-        await expect(
-          dischargeBillOfExchange(contractOptions, ownerWallet, {}, options),
-        ).rejects.toThrow('was rejected and can never be discharged');
-        await expect(
-          acceptBillOfExchange(contractOptions, holderWallet, {}, options),
-        ).rejects.toThrow(/already been|cannot be accepted or rejected again/);
+        await expect(discharge(contractOptions, ownerWallet, {}, options)).rejects.toThrow(
+          'was rejected and can never be discharged',
+        );
+        await expect(accept(contractOptions, holderWallet, {}, options)).rejects.toThrow(
+          /already been|cannot be accepted or rejected again/,
+        );
 
         // Status-only reject — separately revert holder role
         const revertHolderTx = await rejectTransferHolder(
@@ -322,7 +309,7 @@ describe.each(providers)(
         await setRoles({
           beneficiary: ownerAddress,
           holder: ownerAddress,
-          status: BillOfExchangeStatus.Rejected,
+          status: Status.Rejected,
         });
 
         const surrenderTx = await returnToIssuer(
@@ -361,7 +348,7 @@ describe.each(providers)(
         await setRoles({
           beneficiary: ownerAddress,
           holder: holderAddress,
-          status: BillOfExchangeStatus.Accepted,
+          status: Status.Accepted,
         });
 
         await nominate(
@@ -379,31 +366,27 @@ describe.each(providers)(
         await setRoles({
           beneficiary: bankAddress,
           holder: holderAddress,
-          status: BillOfExchangeStatus.Accepted,
+          status: Status.Accepted,
         });
 
         // Original owner can no longer discharge
-        await expect(
-          dischargeBillOfExchange(contractOptions, ownerWallet, {}, options),
-        ).rejects.toThrow(
-          'Only the current beneficiary (owner) can discharge this Bill of Exchange',
+        await expect(discharge(contractOptions, ownerWallet, {}, options)).rejects.toThrow(
+          'Only the current beneficiary (owner) can discharge this TitleEscrow',
         );
 
-        const dischargeTx = await dischargeBillOfExchange(
+        const dischargeTx = await discharge(
           contractOptions,
           bankWallet,
           { remarks: 'Paid; bank discharges' },
           options,
         );
-        expect(dischargeTx).toEqual('v5_discharge_bill_of_exchange_tx_hash');
+        expect(dischargeTx).toEqual('v5_discharge_tx_hash');
         await setRoles({
           beneficiary: bankAddress,
           holder: holderAddress,
-          status: BillOfExchangeStatus.Discharged,
+          status: Status.Discharged,
         });
-        expect(await getBillOfExchangeStatus(contractOptions, bankWallet)).toEqual(
-          BillOfExchangeStatus.Discharged,
-        );
+        expect(await getStatus(contractOptions, bankWallet)).toEqual(Status.Discharged);
       });
     });
 
@@ -411,65 +394,65 @@ describe.each(providers)(
       it('blocks accept/reject/discharge when owner == holder (no presentment)', async () => {
         await setRoles({ beneficiary: ownerAddress, holder: ownerAddress });
 
-        await expect(
-          acceptBillOfExchange(contractOptions, ownerWallet, {}, options),
-        ).rejects.toThrow('Owner and holder must be different addresses');
-        await expect(
-          rejectBillOfExchange(contractOptions, ownerWallet, {}, options),
-        ).rejects.toThrow('Owner and holder must be different addresses');
+        await expect(accept(contractOptions, ownerWallet, {}, options)).rejects.toThrow(
+          'Owner and holder must be different addresses',
+        );
+        await expect(reject(contractOptions, ownerWallet, {}, options)).rejects.toThrow(
+          'Owner and holder must be different addresses',
+        );
       });
 
       it('blocks discharge before acceptance and after discharge', async () => {
         await setRoles({
           beneficiary: ownerAddress,
           holder: holderAddress,
-          status: BillOfExchangeStatus.Issued,
+          status: Status.Issued,
         });
-        await expect(
-          dischargeBillOfExchange(contractOptions, ownerWallet, {}, options),
-        ).rejects.toThrow('has not been accepted yet');
+        await expect(discharge(contractOptions, ownerWallet, {}, options)).rejects.toThrow(
+          'has not been accepted yet',
+        );
 
         await setRoles({
           beneficiary: ownerAddress,
           holder: holderAddress,
-          status: BillOfExchangeStatus.Discharged,
+          status: Status.Discharged,
         });
-        await expect(
-          dischargeBillOfExchange(contractOptions, ownerWallet, {}, options),
-        ).rejects.toThrow('already been discharged');
-        await expect(
-          acceptBillOfExchange(contractOptions, holderWallet, {}, options),
-        ).rejects.toThrow(/already been|cannot be accepted or rejected again/);
+        await expect(discharge(contractOptions, ownerWallet, {}, options)).rejects.toThrow(
+          'already been discharged',
+        );
+        await expect(accept(contractOptions, holderWallet, {}, options)).rejects.toThrow(
+          /already been|cannot be accepted or rejected again/,
+        );
       });
 
       it('blocks wrong-role callers at each lifecycle step', async () => {
         await setRoles({
           beneficiary: ownerAddress,
           holder: holderAddress,
-          status: BillOfExchangeStatus.Issued,
+          status: Status.Issued,
         });
-        await expect(
-          acceptBillOfExchange(contractOptions, ownerWallet, {}, options),
-        ).rejects.toThrow('Only the current holder can accept');
-        await expect(
-          rejectBillOfExchange(contractOptions, ownerWallet, {}, options),
-        ).rejects.toThrow('Only the current holder can reject');
+        await expect(accept(contractOptions, ownerWallet, {}, options)).rejects.toThrow(
+          'Only the current holder can accept',
+        );
+        await expect(reject(contractOptions, ownerWallet, {}, options)).rejects.toThrow(
+          'Only the current holder can reject',
+        );
 
         await setRoles({
           beneficiary: ownerAddress,
           holder: holderAddress,
-          status: BillOfExchangeStatus.Accepted,
+          status: Status.Accepted,
         });
-        await expect(
-          dischargeBillOfExchange(contractOptions, holderWallet, {}, options),
-        ).rejects.toThrow('Only the current beneficiary (owner) can discharge');
+        await expect(discharge(contractOptions, holderWallet, {}, options)).rejects.toThrow(
+          'Only the current beneficiary (owner) can discharge',
+        );
       });
 
       it('allows ETR circulation after Accepted without reading or mutating status', async () => {
         await setRoles({
           beneficiary: ownerAddress,
           holder: holderAddress,
-          status: BillOfExchangeStatus.Accepted,
+          status: Status.Accepted,
         });
         mockV5TitleEscrowContract.status.mockClear();
 
