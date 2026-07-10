@@ -47,6 +47,21 @@ describe.each(providers)(
         expect(result).toEqual('v5_accept_tx_hash');
       });
 
+      it.each([undefined, ''] as const)(
+        'should accept empty remarks (%j) by sending 0x to the contract',
+        async (remarks) => {
+          const result = await accept(contractOptions, wallet, { remarks }, options);
+          expect(result).toEqual('v5_accept_tx_hash');
+          expect(coreModule.encrypt).not.toHaveBeenCalled();
+          if (ethersVersion === 'v6') {
+            expect(mockV5TitleEscrowContract.accept.staticCall).toHaveBeenCalledWith('0x');
+          } else {
+            expect(mockV5TitleEscrowContract.callStatic.accept).toHaveBeenCalledWith('0x');
+          }
+          expect(mockV5TitleEscrowContract.accept).toHaveBeenCalledWith('0x', expect.anything());
+        },
+      );
+
       it('should accept when titleEscrowAddress is provided directly', async () => {
         const result = await accept(
           { titleEscrowAddress: MOCK_TITLE_ESCROW_ADDRESS },
@@ -132,6 +147,21 @@ describe.each(providers)(
         expect(result).toEqual('v5_reject_tx_hash');
       });
 
+      it.each([undefined, ''] as const)(
+        'should reject empty remarks (%j) by sending 0x to the contract',
+        async (remarks) => {
+          const result = await reject(contractOptions, wallet, { remarks }, options);
+          expect(result).toEqual('v5_reject_tx_hash');
+          expect(coreModule.encrypt).not.toHaveBeenCalled();
+          if (ethersVersion === 'v6') {
+            expect(mockV5TitleEscrowContract.reject.staticCall).toHaveBeenCalledWith('0x');
+          } else {
+            expect(mockV5TitleEscrowContract.callStatic.reject).toHaveBeenCalledWith('0x');
+          }
+          expect(mockV5TitleEscrowContract.reject).toHaveBeenCalledWith('0x', expect.anything());
+        },
+      );
+
       it('should throw when the signer is not the current holder', async () => {
         mockV5TitleEscrowContract.holder.mockResolvedValue('0xsomeone_else');
         await expect(
@@ -180,6 +210,21 @@ describe.each(providers)(
         const result = await discharge(contractOptions, wallet, { remarks: MOCK_REMARKS }, options);
         expect(result).toEqual('v5_discharge_tx_hash');
       });
+
+      it.each([undefined, ''] as const)(
+        'should discharge empty remarks (%j) by sending 0x to the contract',
+        async (remarks) => {
+          const result = await discharge(contractOptions, wallet, { remarks }, options);
+          expect(result).toEqual('v5_discharge_tx_hash');
+          expect(coreModule.encrypt).not.toHaveBeenCalled();
+          if (ethersVersion === 'v6') {
+            expect(mockV5TitleEscrowContract.discharge.staticCall).toHaveBeenCalledWith('0x');
+          } else {
+            expect(mockV5TitleEscrowContract.callStatic.discharge).toHaveBeenCalledWith('0x');
+          }
+          expect(mockV5TitleEscrowContract.discharge).toHaveBeenCalledWith('0x', expect.anything());
+        },
+      );
 
       it('should throw when the signer is not the current beneficiary', async () => {
         mockV5TitleEscrowContract.beneficiary.mockResolvedValue('0xsomeone_else');
