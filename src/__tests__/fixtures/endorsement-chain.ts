@@ -3361,6 +3361,42 @@ export const testCases = [
           baseFeePerGas: 15n,
         },
       },
+      {
+        function: 'getLogs',
+        params: [
+          {
+            address: '0x24c9C688cf919D133abB512A41163972dA150f1b',
+            topics: ['0x99b8651fe6a15f20e29f103ad21eef0362603a62c0d4b96e7a0f493d101dc0a0'],
+            fromBlock: 0,
+            toBlock: 'latest',
+          },
+        ],
+        result: [],
+      },
+      {
+        function: 'getLogs',
+        params: [
+          {
+            address: '0x24c9C688cf919D133abB512A41163972dA150f1b',
+            topics: ['0xcb2ddde652b648da9d5396742a3bf19fafe4566e74c425d5480193b3dc1ee570'],
+            fromBlock: 0,
+            toBlock: 'latest',
+          },
+        ],
+        result: [],
+      },
+      {
+        function: 'getLogs',
+        params: [
+          {
+            address: '0x24c9C688cf919D133abB512A41163972dA150f1b',
+            topics: ['0x3c6f2526f3431eedd04ae7bfc6d1dc1fdaea2bc9eef72e6a647912ef8f2621ec'],
+            fromBlock: 0,
+            toBlock: 'latest',
+          },
+        ],
+        result: [],
+      },
     ],
     timeout: 180_000,
   },

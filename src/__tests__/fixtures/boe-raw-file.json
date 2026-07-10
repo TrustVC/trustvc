@@ -1,0 +1,61 @@
+{
+    "@context": [
+      "https://www.w3.org/ns/credentials/v2",
+      "https://w3id.org/security/data-integrity/v2",
+      "https://trustvc.io/context/render-method-context-v2.json",
+      "https://didhost.vercel.app/bill-of-exchange.json",
+      "https://trustvc.io/context/transferable-records-context.json",
+      "https://trustvc.io/context/qrcode-context.json"
+    ],
+    "renderMethod": [
+      {
+        "type": "EMBEDDED_RENDERER",
+        "templateName": "BILL_OF_EXCHANGE",
+        "id": "https://generic-templates.tradetrust.io"
+      }
+    ],
+    "credentialSubject": {
+      "type": "BillOfExchange",
+      "boeNumber": "BOE-2026-00147",
+      "placeOfIssue": "Singapore",
+      "dateOfIssue": "2026-07-01",
+      "tenor": "90 days after sight",
+      "drawerCompanyName": "Meridian Commodities Pte Ltd",
+      "drawerCompanyNo": "UEN-202312345A",
+      "drawerJurisdiction": "Singapore",
+      "drawerAddress": "8 Marina Boulevard, #24-01, Singapore 018981",
+      "drawerEmail": "trade.finance@meridiancommodities.com",
+      "drawerWalletAddress": "0x71bE63f3384f5fb98995898A86B02Fb2426c5788",
+      "draweeCompanyName": "Fairview Industries Inc.",
+      "draweeCompanyNo": "EIN-84-1923456",
+      "draweeJurisdiction": "Delaware, United States",
+      "draweeAddress": "1201 Market Street, Suite 900, Wilmington, DE 19801, USA",
+      "draweeEmail": "accounts.payable@fairviewindustries.com",
+      "draweeWalletAddress": "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
+      "payeeCompanyName": "Meridian Commodities Pte Ltd",
+      "payeeWalletAddress": "0x71bE63f3384f5fb98995898A86B02Fb2426c5788",
+      "dueDate": "2026-09-29",
+      "currency": "USD",
+      "amount": "128,500.00",
+      "amountInWords": "One hundred twenty-eight thousand five hundred United States Dollars only",
+      "clause": "Pay against this Bill of Exchange, on the tenor stated above, to the order of the Payee the sum stated, value received, without set-off, deduction or counterclaim, for goods shipped under Invoice No. INV-2026-0456 and Bill of Lading No. BL-SIN-2026-0781.",
+      "signerName": "Wei Ling Tan",
+      "signerPosition": "Director of Trade Finance",
+      "signerEmail": "wl.tan@meridiancommodities.com",
+      "signerTimeStamp": "2026-07-01"
+    },
+    "type": [
+      "VerifiableCredential"
+    ],
+    "credentialStatus": {
+      "type": "TransferableRecords",
+      "tokenNetwork": {
+        "chain": "Sepolia",
+        "chainId": 11155111
+      },
+      "tokenRegistry": "0x0Fb7F338FcB88290224A144A2b7E716D480a69E7"
+    },
+    "issuer": "did:web:didhost.vercel.app",
+    "validFrom": "2026-07-01T09:00:00Z"
+  }
+  

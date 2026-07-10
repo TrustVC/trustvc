@@ -46,7 +46,10 @@ export type TitleEscrowTransferEventType =
   | 'TRANSFER_OWNERS'
   | 'REJECT_TRANSFER_BENEFICIARY' // V5
   | 'REJECT_TRANSFER_HOLDER' // V5
-  | 'REJECT_TRANSFER_OWNERS'; // V5
+  | 'REJECT_TRANSFER_OWNERS' // V5
+  | 'BILL_OF_EXCHANGE_ACCEPTED' // V5, eBOE
+  | 'BILL_OF_EXCHANGE_REJECTED' // V5, eBOE
+  | 'BILL_OF_EXCHANGE_DISCHARGED'; // V5, eBOE
 
 export interface TokenTransferEvent extends TransferBaseEvent {
   type: TokenTransferEventType;

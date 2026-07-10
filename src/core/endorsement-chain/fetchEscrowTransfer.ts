@@ -133,6 +133,9 @@ const fetchAllTransfers = async (
     titleEscrowContract.filters.RejectTransferBeneficiary,
     titleEscrowContract.filters.RejectTransferHolder,
     titleEscrowContract.filters.Shred,
+    titleEscrowContract.filters.BillOfExchangeAccepted,
+    titleEscrowContract.filters.BillOfExchangeRejected,
+    titleEscrowContract.filters.BillOfExchangeDischarged,
   ];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const allLogs: any = await Promise.all(
@@ -237,6 +240,33 @@ const fetchAllTransfers = async (
           transactionIndex: event.transactionIndex,
           remark: event.args?.remark,
         } as TokenTransferEvent;
+      } else if (event?.name === 'BillOfExchangeAccepted') {
+        return {
+          type: 'BILL_OF_EXCHANGE_ACCEPTED',
+          holder: event.args.holder,
+          blockNumber: event.blockNumber,
+          transactionHash: event.transactionHash,
+          transactionIndex: event.transactionIndex,
+          remark: event.args?.remark,
+        } as TitleEscrowTransferEvent;
+      } else if (event?.name === 'BillOfExchangeRejected') {
+        return {
+          type: 'BILL_OF_EXCHANGE_REJECTED',
+          holder: event.args.holder,
+          blockNumber: event.blockNumber,
+          transactionHash: event.transactionHash,
+          transactionIndex: event.transactionIndex,
+          remark: event.args?.remark,
+        } as TitleEscrowTransferEvent;
+      } else if (event?.name === 'BillOfExchangeDischarged') {
+        return {
+          type: 'BILL_OF_EXCHANGE_DISCHARGED',
+          owner: event.args.beneficiary,
+          blockNumber: event.blockNumber,
+          transactionHash: event.transactionHash,
+          transactionIndex: event.transactionIndex,
+          remark: event.args?.remark,
+        } as TitleEscrowTransferEvent;
       }
 
       return undefined;

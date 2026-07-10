@@ -348,7 +348,8 @@ export class DocumentBuilder {
     interfaceId: string,
     provider: ethers.providers.JsonRpcProvider,
   ) {
-    const contract = contractFactory.connect(this.statusConfig.tokenRegistry, provider);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const contract = contractFactory.connect(this.statusConfig.tokenRegistry, provider as any);
     return contract.supportsInterface(interfaceId);
   }
 }
