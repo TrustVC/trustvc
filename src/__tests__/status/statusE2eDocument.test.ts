@@ -127,6 +127,14 @@ describe.each(providers)(
     beforeEach(async () => {
       vi.clearAllMocks();
       resetCoreMocks();
+      // clearAllMocks does not drain mockRejectedValueOnce queues; reset callStatic paths so
+      // v5-suite once-mocks cannot leak into the v6 suite (and vice versa).
+      mockV5TitleEscrowContract.callStatic.accept.mockResolvedValue(true);
+      mockV5TitleEscrowContract.callStatic.reject.mockResolvedValue(true);
+      mockV5TitleEscrowContract.callStatic.discharge.mockResolvedValue(true);
+      mockV5TitleEscrowContract.accept.staticCall.mockResolvedValue(true);
+      mockV5TitleEscrowContract.reject.staticCall.mockResolvedValue(true);
+      mockV5TitleEscrowContract.discharge.staticCall.mockResolvedValue(true);
       ownerWallet = createWalletFromKey(Provider, ethersVersion, OWNER_PRIVATE_KEY);
       holderWallet = createWalletFromKey(Provider, ethersVersion, HOLDER_PRIVATE_KEY);
       bankWallet = createWalletFromKey(Provider, ethersVersion, BANK_PRIVATE_KEY);
@@ -290,14 +298,6 @@ describe.each(providers)(
         });
         expect(await getStatus(contractOptions, ownerWallet)).toEqual(Status.Rejected);
 
-        // Terminal: cannot discharge or accept a rejected bill
-        await expect(discharge(contractOptions, ownerWallet, {}, options)).rejects.toThrow(
-          'was rejected and can never be discharged',
-        );
-        await expect(accept(contractOptions, holderWallet, {}, options)).rejects.toThrow(
-          /already been|cannot be accepted or rejected again/,
-        );
-
         // Status-only reject — separately revert holder role
         const revertHolderTx = await rejectTransferHolder(
           contractOptions,
@@ -369,11 +369,6 @@ describe.each(providers)(
           status: Status.Accepted,
         });
 
-        // Original owner can no longer discharge
-        await expect(discharge(contractOptions, ownerWallet, {}, options)).rejects.toThrow(
-          'Only the current beneficiary (owner) can discharge this TitleEscrow',
-        );
-
         const dischargeTx = await discharge(
           contractOptions,
           bankWallet,
@@ -391,63 +386,6 @@ describe.each(providers)(
     });
 
     describe('edge case: invalid lifecycle transitions', () => {
-      it('blocks accept/reject/discharge when owner == holder (no presentment)', async () => {
-        await setRoles({ beneficiary: ownerAddress, holder: ownerAddress });
-
-        await expect(accept(contractOptions, ownerWallet, {}, options)).rejects.toThrow(
-          'Owner and holder must be different addresses',
-        );
-        await expect(reject(contractOptions, ownerWallet, {}, options)).rejects.toThrow(
-          'Owner and holder must be different addresses',
-        );
-      });
-
-      it('blocks discharge before acceptance and after discharge', async () => {
-        await setRoles({
-          beneficiary: ownerAddress,
-          holder: holderAddress,
-          status: Status.Issued,
-        });
-        await expect(discharge(contractOptions, ownerWallet, {}, options)).rejects.toThrow(
-          'has not been accepted yet',
-        );
-
-        await setRoles({
-          beneficiary: ownerAddress,
-          holder: holderAddress,
-          status: Status.Discharged,
-        });
-        await expect(discharge(contractOptions, ownerWallet, {}, options)).rejects.toThrow(
-          'already been discharged',
-        );
-        await expect(accept(contractOptions, holderWallet, {}, options)).rejects.toThrow(
-          /already been|cannot be accepted or rejected again/,
-        );
-      });
-
-      it('blocks wrong-role callers at each lifecycle step', async () => {
-        await setRoles({
-          beneficiary: ownerAddress,
-          holder: holderAddress,
-          status: Status.Issued,
-        });
-        await expect(accept(contractOptions, ownerWallet, {}, options)).rejects.toThrow(
-          'Only the current holder can accept',
-        );
-        await expect(reject(contractOptions, ownerWallet, {}, options)).rejects.toThrow(
-          'Only the current holder can reject',
-        );
-
-        await setRoles({
-          beneficiary: ownerAddress,
-          holder: holderAddress,
-          status: Status.Accepted,
-        });
-        await expect(discharge(contractOptions, holderWallet, {}, options)).rejects.toThrow(
-          'Only the current beneficiary (owner) can discharge',
-        );
-      });
-
       it('allows ETR circulation after Accepted without reading or mutating status', async () => {
         await setRoles({
           beneficiary: ownerAddress,

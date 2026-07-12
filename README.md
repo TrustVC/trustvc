@@ -1323,7 +1323,6 @@ await dischargeTx.wait();
 
 > `transferHolder`, `transferBeneficiary`, `transferOwners`, `nominate`, `rejectTransferHolder`, `rejectTransferBeneficiary`, `rejectTransferOwners`, and `returnToIssuer` are **exactly** the same functions ETR integrations already call — same signatures, same exports, same import paths, same behaviour. There is no `documentType` field, no status gating, no reconvergence guard, no circulation restriction woven into any of them. They have zero awareness that `status` or the Bill of Exchange lifecycle exists.
 >
-> This is a deliberate design choice: the contract is fully permissive by itself (transfers never mutate or check `status`), and this SDK doesn't add any client-side restriction on top either. If you want reconvergence guards, terminal-state circulation limits, or surrender hints specific to your own integration, build them in your own application layer — `StatusRules` (used internally by `accept`/`reject`/`discharge` only) is not applied to these functions and never will be.
 
 #### Example: full happy path
 
@@ -1382,5 +1381,5 @@ await mint({ tokenRegistryAddress }, signer, { beneficiaryAddress, holderAddress
 - **Beta** functionality — the API may still change.
 - **Token Registry V5 only.** V4 has no `status()`/`accept`/`reject`/`discharge` at all.
 - On-chain method names are `accept`/`reject`/`discharge`; events are `StatusAccepted`/`StatusRejected`/`StatusDischarged`. The endorsement chain surfaces these as `STATUS_ACCEPTED`/`STATUS_REJECTED`/`STATUS_DISCHARGED`.
-- `StatusRules` validation applies **only** inside `accept`/`reject`/`discharge`. It is not applied to, and cannot be applied to, `transferHolder`/`transferBeneficiary`/`transferOwners`/`nominate`/the reject-transfer family/`returnToIssuer` — those remain exactly as permissive as plain ETR, by design.
-- `getStatus`/`accept`/`reject`/`discharge` (plus `Status`/`StatusLabel`) are exported flat from `@trustvc/trustvc`; `StatusRules` is internal and not exported — it only exists to keep the three dedicated functions' precondition checks in one place.
+- Role and status preconditions for `accept`/`reject`/`discharge` are enforced on-chain only; the SDK surfaces them via `callStatic` like other TitleEscrow helpers. Transfers/`nominate`/reject-transfer/`returnToIssuer` remain exactly as permissive as plain ETR.
+- `getStatus`/`accept`/`reject`/`discharge` (plus `Status`/`StatusLabel`) are exported flat from `@trustvc/trustvc`.

@@ -95,37 +95,6 @@ describe.each(providers)(
         ).rejects.toThrow('Only Token Registry V5 is supported');
       });
 
-      it('should throw a friendly error when the TitleEscrow predates the status lifecycle', async () => {
-        mockV5TitleEscrowContract.status.mockRejectedValue(new Error('no such function'));
-        await expect(
-          accept(contractOptions, wallet, { remarks: MOCK_REMARKS }, options),
-        ).rejects.toThrow('does not support the status lifecycle');
-      });
-
-      it('should throw when the signer is not the current holder', async () => {
-        mockV5TitleEscrowContract.holder.mockResolvedValue('0xsomeone_else');
-        await expect(
-          accept(contractOptions, wallet, { remarks: MOCK_REMARKS }, options),
-        ).rejects.toThrow('Only the current holder can accept this TitleEscrow');
-      });
-
-      it('should throw when owner and holder are the same address', async () => {
-        mockV5TitleEscrowContract.beneficiary.mockResolvedValue(wallet.address);
-        await expect(
-          accept(contractOptions, wallet, { remarks: MOCK_REMARKS }, options),
-        ).rejects.toThrow('Owner and holder must be different addresses');
-      });
-
-      it.each([Status.Accepted, Status.Rejected, Status.Discharged])(
-        'should throw when status is already %i',
-        async (status) => {
-          mockV5TitleEscrowContract.status.mockResolvedValue(status);
-          await expect(
-            accept(contractOptions, wallet, { remarks: MOCK_REMARKS }, options),
-          ).rejects.toThrow(/already been|cannot be accepted or rejected again/);
-        },
-      );
-
       it('should throw when callStatic fails', async () => {
         mockV5TitleEscrowContract.callStatic.accept.mockRejectedValue(
           new Error('Simulated failure'),
@@ -159,30 +128,6 @@ describe.each(providers)(
             expect(mockV5TitleEscrowContract.callStatic.reject).toHaveBeenCalledWith('0x');
           }
           expect(mockV5TitleEscrowContract.reject).toHaveBeenCalledWith('0x', expect.anything());
-        },
-      );
-
-      it('should throw when the signer is not the current holder', async () => {
-        mockV5TitleEscrowContract.holder.mockResolvedValue('0xsomeone_else');
-        await expect(
-          reject(contractOptions, wallet, { remarks: MOCK_REMARKS }, options),
-        ).rejects.toThrow('Only the current holder can reject this TitleEscrow');
-      });
-
-      it('should throw when owner and holder are the same address', async () => {
-        mockV5TitleEscrowContract.beneficiary.mockResolvedValue(wallet.address);
-        await expect(
-          reject(contractOptions, wallet, { remarks: MOCK_REMARKS }, options),
-        ).rejects.toThrow('Owner and holder must be different addresses');
-      });
-
-      it.each([Status.Rejected, Status.Discharged])(
-        'should throw when status is already %i',
-        async (status) => {
-          mockV5TitleEscrowContract.status.mockResolvedValue(status);
-          await expect(
-            reject(contractOptions, wallet, { remarks: MOCK_REMARKS }, options),
-          ).rejects.toThrow('cannot be accepted or rejected again');
         },
       );
 
@@ -225,41 +170,6 @@ describe.each(providers)(
           expect(mockV5TitleEscrowContract.discharge).toHaveBeenCalledWith('0x', expect.anything());
         },
       );
-
-      it('should throw when the signer is not the current beneficiary', async () => {
-        mockV5TitleEscrowContract.beneficiary.mockResolvedValue('0xsomeone_else');
-        await expect(
-          discharge(contractOptions, wallet, { remarks: MOCK_REMARKS }, options),
-        ).rejects.toThrow('Only the current beneficiary (owner) can discharge this TitleEscrow');
-      });
-
-      it('should throw when owner and holder are the same address', async () => {
-        mockV5TitleEscrowContract.holder.mockResolvedValue(wallet.address);
-        await expect(
-          discharge(contractOptions, wallet, { remarks: MOCK_REMARKS }, options),
-        ).rejects.toThrow('Owner and holder must be different addresses');
-      });
-
-      it('should throw a specific message when status is Rejected', async () => {
-        mockV5TitleEscrowContract.status.mockResolvedValue(Status.Rejected);
-        await expect(
-          discharge(contractOptions, wallet, { remarks: MOCK_REMARKS }, options),
-        ).rejects.toThrow('was rejected and can never be discharged');
-      });
-
-      it('should throw a specific message when status is still Issued', async () => {
-        mockV5TitleEscrowContract.status.mockResolvedValue(Status.Issued);
-        await expect(
-          discharge(contractOptions, wallet, { remarks: MOCK_REMARKS }, options),
-        ).rejects.toThrow('has not been accepted yet');
-      });
-
-      it('should throw a specific message when already Discharged', async () => {
-        mockV5TitleEscrowContract.status.mockResolvedValue(Status.Discharged);
-        await expect(
-          discharge(contractOptions, wallet, { remarks: MOCK_REMARKS }, options),
-        ).rejects.toThrow('This TitleEscrow has already been discharged.');
-      });
 
       it('should throw when callStatic fails', async () => {
         mockV5TitleEscrowContract.callStatic.discharge.mockRejectedValue(

@@ -7,24 +7,23 @@ import {
 import { v5Contracts } from '../token-registry-v5';
 import { Signer as SignerV6, Contract as ContractV6 } from 'ethersV6';
 import { Contract as ContractV5, ContractTransaction, Signer } from 'ethers';
-import { getSignerAddressSafe, getTxOptions } from '../token-registry-functions/utils';
+import { getTxOptions } from '../token-registry-functions/utils';
 import { ContractOptions, TransactionOptions } from '../token-registry-functions/types';
 import { getEthersContractFromProvider, isV6EthersProvider } from '../utils/ethers';
-import { StatusActionParams, Status } from './types';
-import { StatusRules } from './StatusRules';
+import { StatusActionParams } from './types';
 
 /**
  * Beta. Beneficiary (owner) discharges a TitleEscrow, moving its status from Accepted to
  * Discharged — terminal, confirming money received off-chain. Never callable from Rejected. Not
  * gated on document type.
- * Calls the on-chain `discharge(bytes)` method.
+ * Calls the on-chain `discharge(bytes)` method. Role and status preconditions are enforced by the
+ * contract (surfaced via callStatic).
  * @param {ContractOptions} contractOptions - Contract-related options including the token registry address, and optionally, token ID and the title escrow address.
  * @param {Signer | SignerV6} signer - Ethers signer (V5 or V6) used to sign and send the transaction. Must be the current beneficiary.
  * @param {StatusActionParams} params - Contains the optional `remarks` field, encrypted and sent with the transaction.
  * @param {TransactionOptions} options - Includes optional `chainId`, `titleEscrowVersion`, `maxFeePerGas`, `maxPriorityFeePerGas`, and an `id` used for encryption.
  * @throws if the title escrow address or signer provider is missing.
- * @throws if the version is not V5 compatible, or the TitleEscrow predates the status lifecycle.
- * @throws if the signer is not the current beneficiary, if owner and holder are the same address, or if the current status isn't Accepted.
+ * @throws if the version is not V5 compatible.
  * @throws if the dry-run (`callStatic`) fails.
  * @returns {Promise<ContractTransaction>} The transaction response of the discharge call.
  */
@@ -75,25 +74,6 @@ const discharge = async (
     throw new Error('Only Token Registry V5 is supported');
   }
 
-  const [currentBeneficiary, currentHolder] = await Promise.all([
-    titleEscrowContract.beneficiary(),
-    titleEscrowContract.holder(),
-  ]);
-
-  let currentStatus: Status;
-  try {
-    currentStatus = Number(await titleEscrowContract.status()) as Status;
-  } catch (e) {
-    console.error('status() failed:', e);
-    throw new Error(
-      'This TitleEscrow does not support the status lifecycle (status()) — it likely predates the eBOE contract upgrade.',
-    );
-  }
-
-  const signerAddress = await getSignerAddressSafe(signer);
-  StatusRules.assertDischarge({ currentBeneficiary, currentHolder, currentStatus, signerAddress });
-
-  // Check callStatic (dry run)
   try {
     if (isV6EthersProvider(signer.provider)) {
       await (titleEscrowContract as ContractV6).discharge.staticCall(encryptedRemarks);
