@@ -1,6 +1,7 @@
-import { ContractOptions, TransactionOptions } from '../token-registry-functions/types';
+import { ContractOptions } from '../token-registry-functions/types';
 
-export type { ContractOptions, TransactionOptions };
+export type { ContractOptions };
+export type { TransactionOptions } from '../token-registry-functions/types';
 
 export interface StatusActionParams {
   remarks?: string;

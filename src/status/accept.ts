@@ -1,16 +1,8 @@
-import {
-  encrypt,
-  getTitleEscrowAddress,
-  isTitleEscrowVersion,
-  TitleEscrowInterface,
-} from '../core';
-import { v5Contracts } from '../token-registry-v5';
-import { Signer as SignerV6, Contract as ContractV6 } from 'ethersV6';
-import { Contract as ContractV5, ContractTransaction, Signer } from 'ethers';
-import { getTxOptions } from '../token-registry-functions/utils';
+import { Signer as SignerV6 } from 'ethersV6';
+import { ContractTransaction, Signer } from 'ethers';
 import { ContractOptions, TransactionOptions } from '../token-registry-functions/types';
-import { getEthersContractFromProvider, isV6EthersProvider } from '../utils/ethers';
 import { StatusActionParams } from './types';
+import { runStatusAction } from './runStatusAction';
 
 /**
  * Beta. Holder accepts a TitleEscrow, moving its status from Issued to Accepted. Callable on any
@@ -26,67 +18,12 @@ import { StatusActionParams } from './types';
  * @throws if the dry-run (`callStatic`) fails.
  * @returns {Promise<ContractTransaction>} The transaction response of the accept call.
  */
-const accept = async (
+const accept = (
   contractOptions: ContractOptions,
   signer: Signer | SignerV6,
   params: StatusActionParams,
   options: TransactionOptions,
-): Promise<ContractTransaction> => {
-  const { tokenRegistryAddress, tokenId } = contractOptions;
-  let { titleEscrowAddress } = contractOptions;
-  const { chainId, maxFeePerGas, maxPriorityFeePerGas, titleEscrowVersion } = options;
-
-  if (!titleEscrowAddress) {
-    if (!tokenRegistryAddress) throw new Error('Token registry address is required');
-    if (!tokenId) throw new Error('Token ID is required');
-    titleEscrowAddress = await getTitleEscrowAddress(
-      tokenRegistryAddress,
-      tokenId as string,
-      signer.provider,
-      {},
-    );
-  }
-
-  if (!titleEscrowAddress) throw new Error('Title escrow address is required');
-  if (!signer.provider) throw new Error('Provider is required');
-  const { remarks } = params;
-
-  const Contract = getEthersContractFromProvider(signer.provider);
-  const titleEscrowContract: ContractV5 | ContractV6 = new Contract(
-    titleEscrowAddress,
-    v5Contracts.TitleEscrow__factory.abi,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    signer as any,
-  );
-  const encryptedRemarks = remarks ? `0x${encrypt(remarks, options.id!)}` : '0x';
-
-  let isV5TT = titleEscrowVersion === 'v5';
-  if (titleEscrowVersion === undefined) {
-    isV5TT = await isTitleEscrowVersion({
-      titleEscrowAddress,
-      versionInterface: TitleEscrowInterface.V5,
-      provider: signer.provider,
-    });
-  }
-
-  if (!isV5TT) {
-    throw new Error('Only Token Registry V5 is supported');
-  }
-
-  try {
-    if (isV6EthersProvider(signer.provider)) {
-      await (titleEscrowContract as ContractV6).accept.staticCall(encryptedRemarks);
-    } else {
-      await (titleEscrowContract as ContractV5).callStatic.accept(encryptedRemarks);
-    }
-  } catch (e) {
-    console.error('callStatic failed:', e);
-    throw new Error('Pre-check (callStatic) for accept failed');
-  }
-
-  const txOptions = await getTxOptions(signer, chainId, maxFeePerGas, maxPriorityFeePerGas);
-
-  return await titleEscrowContract.accept(encryptedRemarks, txOptions);
-};
+): Promise<ContractTransaction> =>
+  runStatusAction('accept', contractOptions, signer, params, options);
 
 export { accept };
