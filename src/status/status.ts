@@ -26,6 +26,12 @@ const getStatus = async (
   let { titleEscrowAddress } = contractOptions;
   const { titleEscrowVersion } = options;
 
+  const { tokenRegistryAddress, tokenId } = contractOptions;
+  let { titleEscrowAddress } = contractOptions;
+  const { titleEscrowVersion } = options;
+
+  if (!signer.provider) throw new Error('Provider is required');
+
   if (!titleEscrowAddress) {
     if (!tokenRegistryAddress) throw new Error('Token registry address is required');
     if (!tokenId) throw new Error('Token ID is required');
@@ -38,7 +44,6 @@ const getStatus = async (
   }
 
   if (!titleEscrowAddress) throw new Error('Title escrow address is required');
-  if (!signer.provider) throw new Error('Provider is required');
 
   let isV5TT = titleEscrowVersion === 'v5';
   if (titleEscrowVersion === undefined) {
