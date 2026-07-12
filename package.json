@@ -117,7 +117,6 @@
   "dependencies": {
     "@tradetrust-tt/dnsprove": "^2.18.0",
     "@tradetrust-tt/ethers-aws-kms-signer": "^2.1.4",
-    "@tradetrust-tt/token-registry": "file:.yalc/@tradetrust-tt/token-registry",
     "@tradetrust-tt/token-registry-v4": "npm:@tradetrust-tt/token-registry@^4.16.0",
     "@tradetrust-tt/token-registry-v5": "npm:@tradetrust-tt/token-registry@^5.5.0",
     "@tradetrust-tt/tradetrust": "^6.10.3",
