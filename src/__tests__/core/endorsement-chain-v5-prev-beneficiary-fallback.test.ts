@@ -6,7 +6,7 @@ import { fetchEndorsementChain } from '../../core/endorsement-chain/useEndorseme
 const TITLE_ESCROW_ADDRESS = '0x1111111111111111111111111111111111111111';
 const REGISTRY_ADDRESS = '0x2222222222222222222222222222222222222222';
 
-describe('fetchEndorsementChain - pre-BOE (legacy) V5 TitleEscrow fallback', () => {
+describe('fetchEndorsementChain - V5 detection via prevBeneficiary() fallback', () => {
   it('still resolves as V5 via prevBeneficiary() duck-typing when supportsInterface fails for both V4 and the current V5 interfaceId', async () => {
     const fakeContract = {
       supportsInterface: vi.fn().mockResolvedValue(false),

@@ -161,10 +161,11 @@ export const checkSupportsInterface = async (
   }
 };
 
-// Duck-types prevBeneficiary(), a view function that has existed on every V5 TitleEscrow since
-// before the BOE (status/accept/reject/discharge) upgrade and isn't part of the interfaceId that
-// upgrade changed. Used only as a fallback when supportsInterface(TitleEscrowInterface.V5) fails.
-const isLegacyV5TitleEscrow = async (
+// Duck-types prevBeneficiary(), a view function every V5 TitleEscrow has always had, regardless
+// of whether it was deployed before or after status()/accept/reject/discharge were added to
+// ITitleEscrow (which changed the interface's ERC165 id). Used only as a fallback when
+// supportsInterface(TitleEscrowInterface.V5) fails.
+const isV5ByPrevBeneficiary = async (
   titleEscrowAddress: string,
   provider: Provider | ethersV6.Provider,
 ): Promise<boolean> => {
@@ -240,9 +241,11 @@ export const fetchEndorsementChain = async (
 
   // Adding status()/accept/reject/discharge to ITitleEscrow changed its ERC165 interfaceId, so
   // TitleEscrowInterface.V5 only matches contracts deployed after that change — a V5 TitleEscrow
+  // deployed before it fails supportsInterface(V5) even though it's still genuinely V5. Fall back
+  // to duck-typing prevBeneficiary() before concluding the registry is unsupported.
   const isV5 =
     isV5ByInterface ||
-    (!isV4 && (await isLegacyV5TitleEscrow(resolvedTitleEscrowAddress, provider)));
+    (!isV4 && (await isV5ByPrevBeneficiary(resolvedTitleEscrowAddress, provider)));
 
   if (!isV4 && !isV5) {
     throw new Error('Only Token Registry V4/V5 is supported');
