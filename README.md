@@ -1272,11 +1272,15 @@ console.log(StatusLabel[status]); // e.g. "Issued"
 > - **reject** — holder-only, requires `status === Issued`, moves to `Rejected` (terminal — nothing can move it again). Status-only: it does not revert the holder role, use the existing `rejectTransferHolder` for that. Emits `StatusRejected`.
 > - **discharge** — beneficiary(owner)-only, requires `status === Accepted`, moves to `Discharged` (terminal). Never callable from `Rejected`. Emits `StatusDischarged`.
 >
-> All three additionally require `beneficiary != holder` at the moment they're called, and run client-side pre-flight checks — in this order — before sending the transaction, so failures surface as a specific message instead of a raw revert:
->
-> 1. **Caller-role check** — signer must be the current holder (accept/reject) or beneficiary (discharge).
-> 2. **Owner ≠ holder check**.
-> 3. **Status-precondition check**, with a tailored message per terminal case (e.g. *"This TitleEscrow was rejected and can never be discharged — surrender it (returnToIssuer) and reissue a new one instead."*).
+> All three additionally require `beneficiary != holder` at the moment they're called. These
+> preconditions (caller role, owner ≠ holder, status transition) are enforced entirely on-chain by
+> the contract — there is no client-side role/status validation in the SDK. Before sending, each
+> function runs a `callStatic` dry-run of the same call; if that dry-run reverts for any reason
+> (wrong caller, owner == holder, wrong status, etc.), the SDK throws a generic
+> `Pre-check (callStatic) for accept failed` (or `reject`/`discharge`) rather than a message
+> tailored to the specific precondition that failed. Inspect the underlying revert reason (e.g.
+> `CallerNotHolder`, `CallerNotBeneficiary`, `OwnerHolderMustDiffer`, `InvalidStatusTransition` from
+> `TitleEscrowErrors.sol`) if you need to distinguish which precondition was violated.
 
 #### Parameters
 
@@ -1288,7 +1292,7 @@ Same shape for all three: `contractOptions` (as above), `signer`, `params: { rem
 
 #### Throws
 
-Any of the pre-flight checks above, or a failed `callStatic` dry-run.
+A failed `callStatic` dry-run (see above), or if the title escrow address/signer provider is missing, or the title escrow isn't V5.
 
 #### Example
 

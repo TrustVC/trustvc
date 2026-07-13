@@ -3366,7 +3366,7 @@ export const testCases = [
         params: [
           {
             address: '0x24c9C688cf919D133abB512A41163972dA150f1b',
-            topics: ['0x99b8651fe6a15f20e29f103ad21eef0362603a62c0d4b96e7a0f493d101dc0a0'],
+            topics: ['0x29ab698c427c31fa4320edd82b1a5ed0be38d752324ceb1a7a8658f71ff380ac'],
             fromBlock: 0,
             toBlock: 'latest',
           },
@@ -3378,7 +3378,7 @@ export const testCases = [
         params: [
           {
             address: '0x24c9C688cf919D133abB512A41163972dA150f1b',
-            topics: ['0xcb2ddde652b648da9d5396742a3bf19fafe4566e74c425d5480193b3dc1ee570'],
+            topics: ['0x4273e3f9fa628dca95157f3f3e43f55a7b8a8e5a85596670d99f3b2f5d32578b'],
             fromBlock: 0,
             toBlock: 'latest',
           },
@@ -3390,7 +3390,7 @@ export const testCases = [
         params: [
           {
             address: '0x24c9C688cf919D133abB512A41163972dA150f1b',
-            topics: ['0x3c6f2526f3431eedd04ae7bfc6d1dc1fdaea2bc9eef72e6a647912ef8f2621ec'],
+            topics: ['0xcde6b978de664fc7c3c45ec359bc419b7e601021747927764218fa9af45238d5'],
             fromBlock: 0,
             toBlock: 'latest',
           },

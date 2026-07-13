@@ -26,10 +26,6 @@ const getStatus = async (
   let { titleEscrowAddress } = contractOptions;
   const { titleEscrowVersion } = options;
 
-  const { tokenRegistryAddress, tokenId } = contractOptions;
-  let { titleEscrowAddress } = contractOptions;
-  const { titleEscrowVersion } = options;
-
   if (!signer.provider) throw new Error('Provider is required');
 
   if (!titleEscrowAddress) {
