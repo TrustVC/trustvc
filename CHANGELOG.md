@@ -1,3 +1,10 @@
+## [2.15.0-beta.2](https://github.com/TrustVC/trustvc/compare/v2.15.0-beta.1...v2.15.0-beta.2) (2026-07-16)
+
+
+### Features
+
+* **eip7702:** export contract ABIs via eip7702Abis from @trustvc/trustvc ([59531e8](https://github.com/TrustVC/trustvc/commit/59531e883d18f9973498957a7c3a2112a05803ee))
+
 ## [2.15.0-beta.1](https://github.com/TrustVC/trustvc/compare/v2.14.1...v2.15.0-beta.1) (2026-07-01)
 
 
