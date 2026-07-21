@@ -190,12 +190,9 @@ obligationProviders.forEach(({ ethersVersion }) => {
         await waitTx(burnTx);
 
         const token = attachTrustVCToken(obligationRegistry, ethersVersion, owner);
-        try {
-          await token.ownerOf(tokenId);
-          expect.fail('Expected ownerOf to revert after burn');
-        } catch (error: unknown) {
-          expect((error as Error).message).to.include('ERC721: owner query for nonexistent token');
-        }
+        // TrustVCToken soft-burns to the sentinel address (ownerOf still resolves).
+        const BURN_ADDRESS = '0x000000000000000000000000000000000000dEaD';
+        expect((await token.ownerOf(tokenId)).toLowerCase()).to.equal(BURN_ADDRESS.toLowerCase());
 
         const escrow = attachObligationEscrow(escrowAddress, ethersVersion, owner);
         expect(await escrow.active()).to.equal(false);
