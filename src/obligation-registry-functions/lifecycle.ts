@@ -31,14 +31,10 @@ const createEscrowRemarksAction =
     params: EscrowRemarksParams,
     options: ObligationRegistryTransactionOptions = {},
   ): Promise<ContractTransaction> => {
-    const { obligationRegistry } = contractOptions;
-    if (!obligationRegistry) throw new Error('Obligation registry address is required');
-    if (!signer.provider) throw new Error('Provider is required');
     const { tokenId, remarks } = params;
-    const escrowAddress = await getObligationEscrowAddress(
-      obligationRegistry,
-      tokenId,
-      signer.provider,
+    const escrowAddress = await resolveObligationEscrowAddress(
+      { obligationRegistry: contractOptions.obligationRegistry, tokenId },
+      signer,
     );
     return callStaticThenSend(
       connectObligationEscrow(escrowAddress, signer),
