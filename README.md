@@ -2,7 +2,7 @@
 
 ## About
 
-TrustVC is a comprehensive wrapper library designed to simplify the signing and verification processes for TrustVC W3C [Verifiable Credentials (VC)](https://github.com/TrustVC/w3c) and OpenAttestation Verifiable Documents (VD), including OpenCert Verifiable Documents, adhering to the W3C [VC](https://www.w3.org/TR/vc-data-model/) Data Model v2.0 (W3C Standard). It ensures compatibility and interoperability for Verifiable Credentials while supporting OpenAttestation [Verifiable Documents (VD)](https://github.com/Open-Attestation/open-attestation) v6.9.5. TrustVC seamlessly integrates functionalities for handling W3C Verifiable Credentials and OpenAttestation Verifiable Documents, leveraging existing TradeTrust libraries and smart contracts for [Token Registry](https://github.com/TradeTrust/token-registry) (V4 and V5). For W3C credentials it supports both [`did:web`](https://w3c-ccg.github.io/did-method-web/) (**recommended for production**; host a DID document on a domain you control, which acts as the trust anchor) and [`did:key`](https://w3c-ccg.github.io/did-key-spec/) (self-certifying, no hosting required; best for ad-hoc or ephemeral issuers, but requires an out-of-band trust binding) issuers across the `ecdsa-sd-2023` and `bbs-2023` cryptosuites. Additionally, it includes essential utility functions for strings, networks, and chains, making it a versatile tool for developers working with decentralized identity and verifiable data solutions.
+TrustVC is a comprehensive wrapper library designed to simplify the signing and verification processes for TrustVC W3C [Verifiable Credentials (VC)](https://github.com/TrustVC/w3c) and OpenAttestation Verifiable Documents (VD), including OpenCert Verifiable Documents, adhering to the W3C [VC](https://www.w3.org/TR/vc-data-model/) Data Model v2.0 (W3C Standard). It ensures compatibility and interoperability for Verifiable Credentials while supporting OpenAttestation [Verifiable Documents (VD)](https://github.com/Open-Attestation/open-attestation) v6.9.5. TrustVC seamlessly integrates functionalities for handling W3C Verifiable Credentials and OpenAttestation Verifiable Documents, leveraging existing TradeTrust libraries and smart contracts for [Token Registry](https://github.com/TradeTrust/token-registry) (V4 and V5) and for **Obligation Registry** (electronic Bill of Exchange / BoE flows via `TrustVCToken` + `ObligationEscrow`). For W3C credentials it supports both [`did:web`](https://w3c-ccg.github.io/did-method-web/) (**recommended for production**; host a DID document on a domain you control, which acts as the trust anchor) and [`did:key`](https://w3c-ccg.github.io/did-key-spec/) (self-certifying, no hosting required; best for ad-hoc or ephemeral issuers, but requires an out-of-band trust binding) issuers across the `ecdsa-sd-2023` and `bbs-2023` cryptosuites. Additionally, it includes essential utility functions for strings, networks, and chains, making it a versatile tool for developers working with decentralized identity and verifiable data solutions.
 
 ## Table of Contents
 
@@ -25,6 +25,12 @@ TrustVC is a comprehensive wrapper library designed to simplify the signing and 
       - [TradeTrustToken](#tradetrusttoken)
       - [a) Token Registry v4](#a-token-registry-v4)
       - [b) Token Registry V5](#b-token-registry-v5)
+      - [c) Obligation Registry (BoE)](#c-obligation-registry-boe)
+        - [Lifecycle](#lifecycle)
+        - [SDK usage](#sdk-usage)
+        - [Status & verification](#status--verification)
+        - [Endorsement chain](#endorsement-chain)
+        - [Low-level contracts](#low-level-contracts)
     - [8. **Document Builder**](#8-document-builder)
     - [9. **Document Store**](#9-document-store)
     - [10. **Transaction Cancel**](#10-transaction-cancel)
@@ -741,6 +747,294 @@ function rejectTransferOwners(bytes calldata _remark) external;
 
 For more information on Token Registry and Title Escrow contracts **version v5**, please visit the readme of [TradeTrust Token Registry V5](https://github.com/TradeTrust/token-registry/blob/master/README.md)
 
+#### c) Obligation Registry (BoE)
+
+> **New:** Obligation Registry supports electronic Bill of Exchange (BoE) style documents. It mirrors the classic Transferable Records / Title Escrow pattern, but uses **`TrustVCToken`** + **`ObligationEscrow`** (v5-style only — there is no Obligation v4 path).
+>
+> Prefer the high-level SDK in `@trustvc/trustvc/obligation-registry-functions` for deploy, mint, lifecycle, transfers, return-to-issuer, status reads, and document verification. Low-level Typechain factories are available from `@trustvc/trustvc/obligation-registry`.
+
+#### Lifecycle
+
+```
+Deploy factory + registry
+        │
+        ▼
+      Mint ──► Issued (DocumentStatus.Issued)
+        │
+        ├──────────────► Reject (holder) ──► Rejected (terminal)
+        │
+        ▼
+     Accept (holder) ──► Accepted
+        │
+        ├──────────────► Discharge (beneficiary) ──► Discharged (terminal)
+        │
+        ├──────────────► Nominate / transfers / reject-transfers
+        │
+        ▼
+  Consolidate dual role (beneficiary == holder)
+        │
+        ▼
+  Return to issuer ──► token held by registry
+        │
+        ├──────────────► rejectReturned (restore to escrow)
+        └──────────────► acceptReturned (burn / shred)
+```
+
+**Role rules**
+
+- **Accept / document reject** require `beneficiary != holder`.
+- **Discharge** requires `msg.sender == beneficiary`.
+- **returnToIssuer** requires dual role (`beneficiary == holder`). After accept, typically `transferHolder` (or nominate + `transferBeneficiary`) so one wallet holds both roles before return.
+- `terminationReason` is set on reject / discharge / shred (burn), **not** on `returnToIssuer` alone.
+
+**Status enums** (exported from `@trustvc/trustvc/obligation-registry-functions`):
+
+| Enum | Values |
+|------|--------|
+| `DocumentStatus` | `Issued=0`, `Accepted=1`, `Rejected=2`, `Discharged=3` |
+| `ObligationEscrowTerminationReason` | `None=0`, `ReturnToIssuer=1`, `Rejected=2`, `Discharged=3` |
+| `ObligationStatusAction` | `{ ACCEPT, REJECT, DISCHARGE }` — escrow write methods that advance status |
+
+Remarks are encrypted when you pass `options.id` (same pattern as Token Registry v5). Omit remarks or pass an empty string when not needed; the SDK encodes them as `0x…`.
+
+#### SDK usage
+
+```ts
+import {
+  deployObligationEscrowFactory,
+  deployObligationRegistry,
+  mintObligationRegistry,
+  acceptObligationRegistry,
+  rejectObligationRegistry,
+  dischargeObligationRegistry,
+  nominateObligationRegistry,
+  transferHolderObligationRegistry,
+  transferBeneficiaryObligationRegistry,
+  transferOwnersObligationRegistry,
+  rejectTransferHolderObligationRegistry,
+  rejectTransferBeneficiaryObligationRegistry,
+  rejectTransferOwnersObligationRegistry,
+  returnToIssuerObligationRegistry,
+  acceptReturnedObligationRegistry,
+  rejectReturnedObligationRegistry,
+  getObligationRegistryStatus,
+  getObligationEscrowTerminationReason,
+  DocumentStatus,
+  ObligationStatusAction,
+} from '@trustvc/trustvc/obligation-registry-functions';
+```
+
+##### Deploy
+
+```ts
+const { obligationEscrowFactoryAddress } = await deployObligationEscrowFactory(signer, {
+  chainId,
+});
+const { obligationRegistry } = await deployObligationRegistry('My BoE Registry', 'BOE', signer, {
+  escrowFactoryAddress: obligationEscrowFactoryAddress,
+  chainId,
+});
+```
+
+You can omit `escrowFactoryAddress` to deploy a new factory as part of `deployObligationRegistry`.
+
+##### Mint → accept (or reject)
+
+```ts
+const txOptions = { chainId, id: encryptionKeyId }; // id encrypts remarks
+
+await mintObligationRegistry(
+  { obligationRegistry },
+  issuerSigner,
+  {
+    beneficiaryAddress,
+    holderAddress,
+    tokenId,
+    remarks: 'issued',
+  },
+  txOptions,
+);
+
+// Holder accepts while roles are still split
+await acceptObligationRegistry(
+  { obligationRegistry },
+  holderSigner,
+  { tokenId, remarks: 'accepted' },
+  txOptions,
+);
+
+// Alternatively, holder rejects the issued document (terminal)
+// await rejectObligationRegistry({ obligationRegistry }, holderSigner, { tokenId }, txOptions);
+```
+
+`ObligationStatusAction.ACCEPT` / `.REJECT` / `.DISCHARGE` are the string method names used by the lifecycle helpers (`'accept' | 'reject' | 'discharge'`).
+
+##### Transfers & nominations
+
+Escrow helpers accept either `{ titleEscrowAddress }` **or** `{ obligationRegistry, tokenId }` (the SDK resolves the escrow address).
+
+```ts
+await nominateObligationRegistry(
+  { obligationRegistry, tokenId },
+  holderSigner,
+  { newBeneficiaryAddress, remarks: 'nominate' },
+  txOptions,
+);
+
+await transferHolderObligationRegistry(
+  { obligationRegistry, tokenId },
+  holderSigner,
+  { holderAddress: newHolderAddress, remarks: 'transfer holder' },
+  txOptions,
+);
+
+await transferBeneficiaryObligationRegistry(
+  { obligationRegistry, tokenId },
+  holderSigner,
+  { newBeneficiaryAddress, remarks: 'transfer beneficiary' },
+  txOptions,
+);
+
+await transferOwnersObligationRegistry(
+  { obligationRegistry, tokenId },
+  dualRoleSigner,
+  { newBeneficiaryAddress, newHolderAddress, remarks: 'transfer both' },
+  txOptions,
+);
+```
+
+##### Reject transfers
+
+Same appointment rules as Title Escrow v5: reject as the next action after being appointed; use `rejectTransferOwners` when both roles were transferred together.
+
+```ts
+await rejectTransferHolderObligationRegistry(
+  { obligationRegistry, tokenId },
+  newHolderSigner,
+  { remarks: 'reject holder transfer' },
+  txOptions,
+);
+await rejectTransferBeneficiaryObligationRegistry(
+  { obligationRegistry, tokenId },
+  newBeneficiarySigner,
+  { remarks: 'reject beneficiary transfer' },
+  txOptions,
+);
+await rejectTransferOwnersObligationRegistry(
+  { obligationRegistry, tokenId },
+  dualAppointeeSigner,
+  { remarks: 'reject both' },
+  txOptions,
+);
+```
+
+##### Return to issuer / restore / burn
+
+```ts
+// Requires beneficiary == holder
+await returnToIssuerObligationRegistry(
+  { obligationRegistry, tokenId },
+  dualRoleSigner,
+  { remarks: 'return' },
+  txOptions,
+);
+
+// Issuer restores to escrow
+await rejectReturnedObligationRegistry(
+  { obligationRegistry },
+  issuerSigner,
+  { tokenId, remarks: 'restore' },
+  txOptions,
+);
+
+// Or issuer accepts (burns / shreds) the returned token
+await acceptReturnedObligationRegistry(
+  { obligationRegistry },
+  issuerSigner,
+  { tokenId, remarks: 'burn' },
+  txOptions,
+);
+```
+
+##### Discharge (terminal, beneficiary)
+
+```ts
+await dischargeObligationRegistry(
+  { obligationRegistry },
+  beneficiarySigner,
+  { tokenId, remarks: 'discharged' },
+  txOptions,
+);
+```
+
+#### Status & verification
+
+```ts
+const status = await getObligationRegistryStatus(
+  { obligationRegistry },
+  signer,
+  { tokenId },
+);
+// DocumentStatus.Issued | Accepted | Rejected | Discharged
+
+const reason = await getObligationEscrowTerminationReason(
+  { obligationRegistry },
+  signer,
+  { tokenId },
+);
+
+import {
+  verifyObligationDocument,
+  getObligationDocumentStatus,
+} from '@trustvc/trustvc/obligation-registry-functions';
+
+const { valid, fragments } = await verifyObligationDocument(signedVc, {
+  rpcProviderUrl: 'https://…',
+  // or provider,
+});
+const enriched = getObligationDocumentStatus(fragments);
+// { obligationRegistry, status, terminationReason } | null
+```
+
+`verifyObligationDocument` runs the same TrustVC verify pipeline used for classic Transferable Records, with the **ObligationRecords** document-status fragment (mint + escrow lifecycle).
+
+#### Endorsement chain
+
+```ts
+import { fetchObligationEndorsementChain } from '@trustvc/trustvc';
+
+const chain = await fetchObligationEndorsementChain(
+  obligationRegistry,
+  String(tokenId),
+  provider,
+  {
+    keyId: encryptionKeyId, // optional — decrypts remarks
+    // titleEscrowAddress, maxBlockRange, rpcConcurrency — optional RPC tuning
+  },
+);
+```
+
+This is separate from classic `fetchEndorsementChain` and does not use ETR V4/V5 Title Escrow paths. Events include `STATUS_*`, `TRANSFER_*`, `RETURNED_TO_ISSUER`, and related lifecycle entries.
+
+#### Low-level contracts
+
+```ts
+import { obligationRegistryContracts } from '@trustvc/trustvc/obligation-registry';
+
+const token = obligationRegistryContracts.TrustVCToken__factory.connect(
+  obligationRegistry,
+  signer,
+);
+const escrow = obligationRegistryContracts.ObligationEscrow__factory.connect(
+  escrowAddress,
+  signer,
+);
+```
+
+Also exported: `obligationRegistryRoleHash`, `obligationRegistrySupportInterfaceIds`, and receipt helpers.
+
+For local e2e coverage of these flows, see [`src/__tests__/e2e/README.md`](src/__tests__/e2e/README.md).
+
 ### 8. **Document Builder**
 > The `DocumentBuilder` class helps build and manage W3C Verifiable Credentials (VCs) with credential status features, implementing the **W3C VC Data Model 2.0** specification. It supports creating documents with two types of credential statuses: `transferableRecords` and `verifiableDocument`. It can sign the document using modern cryptographic signature schemes including **ECDSA-SD-2023** (default) and **BBS-2023**, verify its signature, and serialize the document to a JSON format. Additionally, it allows for configuration of document rendering methods and expiration dates.
 
@@ -770,9 +1064,9 @@ builder.credentialSubject({
 ```
 
 ##### Configure Credential Status
-You can configure the credential status as either `transferableRecords` or `verifiableDocument`.
+You can configure the credential status as either `transferableRecords` (classic token registry **or** obligation registry) or `verifiableDocument`.
 
-**Transferable Records**
+**Transferable Records (classic Token Registry)**
 ```ts
 builder.credentialStatus({
   // Refers to the supported network.
@@ -784,9 +1078,25 @@ builder.credentialStatus({
 });
 ```
 
+**Obligation Records (BoE / Obligation Registry)**
+
+Use `obligationRegistry` instead of `tokenRegistry`. Pass exactly one of the two — never both.
+
+```ts
+builder.credentialStatus({
+  chain: 'amoy',
+  chainId: 80002,
+  obligationRegistry: '0x1234567890abcdef...',
+  rpcProviderUrl: 'https://rpc-amoy.polygon.technology',
+});
+```
+
+This attaches the obligation-records JSON-LD context and a `TransferableRecords`-typed `credentialStatus` with `obligationRegistry`. On-chain minting is still separate — use `mintObligationRegistry` from `@trustvc/trustvc/obligation-registry-functions` (see [§7c Obligation Registry](#c-obligation-registry-boe)).
+
 > ⚠️ **Disclaimer:**  
-> This builder **does not mint** documents on-chain. If you're using `transferableRecords`, you'll need to mint the document.  
-> [See the minting guide here](https://docs.tradetrust.io/docs/how-tos/credential-status#2-minting-the-credential)
+> This builder **does not mint** documents on-chain. If you're using `transferableRecords` / obligation records, you'll need to mint the document.  
+> Classic ETR minting: [TradeTrust minting guide](https://docs.tradetrust.io/docs/how-tos/credential-status#2-minting-the-credential).  
+> Obligation minting: `mintObligationRegistry` in [§7c](#c-obligation-registry-boe).
 
 
 **Verifiable Document**

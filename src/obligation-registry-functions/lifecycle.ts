@@ -15,7 +15,7 @@ import {
   callStaticThenSend,
   connectObligationEscrow,
   encryptRemarks,
-  getObligationEscrowAddress,
+  resolveObligationEscrowAddress,
 } from './utils';
 
 type EscrowRemarksParams =
