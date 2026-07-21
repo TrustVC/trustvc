@@ -17,7 +17,7 @@ const resolveObligationEscrowAddress = async (
   if (contractOptions.titleEscrowAddress) return contractOptions.titleEscrowAddress;
   const { obligationRegistry, tokenId } = contractOptions;
   if (!obligationRegistry) throw new Error('Obligation registry address is required');
-  if (!tokenId) throw new Error('Token ID is required');
+  if (tokenId === undefined || tokenId === null) throw new Error('Token ID is required');
   if (!signer.provider) throw new Error('Provider is required');
   return getObligationEscrowAddress(obligationRegistry, tokenId, signer.provider);
 };

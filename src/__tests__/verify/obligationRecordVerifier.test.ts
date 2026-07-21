@@ -42,6 +42,27 @@ describe('credentialStatusObligationRecordVerifier', () => {
     ).toBe(false);
   });
 
+  it('rejects empty credentialStatus arrays in test and verify', async () => {
+    const emptyStatusDocument = { ...baseDocument, credentialStatus: [] } as any;
+
+    expect(credentialStatusObligationRecordVerifier.test(emptyStatusDocument, { provider })).toBe(
+      false,
+    );
+
+    await expect(
+      credentialStatusObligationRecordVerifier.verify(emptyStatusDocument, { provider }),
+    ).resolves.toEqual({
+      name: 'ObligationRecords',
+      type: 'DOCUMENT_STATUS',
+      status: 'ERROR',
+      reason: {
+        code: ObligationRecordsStatusCode.UNRECOGNIZED_DOCUMENT,
+        codeString: 'UNRECOGNIZED_DOCUMENT',
+        message: "Document's credentialStatus is empty",
+      },
+    });
+  });
+
   it('returns VALID with enrichment for a minted obligation document', async () => {
     vi.spyOn(obligationUtils, 'isTokenMintedOnObligationRegistry').mockResolvedValue({
       minted: true,
@@ -115,6 +136,30 @@ describe('credentialStatusObligationRecordVerifier', () => {
         codeString: 'UNRECOGNIZED_DOCUMENT',
         message:
           "Document's credentialStatus must not include both tokenRegistry and obligationRegistry",
+      },
+    });
+  });
+
+  it('returns ERROR when tokenId is missing', async () => {
+    await expect(
+      credentialStatusObligationRecordVerifier.verify(
+        {
+          ...baseDocument,
+          credentialStatus: {
+            ...baseDocument.credentialStatus,
+            tokenId: undefined,
+          },
+        } as any,
+        { provider },
+      ),
+    ).resolves.toEqual({
+      name: 'ObligationRecords',
+      type: 'DOCUMENT_STATUS',
+      status: 'ERROR',
+      reason: {
+        code: ObligationRecordsStatusCode.UNRECOGNIZED_DOCUMENT,
+        codeString: 'UNRECOGNIZED_DOCUMENT',
+        message: "Document's credentialStatus does not have tokenId",
       },
     });
   });

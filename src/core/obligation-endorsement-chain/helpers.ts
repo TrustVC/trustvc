@@ -270,6 +270,9 @@ export const sortObligationLogChain = (
   logChain: ObligationTransferBaseEvent[],
 ): ObligationTransferBaseEvent[] => {
   return logChain.sort((a, b) => {
-    return a.blockNumber - b.blockNumber;
+    if (a.blockNumber !== b.blockNumber) {
+      return a.blockNumber - b.blockNumber;
+    }
+    return a.transactionIndex - b.transactionIndex;
   });
 };

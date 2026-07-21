@@ -25,7 +25,9 @@ export const returnToIssuerObligationRegistry = async (
   if (!escrowAddress) {
     const { obligationRegistry, tokenId } = contractOptions;
     if (!obligationRegistry) throw new Error('Obligation registry address is required');
-    if (!tokenId) throw new Error('Token ID is required');
+    if (tokenId === undefined || tokenId === null || tokenId === '') {
+      throw new Error('Token ID is required');
+    }
     escrowAddress = await getObligationEscrowAddress(obligationRegistry, tokenId, signer.provider);
   }
   const Contract = getEthersContractFromProvider(signer.provider);

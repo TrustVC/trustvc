@@ -39,9 +39,10 @@ export const getObligationRegistryStatus = async (
     signer.provider,
   );
   const obligationEscrowContract = connectObligationEscrow(escrowAddress, signer);
-  const status = options.blockTag
-    ? await obligationEscrowContract.status({ blockTag: options.blockTag })
-    : await obligationEscrowContract.status();
+  const status =
+    options.blockTag !== undefined
+      ? await obligationEscrowContract.status({ blockTag: options.blockTag })
+      : await obligationEscrowContract.status();
   return Number(status) as DocumentStatus;
 };
 
@@ -61,7 +62,7 @@ export const isObligationRegistryRegistered = async (
     signer.provider,
   );
   const obligationEscrowContract = connectObligationEscrow(escrowAddress, signer);
-  return options.blockTag
+  return options.blockTag !== undefined
     ? await obligationEscrowContract.isRegistered({ blockTag: options.blockTag })
     : await obligationEscrowContract.isRegistered();
 };
@@ -82,8 +83,9 @@ export const getObligationEscrowTerminationReason = async (
     signer.provider,
   );
   const obligationEscrowContract = connectObligationEscrow(escrowAddress, signer);
-  const reason = options.blockTag
-    ? await obligationEscrowContract.terminationReason({ blockTag: options.blockTag })
-    : await obligationEscrowContract.terminationReason();
+  const reason =
+    options.blockTag !== undefined
+      ? await obligationEscrowContract.terminationReason({ blockTag: options.blockTag })
+      : await obligationEscrowContract.terminationReason();
   return Number(reason) as ObligationEscrowTerminationReason;
 };

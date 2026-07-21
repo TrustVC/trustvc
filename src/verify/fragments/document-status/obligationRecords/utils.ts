@@ -11,11 +11,11 @@ import {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const isNonExistentToken = (error: any): boolean => {
-  const message = error.message;
-  if (!message) {
-    return error.data && error.data.slice(0, 10) === '0x7e273289';
-  }
-  return message.includes('owner query for nonexistent token');
+  const hasNonExistentSelector = Boolean(error.data && error.data.slice(0, 10) === '0x7e273289');
+  const hasNonExistentMessage =
+    typeof error.message === 'string' &&
+    error.message.includes('owner query for nonexistent token');
+  return hasNonExistentSelector || hasNonExistentMessage;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

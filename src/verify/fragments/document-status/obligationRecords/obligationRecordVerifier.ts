@@ -35,10 +35,24 @@ const verify: ObligationRecordsVerifierType['verify'] = async (
       ? signedDocument?.credentialStatus
       : [signedDocument?.credentialStatus]
   ) as ObligationCredentialStatus[];
+  if (credentialStatuses.length === 0) {
+    throw new ObligationRecordsCodedError(
+      "Document's credentialStatus is empty",
+      ObligationRecordsStatusCode.UNRECOGNIZED_DOCUMENT,
+      ObligationRecordsStatusCode[ObligationRecordsStatusCode.UNRECOGNIZED_DOCUMENT],
+    );
+  }
   const { provider } = options;
 
   const verificationResult = await Promise.all(
     credentialStatuses.map(async (credentialStatus) => {
+      if (!credentialStatus?.tokenId) {
+        throw new ObligationRecordsCodedError(
+          "Document's credentialStatus does not have tokenId",
+          ObligationRecordsStatusCode.UNRECOGNIZED_DOCUMENT,
+          ObligationRecordsStatusCode[ObligationRecordsStatusCode.UNRECOGNIZED_DOCUMENT],
+        );
+      }
       const tokenId = '0x' + credentialStatus.tokenId;
       const obligationRegistry = credentialStatus?.obligationRegistry;
       if (!obligationRegistry) {
@@ -151,6 +165,7 @@ const test: ObligationRecordsVerifierType['test'] = (
     : [doc?.credentialStatus];
   if (
     w3cVC.isSignedDocument(document) &&
+    credentialStatuses.length > 0 &&
     credentialStatuses.every((cs) => {
       const status = cs as ObligationCredentialStatus;
       // Match on obligationRegistry so documents with both registries still

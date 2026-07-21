@@ -193,8 +193,8 @@ obligationProviders.forEach(({ ethersVersion }) => {
         try {
           await token.ownerOf(tokenId);
           expect.fail('Expected ownerOf to revert after burn');
-        } catch {
-          // burned
+        } catch (error: unknown) {
+          expect((error as Error).message).to.include('ERC721: owner query for nonexistent token');
         }
 
         const escrow = attachObligationEscrow(escrowAddress, ethersVersion, owner);
