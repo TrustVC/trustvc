@@ -101,9 +101,10 @@ export const callStaticThenSend = async (
     } else {
       await contract.callStatic[method](...args);
     }
-  } catch (e) {
+  } catch (e: any) {
     console.error('callStatic failed:', e);
-    throw new Error(`Pre-check (callStatic) for ${precheckName} failed`);
+    const reason = e?.reason || e?.message || String(e);
+    throw new Error(`Pre-check (callStatic) for ${precheckName} failed: ${reason}`);
   }
   const txOptions = await getTxOptions(signer, chainId, maxFeePerGas, maxPriorityFeePerGas);
   return await contract[method](...args, txOptions);
