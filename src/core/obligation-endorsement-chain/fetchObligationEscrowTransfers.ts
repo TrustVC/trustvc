@@ -81,7 +81,9 @@ const getParsedLogs = (
 ): ObligationParsedLog[] => {
   const parsed: ObligationParsedLog[] = [];
   for (const log of logs) {
-    if (!log.blockNumber) throw new Error('Block number not present');
+    if (log.blockNumber === undefined || log.blockNumber === null) {
+      throw new Error('Block number not present');
+    }
     try {
       const decoded = escrow.interface.parseLog(log);
       if (!decoded) continue;
