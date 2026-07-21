@@ -303,6 +303,7 @@ describe.concurrent('W3C verify', () => {
       'should return VALID status for TransferableRecords',
       { timeout: 300000 },
       async ({ expect }) => {
+        // Mock mint check so this case stays deterministic when public Amoy RPC is flaky.
         vi.spyOn(transferableRecordsUtils, 'isTokenMintedOnRegistry').mockResolvedValue({
           minted: true,
           address: '0x6c2a002A5833a100f38458c50F11E71Aa1A342c6',
@@ -815,6 +816,7 @@ describe.concurrent('V3 verify', () => {
         ]),
       );
 
+      // Token registry / DNS-TXT can ERROR when public Amoy RPC is flaky.
       const tokenRegistryFragment = fragments.find(
         (fragment) => fragment.name === 'OpenAttestationEthereumTokenRegistryStatus',
       );
