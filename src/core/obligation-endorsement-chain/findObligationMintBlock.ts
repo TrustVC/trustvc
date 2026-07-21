@@ -26,6 +26,13 @@ const normalizeTokenId = (tokenId: string): string | bigint => {
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const resolveFilterTopics = async (filter: any): Promise<any[] | undefined> => {
+  if (typeof filter?.getTopicFilter === 'function') {
+    try {
+      return (await filter.getTopicFilter()) as unknown[] | undefined;
+    } catch {
+      return undefined;
+    }
+  }
   if (filter?.topics) return filter.topics as unknown[];
   try {
     const resolved = await filter;

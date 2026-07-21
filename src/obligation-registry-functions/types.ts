@@ -11,6 +11,23 @@ export enum DocumentStatus {
   Discharged = 3,
 }
 
+/** Escrow lifecycle write methods that advance document status. */
+export const ACCEPT = 'accept' as const;
+export const REJECT = 'reject' as const;
+export const DISCHARGE = 'discharge' as const;
+
+/**
+ * Status-advancing escrow methods for end users (maps to `DocumentStatus` Accepted / Rejected / Discharged).
+ */
+export const ObligationStatusAction = {
+  ACCEPT,
+  REJECT,
+  DISCHARGE,
+} as const;
+
+export type ObligationStatusActionName =
+  (typeof ObligationStatusAction)[keyof typeof ObligationStatusAction];
+
 /**
  * Mirrors contracts/interfaces/IObligationEscrow.sol's `enum TerminationReason` 1:1.
  */
