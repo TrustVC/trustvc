@@ -16,6 +16,7 @@ import { v5Contracts } from '../token-registry-v5';
 import { SUPPORTED_CHAINS } from '../utils';
 import {
   DATA_INTEGRITY_V2_URL,
+  OBLIGATION_RECORDS_CONTEXT_URL,
   QRCODE_CONTEXT_URL,
   RENDER_CONTEXT_V2_URL,
   TR_CONTEXT_URL,
@@ -38,18 +39,23 @@ export interface W3CVerifiableDocumentConfig {
 }
 
 /**
- * Configuration for W3C Transferable Records, including blockchain details and token registry information.
- * @property {string} chain - The name of the blockchain network (e.g., "Ethereum", "Polygon").
- * @property {number} chainId - The unique identifier of the blockchain network.
- * @property {string} tokenRegistry - The smart contract address of the token registry.
- * @property {string} rpcProviderUrl - The RPC endpoint URL for interacting with the blockchain.
+ * Shared blockchain fields for Transferable Records / Obligation Records credential status.
  */
-export interface W3CTransferableRecordsConfig {
+type W3CTransferableRecordsConfigBase = {
   chain: string;
   chainId: number;
-  tokenRegistry: string;
   rpcProviderUrl: string;
-}
+};
+
+/**
+ * Configuration for W3C Transferable Records (classic ETR) or Obligation Records (BoE).
+ * Exactly one of `tokenRegistry` or `obligationRegistry` must be provided.
+ */
+export type W3CTransferableRecordsConfig = W3CTransferableRecordsConfigBase &
+  (
+    | { tokenRegistry: string; obligationRegistry?: never }
+    | { obligationRegistry: string; tokenRegistry?: never }
+  );
 
 /**
  * Configuration for the rendering method used in a Verifiable Credential document.
@@ -125,13 +131,16 @@ export class DocumentBuilder {
 
     if (isTransferable) {
       this.selectedStatusType = 'transferableRecords';
+      const isObligation = typeof config.obligationRegistry === 'string';
       this.statusConfig = {
         type: 'TransferableRecords',
         tokenNetwork: { chain: config.chain, chainId: config.chainId },
-        tokenRegistry: config.tokenRegistry,
+        ...(isObligation
+          ? { obligationRegistry: config.obligationRegistry }
+          : { tokenRegistry: config.tokenRegistry }),
       };
       this.rpcProviderUrl = config.rpcProviderUrl;
-      this.addContext(TR_CONTEXT_URL); // Add transferable records context to document.
+      this.addContext(isObligation ? OBLIGATION_RECORDS_CONTEXT_URL : TR_CONTEXT_URL);
     } else if (isVerifiable) {
       this.selectedStatusType = 'verifiableDocument';
       this.statusConfig = {
@@ -253,14 +262,21 @@ export class DocumentBuilder {
 
   // Type guard for transferable records configuration
   private isTransferableRecordsConfig(
-    config: Partial<CredentialStatus>,
+    config: Partial<CredentialStatus> & {
+      rpcProviderUrl?: string;
+      chain?: string;
+      chainId?: number;
+    },
   ): config is W3CTransferableRecordsConfig {
+    const hasTokenRegistry = typeof config.tokenRegistry === 'string';
+    const hasObligationRegistry =
+      typeof (config as { obligationRegistry?: string }).obligationRegistry === 'string';
     return (
-      config &&
-      typeof config.tokenRegistry === 'string' &&
+      Boolean(config) &&
       typeof config.chain === 'string' &&
       typeof config.chainId === 'number' &&
-      typeof config.rpcProviderUrl === 'string'
+      typeof config.rpcProviderUrl === 'string' &&
+      ((hasTokenRegistry && !hasObligationRegistry) || (!hasTokenRegistry && hasObligationRegistry))
     );
   }
 
@@ -314,6 +330,11 @@ export class DocumentBuilder {
       throw new Error(`Unsupported Chain: Chain ID ${chainId} is not supported.`);
     }
 
+    const registryLabel =
+      typeof (this.statusConfig as { obligationRegistry?: string }).obligationRegistry === 'string'
+        ? 'Obligation registry'
+        : 'Token registry';
+
     try {
       const provider = new ethers.providers.JsonRpcProvider(this.rpcProviderUrl);
       const isV4Supported = await this.supportsInterface(
@@ -327,14 +348,14 @@ export class DocumentBuilder {
         provider,
       );
       if (!isV4Supported && !isV5Supported)
-        throw new Error('Token registry version is not supported.');
+        throw new Error(`${registryLabel} version is not supported.`);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
-      if (error.message === 'Token registry version is not supported.') {
+      if (error.message === `${registryLabel} version is not supported.`) {
         throw error;
       } else {
         throw new Error(
-          `Network Error: Unable to verify token registry. Please check the RPC URL or token registry address.`,
+          `Network Error: Unable to verify ${registryLabel.toLowerCase()}. Please check the RPC URL or ${registryLabel.toLowerCase()} address.`,
         );
       }
     }
@@ -348,7 +369,13 @@ export class DocumentBuilder {
     interfaceId: string,
     provider: ethers.providers.JsonRpcProvider,
   ) {
-    const contract = contractFactory.connect(this.statusConfig.tokenRegistry, provider);
+    const registryAddress =
+      (this.statusConfig as { tokenRegistry?: string; obligationRegistry?: string })
+        .tokenRegistry ?? (this.statusConfig as { obligationRegistry?: string }).obligationRegistry;
+    if (!registryAddress) {
+      throw new Error('Configuration Error: Missing registry address for interface check.');
+    }
+    const contract = contractFactory.connect(registryAddress, provider as never);
     return contract.supportsInterface(interfaceId);
   }
 }

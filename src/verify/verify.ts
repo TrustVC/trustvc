@@ -32,6 +32,7 @@ import type {
 import { w3cSignatureIntegrity } from './fragments/document-integrity/w3cSignatureIntegrity';
 import { ecdsaW3CSignatureIntegrity } from './fragments/document-integrity/ecdsaW3CSignatureIntegrity';
 import { credentialStatusTransferableRecordVerifier } from './fragments/document-status/transferableRecords/transferableRecordVerifier';
+import { credentialStatusObligationRecordVerifier } from './fragments/document-status/obligationRecords/obligationRecordVerifier';
 import { w3cCredentialStatus } from './fragments/document-status/w3cCredentialStatus';
 import { w3cIssuerIdentity } from './fragments/issuer-identity/w3cIssuerIdentity';
 import { w3cEmptyCredentialStatus } from './fragments';
@@ -50,6 +51,7 @@ const verifiers = {
     w3cCredentialStatus,
     w3cEmptyCredentialStatus,
     credentialStatusTransferableRecordVerifier,
+    credentialStatusObligationRecordVerifier,
   },
   issuerIdentity: {
     openAttestationDnsDidIdentityProof,
@@ -66,6 +68,7 @@ const w3cVerifiers: Verifier<VerificationFragment>[] = [
   bbs2023W3CSignatureIntegrity,
   w3cCredentialStatus,
   credentialStatusTransferableRecordVerifier,
+  credentialStatusObligationRecordVerifier,
   w3cEmptyCredentialStatus,
   w3cIssuerIdentity,
 ];

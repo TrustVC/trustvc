@@ -6,6 +6,10 @@ import {
   PrivateKeyPair,
   VerificationType,
 } from '@trustvc/w3c-issuer';
+import { OBLIGATION_RECORDS_CONTEXT_URL, TR_CONTEXT_URL } from '@trustvc/w3c-context';
+
+const amoyRpcUrl =
+  process.env.AMOY_RPC || `https://polygon-amoy.infura.io/v3/${process.env.INFURA_API_KEY}`;
 
 // -----------------------------
 // Note: Dummy/test cryptographic key pairs for local development and CI/CD.
@@ -112,7 +116,7 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
           chain: 'amoy',
           chainId: 80002,
           tokenRegistry: '0x71D28767662cB233F887aD2Bb65d048d760bA694',
-          rpcProviderUrl: 'https://rpc-amoy.polygon.technology',
+          rpcProviderUrl: amoyRpcUrl,
         }),
       ).toThrow('Configuration Error: Document is already signed.');
     });
@@ -124,9 +128,21 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
         chain: 'amoy',
         chainId: 80002,
         tokenRegistry: '0x71D28767662cB233F887aD2Bb65d048d760bA694',
-        rpcProviderUrl: 'https://rpc-amoy.polygon.technology',
+        rpcProviderUrl: amoyRpcUrl,
       });
       expect(documentBuilder).toBeDefined();
+      expect(documentBuilder.toString()).toContain(TR_CONTEXT_URL);
+    });
+
+    it('should configure obligationRecords correctly', () => {
+      documentBuilder.credentialStatus({
+        chain: 'amoy',
+        chainId: 80002,
+        obligationRegistry: '0x71D28767662cB233F887aD2Bb65d048d760bA694',
+        rpcProviderUrl: amoyRpcUrl,
+      });
+      expect(documentBuilder).toBeDefined();
+      expect(documentBuilder.toString()).toContain(OBLIGATION_RECORDS_CONTEXT_URL);
     });
 
     it('should configure verifiableDocument correctly', () => {
@@ -143,7 +159,7 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
           chain: 'amoy',
           chainId: 80002,
           tokenRegistry: '0x71D28767662cB233F887aD2Bb65d048d760bA694',
-          rpcProviderUrl: 'https://rpc-amoy.polygon.technology',
+          rpcProviderUrl: amoyRpcUrl,
           url: 'https://trustvc.github.io/did/credentials/statuslist/1',
           index: 10,
         }),
@@ -167,7 +183,7 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
         chain: 'amoy',
         chainId: 80002,
         tokenRegistry: '0x71D28767662cB233F887aD2Bb65d048d760bA694',
-        rpcProviderUrl: 'https://rpc-amoy.polygon.technology',
+        rpcProviderUrl: amoyRpcUrl,
       });
       const signedDocument = await documentBuilder.sign(ECDSAtestPrivateKey);
       expect(signedDocument).toBeDefined();
@@ -195,7 +211,7 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
         chain: 'amoy',
         chainId: 80002,
         tokenRegistry: '0x71D28767662cB233F887aD2Bb65d048d760bA694',
-        rpcProviderUrl: 'https://rpc-amoy.polygon.technology',
+        rpcProviderUrl: amoyRpcUrl,
       });
       const signedDocument = await documentBuilder.sign(bbs2023KeyPair, CryptoSuite.Bbs2023);
       expect(signedDocument).toBeDefined();
@@ -246,7 +262,7 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
         chain: 'amoy',
         chainId: 80002,
         tokenRegistry: '0x71D28767662cB233F887aD2Bb65d048d760bA694',
-        rpcProviderUrl: 'https://rpc-amoy.polygon.technology',
+        rpcProviderUrl: amoyRpcUrl,
       });
       const signedDocument = await documentBuilder.sign(ECDSAtestPrivateKey);
       expect(signedDocument).toBeDefined();
@@ -260,7 +276,7 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
         chain: 'amoy',
         chainId: 80002,
         tokenRegistry: '0x71D28767662cB233F887aD2Bb65d048d760bA694',
-        rpcProviderUrl: 'https://rpc-amoy.polygon.technology',
+        rpcProviderUrl: amoyRpcUrl,
       });
       const signedDocument = await documentBuilder.sign(bbs2023KeyPair, CryptoSuite.Bbs2023);
       expect(signedDocument).toBeDefined();
@@ -274,7 +290,7 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
         chain: 'unknown-chain',
         chainId: 999999, // Invalid chainId
         tokenRegistry: '0x71D28767662cB233F887aD2Bb65d048d760bA694',
-        rpcProviderUrl: 'https://rpc-amoy.polygon.technology',
+        rpcProviderUrl: amoyRpcUrl,
       });
       await expect(documentBuilder.sign(ECDSAtestPrivateKey)).rejects.toThrow(
         'Unsupported Chain: Chain ID 999999 is not supported.',

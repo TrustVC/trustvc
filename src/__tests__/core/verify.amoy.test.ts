@@ -9,7 +9,8 @@ import {
   w3cTransferableRecordMintedTests,
 } from './verify.polygon-network.helpers';
 
-const AMOY_RPC_URL = process.env.AMOY_RPC || 'https://rpc-amoy.polygon.technology/';
+const AMOY_RPC_URL =
+  process.env.AMOY_RPC || `https://polygon-amoy.infura.io/v3/${process.env.INFURA_API_KEY}`;
 
 describe('Polygon Amoy (testnet) network support', () => {
   describe('CHAIN_ID and SUPPORTED_CHAINS', () => {

@@ -31,12 +31,24 @@ export const isTransferableRecord = (
   let isTransferableAssetVal: boolean = false;
   if (isSignedDocument(document)) {
     const credentialStatus = getTransferableRecordsCredentialStatus(document);
-    isTransferableAssetVal = credentialStatus?.type === TRANSFERABLE_RECORDS_TYPE;
+    isTransferableAssetVal =
+      credentialStatus?.type === TRANSFERABLE_RECORDS_TYPE && !credentialStatus?.obligationRegistry;
   } else {
     isTransferableAssetVal = isTransferableAsset(document);
   }
 
   return isTransferableAssetVal;
+};
+
+export const isObligationRecord = (
+  document: WrappedOrSignedOpenAttestationDocument | SignedVerifiableCredential,
+): boolean => {
+  if (!isSignedDocument(document)) return false;
+  const credentialStatus = getTransferableRecordsCredentialStatus(document);
+  return (
+    credentialStatus?.type === TRANSFERABLE_RECORDS_TYPE &&
+    typeof credentialStatus?.obligationRegistry === 'string'
+  );
 };
 
 export const getTokenRegistryAddress = (
@@ -50,6 +62,14 @@ export const getTokenRegistryAddress = (
     issuerAddress = getIssuerAddress(document);
   }
   return issuerAddress instanceof Array ? issuerAddress[0] : issuerAddress;
+};
+
+export const getObligationRegistryAddress = (
+  document: WrappedOrSignedOpenAttestationDocument | SignedVerifiableCredential,
+): string | undefined => {
+  if (!isSignedDocument(document)) return undefined;
+  const credentialStatus = getTransferableRecordsCredentialStatus(document);
+  return credentialStatus?.obligationRegistry;
 };
 
 export const getTokenId = (

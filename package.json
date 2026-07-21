@@ -73,6 +73,21 @@
       "import": "./dist/esm/token-registry-v5/contracts.js",
       "require": "./dist/cjs/token-registry-v5/contracts.js"
     },
+    "./obligation-registry": {
+      "types": "./dist/types/obligation-registry/index.d.ts",
+      "import": "./dist/esm/obligation-registry/index.js",
+      "require": "./dist/cjs/obligation-registry/index.js"
+    },
+    "./obligation-registry/contracts": {
+      "types": "./dist/types/obligation-registry/contracts.d.ts",
+      "import": "./dist/esm/obligation-registry/contracts.js",
+      "require": "./dist/cjs/obligation-registry/contracts.js"
+    },
+    "./obligation-registry-functions": {
+      "types": "./dist/types/obligation-registry-functions/index.d.ts",
+      "import": "./dist/esm/obligation-registry-functions/index.js",
+      "require": "./dist/cjs/obligation-registry-functions/index.js"
+    },
     "./utils": {
       "types": "./dist/types/utils/index.d.ts",
       "import": "./dist/esm/utils/index.js",
@@ -118,7 +133,7 @@
     "@tradetrust-tt/dnsprove": "^2.18.0",
     "@tradetrust-tt/ethers-aws-kms-signer": "^2.1.4",
     "@tradetrust-tt/token-registry-v4": "npm:@tradetrust-tt/token-registry@^4.16.0",
-    "@tradetrust-tt/token-registry-v5": "npm:@tradetrust-tt/token-registry@^5.5.0",
+    "@tradetrust-tt/token-registry-v5": "git+ssh://git@github.com/TradeTrust/token-registry.git#feature/boe-v2",
     "@tradetrust-tt/tradetrust": "^6.10.3",
     "@tradetrust-tt/tt-verify": "^9.7.5",
     "@trustvc/document-store": "^1.0.3",

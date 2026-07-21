@@ -38,7 +38,11 @@ TrustVC is a comprehensive wrapper library designed to simplify the signing and 
 npm install
 npm run build
 npm run test
+npm run test:e2e
 ```
+
+- `npm run test` — Vitest unit tests
+- `npm run test:e2e` — Hardhat e2e (classic token-registry + obligation/BOE). See [`src/__tests__/e2e/README.md`](src/__tests__/e2e/README.md).
 
 ## Functions
 

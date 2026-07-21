@@ -79,7 +79,8 @@ const verify: VerifierType['verify'] = async (
   if (verificationResult.every(ValidTokenRegistryStatus.guard)) {
     result.status = 'VALID' as const;
   } else {
-    result.reason = (verificationResult as InvalidTokenRegistryStatus[])?.[0]?.reason;
+    const invalidEntry = verificationResult.find((entry) => !ValidTokenRegistryStatus.guard(entry));
+    result.reason = (invalidEntry as InvalidTokenRegistryStatus)?.reason;
   }
   return result;
 };
@@ -110,7 +111,13 @@ const test: VerifierType['test'] = (
 
   if (
     w3cVC.isSignedDocument(document) &&
-    credentialStatuses.every((cs: w3cVC.CredentialStatus) => cs?.type === TRANSFERABLE_RECORDS_TYPE)
+    credentialStatuses.every((cs: w3cVC.CredentialStatus) => {
+      const status = cs as w3cVC.CredentialStatus & {
+        tokenRegistry?: string;
+        obligationRegistry?: string;
+      };
+      return status?.type === TRANSFERABLE_RECORDS_TYPE && !status?.obligationRegistry;
+    })
   ) {
     return true;
   }

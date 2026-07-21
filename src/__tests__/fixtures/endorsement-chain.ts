@@ -1,4 +1,23 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+const AMOY_RPC_URL = process.env.ANKR_API_KEY
+  ? `https://rpc.ankr.com/polygon_amoy/${process.env.ANKR_API_KEY}`
+  : process.env.AMOY_RPC || 'https://rpc-amoy.polygon.technology';
+const SEPOLIA_RPC_URL = process.env.INFURA_API_KEY
+  ? `https://sepolia.infura.io/v3/${process.env.INFURA_API_KEY}`
+  : 'https://ethereum-sepolia-rpc.publicnode.com';
+const XDC_RPC_URL = process.env.ANKR_API_KEY
+  ? `https://rpc.ankr.com/xdc/${process.env.ANKR_API_KEY}`
+  : 'https://rpc.xinfin.network';
+const XDC_TESTNET_RPC_URL = process.env.ANKR_API_KEY
+  ? `https://rpc.ankr.com/xdc_testnet/${process.env.ANKR_API_KEY}`
+  : 'https://erpc.apothem.network';
+const POLYGON_MAINNET_RPC_URL = process.env.INFURA_API_KEY
+  ? `https://polygon-mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`
+  : 'https://polygon-bor-rpc.publicnode.com';
+const ETHEREUM_MAINNET_RPC_URL = process.env.INFURA_API_KEY
+  ? `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`
+  : 'https://ethereum-rpc.publicnode.com';
+
 export const emptyMock: { function: string; params: any; result: any }[] = [
   {
     function: 'getBlockNumber',
@@ -39,7 +58,7 @@ export const emptyMock: { function: string; params: any; result: any }[] = [
 
 export const testCases = [
   {
-    rpcUrl: `https://rpc.ankr.com/polygon_amoy/${process.env.ANKR_API_KEY}`,
+    rpcUrl: AMOY_RPC_URL,
     description: 'Token Registry V4 with Transfer, Surrender, Burnt events - Amoy',
     tokenRegistryAddress: '0x71D28767662cB233F887aD2Bb65d048d760bA694',
     tokenId: '0x780e38c6345dac12cedb7aacc69492ff31cc5236cd60da46261aa1c27691141e',
@@ -1276,7 +1295,7 @@ export const testCases = [
     timeout: 180_000,
   },
   {
-    rpcUrl: `https://rpc.ankr.com/polygon_amoy/${process.env.ANKR_API_KEY}`,
+    rpcUrl: AMOY_RPC_URL,
     description: 'Token Registry V5 with Transfer, Surrender, Burnt events - Amoy',
     tokenRegistryAddress: '0x3781bd0bbd15Bf5e45c7296115821933d47362be',
     tokenId: '0xe3fa2bbdbfd093d2bb4e1555dde01338af25d5cf1d6d87bd0f22d7302f133f9a',
@@ -3365,7 +3384,7 @@ export const testCases = [
     timeout: 180_000,
   },
   {
-    rpcUrl: `https://rpc.ankr.com/polygon_amoy/${process.env.ANKR_API_KEY}`,
+    rpcUrl: AMOY_RPC_URL,
     description: 'Token Registry V5 with Transfer, Surrender, Burnt events - Amoy',
     tokenRegistryAddress: '0x3781bd0bbd15Bf5e45c7296115821933d47362be',
     tokenId: '0xe3fa2bbdbfd093d2bb4e1555dde01338af25d5cf1d6d87bd0f22d7302f133f9c',
@@ -3384,7 +3403,7 @@ export const testCases = [
     timeout: 180_000,
   },
   {
-    rpcUrl: `https://sepolia.infura.io/v3/${process.env.INFURA_API_KEY}`,
+    rpcUrl: SEPOLIA_RPC_URL,
     description: 'Token Registry V4 with Transfer, Surrender, Burnt events - Sepolia',
     tokenRegistryAddress: '0x689a6a40647a383274f947e14f210ae64eb2b9c2',
     tokenId: '0x69e10a3bfb000b3a84bddd7a6865df0195c4cde17454ddd824640cebcd0b71bb',
@@ -3403,7 +3422,7 @@ export const testCases = [
     timeout: 180_000,
   },
   {
-    rpcUrl: `https://sepolia.infura.io/v3/${process.env.INFURA_API_KEY}`,
+    rpcUrl: SEPOLIA_RPC_URL,
     description: 'Token Registry V5 with Transfer, Surrender, Burnt events - Sepolia',
     tokenRegistryAddress: '0x3A5f212f1D1bf90a8a0B7530698e25620DEb166B',
     tokenId: '0x951b39bcaddc0e8882883db48ca258ca35ccb01fee328355f0dfda1ff9be9990',
@@ -3627,7 +3646,7 @@ export const testCases = [
     timeout: 180_000,
   },
   {
-    rpcUrl: `https://rpc.ankr.com/xdc/${process.env.ANKR_API_KEY}`,
+    rpcUrl: XDC_RPC_URL,
     description: 'Token Registry V4 with Transfer, Surrender, Burnt events - XDC',
     tokenRegistryAddress: '0x31376b6fb90c6c16320ee8a782e4bbbcc1a96b11',
     tokenId: '0x6bf54d00b6378305b414ab8dfa88cb967923f15e0630fb189f6029a5aa1f6f1e',
@@ -3646,7 +3665,7 @@ export const testCases = [
     timeout: 180_000,
   },
   {
-    rpcUrl: `https://rpc.ankr.com/xdc_testnet/${process.env.ANKR_API_KEY}`,
+    rpcUrl: XDC_TESTNET_RPC_URL,
     description: 'Token Registry V4 with Transfer, Surrender, Burnt events - XDC Testnet',
     tokenRegistryAddress: '0x8E869d47C2392C08B335411d4a44254A513fFe01',
     tokenId: '0x324bf073bca8aabef828bdaf7b9daa6745103777bbb2d9acf1c927e765b21b1',
@@ -3725,7 +3744,7 @@ export const testCases = [
     timeout: 180_000,
   },
   {
-    rpcUrl: `https://rpc.ankr.com/xdc_testnet/${process.env.ANKR_API_KEY}`,
+    rpcUrl: XDC_TESTNET_RPC_URL,
     description: 'Token Registry V5 with Transfer, Surrender, Burnt events - XDC Testnet',
     tokenRegistryAddress: '0x3D2DD5d6468eE1F149dd424185f02626B29B7492',
     tokenId: '0x00000000000000000000000001b69b4bd9b38eec',
@@ -3754,7 +3773,7 @@ export const testCases = [
     timeout: 180_000,
   },
   {
-    rpcUrl: `https://polygon-mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
+    rpcUrl: POLYGON_MAINNET_RPC_URL,
     description: 'Token Registry V4 with Transfer, Surrender, Burnt events - Polygon',
     tokenRegistryAddress: '0xFeC7d50A4062497710AC93AF802988FA47b2b8F5',
     tokenId: '0x2e9846da5cbebf0c7eaddaafa97ece7923942159189b5bb2d02c879aa75a508a',
@@ -3813,7 +3832,7 @@ export const testCases = [
     timeout: 180_000,
   },
   {
-    rpcUrl: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
+    rpcUrl: ETHEREUM_MAINNET_RPC_URL,
     description: 'Token Registry V4 with Transfer, Surrender, Burnt events - Ethereum',
     tokenRegistryAddress: '0x1550DD7B63a52356194aBBe5dfeCDe3f322FF335',
     tokenId: '0x75f52c9fca67f19e913186ba5feed72ba799285f32ed3f30ec7768a73b71df90',
@@ -3832,7 +3851,7 @@ export const testCases = [
     timeout: 180_000,
   },
   {
-    rpcUrl: `https://rpc.ankr.com/polygon_amoy/${process.env.ANKR_API_KEY}`,
+    rpcUrl: AMOY_RPC_URL,
     description: 'Invalid Token Registry Version - Amoy',
     tokenRegistryAddress: '0x96cc41e7007dee20eb409586e2e8206d5053219b',
     tokenId: '0xd97a8af5c38157b95c558b7801862f4b53171149926d76d0c5b2b279016eed0a',

@@ -16,6 +16,10 @@ import {
 const POL_RPC_URL = process.env.POL_RPC || 'https://polygon-bor-rpc.publicnode.com';
 
 describe('Polygon (POL) network support', () => {
+  const polCredentialStatus = W3C_TRANSFERABLE_RECORD_POL.credentialStatus as unknown as {
+    tokenNetwork: { chain: string; chainId: number };
+  };
+
   describe('CHAIN_ID and SUPPORTED_CHAINS', () => {
     it('CHAIN_ID.pol should equal chain ID 137', () => {
       expect(CHAIN_ID.pol).toBe('137');
@@ -36,8 +40,8 @@ describe('Polygon (POL) network support', () => {
 
   describe('W3C_TRANSFERABLE_RECORD_POL fixture structure', () => {
     it('should have chain POL and chainId 137 in credentialStatus', () => {
-      expect(W3C_TRANSFERABLE_RECORD_POL.credentialStatus.tokenNetwork.chain).toBe('POL');
-      expect(W3C_TRANSFERABLE_RECORD_POL.credentialStatus.tokenNetwork.chainId).toBe(137);
+      expect(polCredentialStatus.tokenNetwork.chain).toBe('POL');
+      expect(polCredentialStatus.tokenNetwork.chainId).toBe(137);
     });
 
     it('should have a DataIntegrityProof with ecdsa-sd-2023 cryptosuite', () => {
