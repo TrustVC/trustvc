@@ -1,5 +1,6 @@
 import { ethers as ethersV5 } from 'ethers';
-import { JsonRpcProvider as JsonRpcProviderV6, Wallet as WalletV6 } from 'ethersV6';
+import { JsonRpcProvider as JsonRpcProviderV6 } from 'ethersV6';
+import { Wallet as WalletV6 } from 'ethersV6';
 // Hardhat local node URL
 export const HARDHAT_RPC_URL = 'http://127.0.0.1:8545';
 
@@ -119,20 +120,4 @@ export const getSignersV6 = async (count: number = 10): Promise<WalletV6[]> => {
   // await fundWalletsV6Simple(wallets);
 
   return wallets;
-};
-
-/**
- * Fresh JsonRpcProvider + wallets for e2e suites that call hardhat_reset.
- * Avoids ethers v6 nonce cache stuck on the shared providerV6 singleton.
- * @param {number} count - Number of signers to create.
- * @returns {Promise<WalletV6[]>} Fresh wallets backed by a new JsonRpcProvider.
- */
-export const getSignersV6Fresh = async (count: number = 10): Promise<WalletV6[]> => {
-  const provider = new JsonRpcProviderV6(HARDHAT_RPC_URL, undefined, {
-    staticNetwork: true,
-    batchMaxCount: 1,
-    cacheTimeout: -1,
-  });
-  const privateKeys = generateTestV6PrivateKeys(count);
-  return privateKeys.map((key) => new WalletV6(key, provider));
 };

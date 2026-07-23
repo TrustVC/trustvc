@@ -9,7 +9,7 @@ import {
   transferHolderObligationRegistry,
   ObligationEscrowTerminationReason,
 } from '../../../obligation-registry-functions';
-import { getSignersV5, getSignersV6Fresh } from '../fixtures';
+import { getSignersV5, getSignersV6 } from '../fixtures';
 import {
   attachObligationEscrow,
   attachTrustVCToken,
@@ -76,7 +76,7 @@ obligationProviders.forEach(({ ethersVersion }) => {
       this.timeout(120000);
       await resetHardhatChain();
 
-      const signers = ethersVersion === 'v5' ? await getSignersV5(4) : await getSignersV6Fresh(4);
+      const signers = ethersVersion === 'v5' ? await getSignersV5(4) : await getSignersV6(4);
       [owner, holder, beneficiary] = signers;
 
       const deployed = await deployObligationFixture(owner);

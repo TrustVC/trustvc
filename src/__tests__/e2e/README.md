@@ -93,7 +93,7 @@ Deploy factory + registry
 ## Notes
 
 - Suites call `hardhat_reset` in `before` — expect sequential describe blocks, not parallel file workers fighting one chain.
-- Ethers v5 and v6 use **different** Hardhat account key sets in `fixtures.ts` to avoid nonce collisions. Obligation v6 suites use `getSignersV6Fresh` (new provider per suite).
+- Ethers v5 and v6 use **different** Hardhat account key sets in `fixtures.ts` to avoid nonce collisions.
 - Obligation deploy uses SDK `deployObligationEscrowFactory` + `deployObligationRegistry`.
 - Do not leave Mocha `describe.only` / `it.only` in any e2e file — `.only` is global and skips every other suite.
 - To run **only** obligation suites (with `npm run e2e:node` already up):

@@ -7,7 +7,7 @@ import {
   transferHolderObligationRegistry,
   transferOwnersObligationRegistry,
 } from '../../../obligation-registry-functions';
-import { getSignersV5, getSignersV6Fresh } from '../fixtures';
+import { getSignersV5, getSignersV6 } from '../fixtures';
 import {
   attachObligationEscrow,
   delay,
@@ -67,7 +67,7 @@ obligationProviders.forEach(({ ethersVersion }) => {
       this.timeout(120000);
       await resetHardhatChain();
 
-      const signers = ethersVersion === 'v5' ? await getSignersV5(6) : await getSignersV6Fresh(6);
+      const signers = ethersVersion === 'v5' ? await getSignersV5(6) : await getSignersV6(6);
       [owner, holder, beneficiary, newHolder, newBeneficiary] = signers;
 
       const deployed = await deployObligationFixture(owner);
