@@ -1,6 +1,10 @@
 import { PrivateKeyPair } from '@trustvc/w3c-issuer';
 import { deriveW3C, signW3C, verifyW3CSignature } from '../w3c';
-import { assertCredentialStatus, assertTransferableRecords } from '@trustvc/w3c-credential-status';
+import {
+  assertCredentialStatus,
+  assertObligationRecords,
+  assertTransferableRecords,
+} from '@trustvc/w3c-credential-status';
 import {
   CredentialStatus,
   CryptoSuiteName,
@@ -210,7 +214,15 @@ export class DocumentBuilder {
       if (verificationResult.status)
         throw new Error('Credential Verification Failed: Invalid credential status detected.');
     } else if (this.selectedStatusType === 'transferableRecords') {
-      assertTransferableRecords(this.document.credentialStatus, 'sign');
+      // check if the credential status is an obligation records or transferable records
+      if (
+        typeof (this.document.credentialStatus as { obligationRegistry?: string })
+          ?.obligationRegistry === 'string'
+      ) {
+        assertObligationRecords(this.document.credentialStatus, 'sign');
+      } else {
+        assertTransferableRecords(this.document.credentialStatus, 'sign');
+      }
       await this.verifyTokenRegistry(); // Verify that the token registry supports the required interface.
     }
 

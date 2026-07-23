@@ -1,12 +1,5 @@
 import {
   isValid,
-  openAttestationDidSignedDocumentStatus,
-  openAttestationDnsDidIdentityProof,
-  openAttestationDnsTxtIdentityProof,
-  openAttestationEthereumDocumentStoreStatus,
-  openAttestationEthereumTokenRegistryStatus,
-  openAttestationHash,
-  openAttestationVerifiers as originalOpenAttestationVerifiers,
   verificationBuilder,
   verify,
   getIdentifier,
@@ -31,41 +24,44 @@ import type {
 } from '@tradetrust-tt/tt-verify/dist/types/src/types/core';
 import { w3cSignatureIntegrity } from './fragments/document-integrity/w3cSignatureIntegrity';
 import { ecdsaW3CSignatureIntegrity } from './fragments/document-integrity/ecdsaW3CSignatureIntegrity';
-import { credentialStatusTransferableRecordVerifier } from './fragments/document-status/transferableRecords/transferableRecordVerifier';
-import { w3cCredentialStatus } from './fragments/document-status/w3cCredentialStatus';
-import { w3cIssuerIdentity } from './fragments/issuer-identity/w3cIssuerIdentity';
-import { w3cEmptyCredentialStatus } from './fragments';
 import { bbs2023W3CSignatureIntegrity } from './fragments/document-integrity/bbs2023W3CSignatureIntegrity';
-import { registryVerifier } from '../open-cert';
+import { credentialStatusObligationRecordVerifier } from './fragments/document-status/obligationRecords/obligationRecordVerifier';
+import { w3cCredentialStatus } from './fragments/document-status/w3cCredentialStatus';
+import { w3cEmptyCredentialStatus } from './fragments/document-status/w3cEmptyCredentialStatus';
+import { w3cIssuerIdentity } from './fragments/issuer-identity/w3cIssuerIdentity';
 
+/**
+ * Verifier catalog for the obligation / BoE verify pipeline.
+ * Classic ETR TransferableRecords fragment is intentionally omitted — BoE status
+ * fragment SKIPPED for ETR docs instead.
+ */
 const verifiers = {
   documentIntegrity: {
-    openAttestationHash,
     w3cSignatureIntegrity,
+    ecdsaW3CSignatureIntegrity,
+    bbs2023W3CSignatureIntegrity,
   },
   documentStatus: {
-    openAttestationDidSignedDocumentStatus,
-    openAttestationEthereumDocumentStoreStatus,
-    openAttestationEthereumTokenRegistryStatus,
     w3cCredentialStatus,
     w3cEmptyCredentialStatus,
-    credentialStatusTransferableRecordVerifier,
+    credentialStatusObligationRecordVerifier,
   },
   issuerIdentity: {
-    openAttestationDnsDidIdentityProof,
-    openAttestationDnsTxtIdentityProof,
     w3cIssuerIdentity,
   },
 };
 
-const openAttestationVerifiers = [...originalOpenAttestationVerifiers, registryVerifier];
-
-const w3cVerifiers: Verifier<VerificationFragment>[] = [
+/**
+ * W3C fragment list for obligation / BoE document verification.
+ * Valid BoE → ObligationRecords VALID; classic ETR → ObligationRecords SKIPPED;
+ * invalid obligation (e.g. not minted) → ObligationRecords INVALID.
+ */
+const obligationW3cVerifiers: Verifier<VerificationFragment>[] = [
   w3cSignatureIntegrity,
   ecdsaW3CSignatureIntegrity,
   bbs2023W3CSignatureIntegrity,
   w3cCredentialStatus,
-  credentialStatusTransferableRecordVerifier,
+  credentialStatusObligationRecordVerifier,
   w3cEmptyCredentialStatus,
   w3cIssuerIdentity,
 ];
@@ -73,10 +69,9 @@ const w3cVerifiers: Verifier<VerificationFragment>[] = [
 export {
   isValid,
   verifiers,
-  openAttestationVerifiers,
   verificationBuilder,
   verify,
-  w3cVerifiers,
+  obligationW3cVerifiers,
   getIdentifier,
   createResolver,
   utils,

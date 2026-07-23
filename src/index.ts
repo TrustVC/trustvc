@@ -39,6 +39,7 @@ export * from './obligation-registry-functions';
 export * from './core';
 export * from './open-attestation';
 export * from './verify';
+export * as verifyObligation from './verify-obligation';
 export * from './open-cert';
 export * from './w3c';
 export * from './utils';

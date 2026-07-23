@@ -1,10 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
-import { OBLIGATION_RECORDS_NAME } from '../../verify/fragments';
+import { OBLIGATION_RECORDS_NAME } from '../../verify-obligation/fragments';
 
-const verifyDocumentMock = vi.fn();
+const runObligationVerificationMock = vi.fn();
 
-vi.mock('../../core', () => ({
-  verifyDocument: (...args: unknown[]) => verifyDocumentMock(...args),
+vi.mock('../../core/verifyObligation', () => ({
+  verifyObligationDocument: (...args: unknown[]) => runObligationVerificationMock(...args),
 }));
 
 import {
@@ -15,7 +15,7 @@ import {
 const OBLIGATION_REGISTRY = '0xObligationRegistryAddress';
 
 describe('verifyObligationDocument', () => {
-  it('calls verifyDocument with the document and options, and reports valid when every fragment is VALID', async () => {
+  it('runs the obligation pipeline and reports valid when every fragment is VALID', async () => {
     const fragments = [
       { name: 'W3CSignatureIntegrity', type: 'DOCUMENT_INTEGRITY', status: 'VALID' },
       {
@@ -26,14 +26,14 @@ describe('verifyObligationDocument', () => {
       },
       { name: 'W3CIssuerIdentity', type: 'ISSUER_IDENTITY', status: 'VALID' },
     ];
-    verifyDocumentMock.mockResolvedValue(fragments);
+    runObligationVerificationMock.mockResolvedValue(fragments);
 
     const document = { credentialStatus: { obligationRegistry: OBLIGATION_REGISTRY } };
     const result = await verifyObligationDocument(document, {
       rpcProviderUrl: 'http://localhost:8545',
     });
 
-    expect(verifyDocumentMock).toHaveBeenCalledWith(document, {
+    expect(runObligationVerificationMock).toHaveBeenCalledWith(document, {
       rpcProviderUrl: 'http://localhost:8545',
     });
     expect(result.valid).toBe(true);
@@ -45,7 +45,7 @@ describe('verifyObligationDocument', () => {
       { name: 'W3CSignatureIntegrity', type: 'DOCUMENT_INTEGRITY', status: 'VALID' },
       { name: OBLIGATION_RECORDS_NAME, type: 'DOCUMENT_STATUS', status: 'INVALID', data: {} },
     ];
-    verifyDocumentMock.mockResolvedValue(fragments);
+    runObligationVerificationMock.mockResolvedValue(fragments);
 
     const result = await verifyObligationDocument({});
 
@@ -79,13 +79,13 @@ describe('getObligationDocumentStatus', () => {
     expect(getObligationDocumentStatus(fragments as never)).toBeNull();
   });
 
-  it('returns null when there is no ObligationRecords fragment (e.g. a classic TransferableRecords document)', () => {
+  it('returns null when ObligationRecords was SKIPPED (e.g. classic ETR document)', () => {
     const fragments = [
       {
-        name: 'TransferableRecords',
+        name: OBLIGATION_RECORDS_NAME,
         type: 'DOCUMENT_STATUS',
-        status: 'VALID',
-        data: { tokenRegistry: '0xTokenRegistry' },
+        status: 'SKIPPED',
+        reason: { code: 0, codeString: 'SKIPPED', message: 'skipped' },
       },
     ];
 

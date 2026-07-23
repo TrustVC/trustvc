@@ -18,6 +18,8 @@ TrustVC is a comprehensive wrapper library designed to simplify the signing and 
       - [b) TrustVC W3C Signing (signW3C)](#b-trustvc-w3c-signing-signw3c)
     - [3. **Deriving (Selective Disclosure)**](#3-deriving-selective-disclosure)
     - [4. **Verifying**](#4-verifying)
+      - [Classic ETR / general VC (`verifyDocument`)](#classic-etr--general-vc-verifydocument)
+      - [Obligation / BoE (`verifyObligationDocument`)](#obligation--boe-verifyobligationdocument)
     - [5. **Encryption**](#5-encryption)
     - [6. **Decryption**](#6-decryption)
     - [7. **TradeTrust Token Registry**](#7-tradetrust-token-registry)
@@ -354,7 +356,18 @@ const derivationResult = await deriveW3C(signedDocument, {
 
 ### 4. **Verifying**
 
-> TrustVC simplifies the verification process with a single function that supports W3C Verifiable Credentials (VCs) and OpenAttestation Verifiable Documents (VDs), including OpenCert Verifiable Documents. Whether you're working with W3C standards or OpenAttestation standards, TrustVC handles the verification seamlessly. For ECDSA-SD-2023 and BBS-2023 signed documents, which normally require derivation before verification, TrustVC automatically handles this process internally - if a document is not derived, the `verifyDocument` function will automatically derive and verify the document in a single step.
+> TrustVC exposes **two** W3C document-status pipelines. Pick the one that matches the credential:
+>
+> | Pipeline | Entry point | Document status fragment | Use for |
+> |----------|-------------|--------------------------|---------|
+> | Classic (`src/verify`) | `verifyDocument` | TransferableRecords (`tokenRegistry`) | ETR / Title Escrow, BitstringStatusList, OA VDs |
+> | Obligation / BoE (`src/verify-obligation`) | `verifyObligationDocument` | ObligationRecords (`obligationRegistry`) | electronic Bill of Exchange |
+>
+> Do **not** run BoE documents through `verifyDocument` expecting ObligationRecords — that fragment lives only in the obligation pipeline. Classic ETR docs passed to `verifyObligationDocument` get ObligationRecords **SKIPPED**.
+>
+> For ECDSA-SD-2023 and BBS-2023 signed documents that normally require derivation before verification, both pipelines derive automatically when needed.
+
+#### Classic ETR / general VC (`verifyDocument`)
 
 ```ts
 import { verifyDocument } from '@trustvc/trustvc';
@@ -394,6 +407,44 @@ const signedDocument = {
 
 const resultFragments = await verifyDocument(signedDocument);
 ```
+
+#### Obligation / BoE (`verifyObligationDocument`)
+
+Prefer the high-level wrapper (returns `{ valid, fragments }` plus status helpers):
+
+```ts
+import {
+  verifyObligationDocument,
+  getObligationDocumentStatus,
+} from '@trustvc/trustvc/obligation-registry-functions';
+// also re-exported from `@trustvc/trustvc`
+
+const { valid, fragments } = await verifyObligationDocument(signedBoeVc, {
+  rpcProviderUrl: 'https://rpc.sepolia.org',
+  // or provider,
+});
+
+const status = getObligationDocumentStatus(fragments);
+// { obligationRegistry, status, terminationReason } | null
+```
+
+Raw fragment array (same pipeline, no `{ valid }` wrapper):
+
+```ts
+import { verifyObligationDocumentFragments } from '@trustvc/trustvc';
+
+const fragments = await verifyObligationDocumentFragments(signedBoeVc, {
+  rpcProviderUrl: 'https://rpc.sepolia.org',
+});
+```
+
+**ObligationRecords** fragment outcomes:
+
+- Valid minted BoE → `VALID`
+- Classic ETR (`tokenRegistry` only) → `SKIPPED`
+- Invalid obligation (e.g. not minted / wrong registry) → `INVALID`
+
+Low-level fragment builders live under `@trustvc/trustvc/verify-obligation` (and `verifyObligation` namespace). Full SDK flow (deploy → mint → lifecycle) is in [§7c Obligation Registry (BoE)](#c-obligation-registry-boe).
 
 ---
 
@@ -996,7 +1047,7 @@ const enriched = getObligationDocumentStatus(fragments);
 // { obligationRegistry, status, terminationReason } | null
 ```
 
-`verifyObligationDocument` runs the same TrustVC verify pipeline used for classic Transferable Records, with the **ObligationRecords** document-status fragment (mint + escrow lifecycle).
+See [§4 Verifying → Obligation / BoE](#obligation--boe-verifyobligationdocument) for the dedicated `src/verify-obligation` pipeline, fragment outcomes, and `verifyObligationDocumentFragments`.
 
 #### Endorsement chain
 
@@ -1064,7 +1115,7 @@ builder.credentialSubject({
 ```
 
 ##### Configure Credential Status
-You can configure the credential status as either `transferableRecords` (classic token registry **or** obligation registry) or `verifiableDocument`.
+You can configure credential status as classic transferable records (`tokenRegistry`), obligation / BoE records (`obligationRegistry`), or `verifiableDocument` (BitstringStatusList). For the registry forms, pass **exactly one** of `tokenRegistry` or `obligationRegistry` — never both.
 
 **Transferable Records (classic Token Registry)**
 ```ts
@@ -1078,9 +1129,9 @@ builder.credentialStatus({
 });
 ```
 
-**Obligation Records (BoE / Obligation Registry)**
+Verify with `verifyDocument` (TransferableRecords fragment).
 
-Use `obligationRegistry` instead of `tokenRegistry`. Pass exactly one of the two — never both.
+**Obligation Records (BoE / Obligation Registry)**
 
 ```ts
 builder.credentialStatus({
@@ -1091,10 +1142,12 @@ builder.credentialStatus({
 });
 ```
 
-This attaches the obligation-records JSON-LD context and a `TransferableRecords`-typed `credentialStatus` with `obligationRegistry`. On-chain minting is still separate — use `mintObligationRegistry` from `@trustvc/trustvc/obligation-registry-functions` (see [§7c Obligation Registry](#c-obligation-registry-boe)).
+This attaches the obligation-records JSON-LD context and a `TransferableRecords`-typed `credentialStatus` carrying `obligationRegistry` (same `type` string as ETR; the registry field selects the assert / verify path). On-chain minting is separate — use `mintObligationRegistry` from `@trustvc/trustvc/obligation-registry-functions` (see [§7c](#c-obligation-registry-boe)).
+
+Verify BoE documents with `verifyObligationDocument`, **not** classic `verifyDocument` — see [§4](#obligation--boe-verifyobligationdocument).
 
 > ⚠️ **Disclaimer:**  
-> This builder **does not mint** documents on-chain. If you're using `transferableRecords` / obligation records, you'll need to mint the document.  
+> This builder **does not mint** documents on-chain. If you're using transferable / obligation records, mint separately.  
 > Classic ETR minting: [TradeTrust minting guide](https://docs.tradetrust.io/docs/how-tos/credential-status#2-minting-the-credential).  
 > Obligation minting: `mintObligationRegistry` in [§7c](#c-obligation-registry-boe).
 
