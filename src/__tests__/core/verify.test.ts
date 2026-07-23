@@ -293,11 +293,6 @@ describe.concurrent('W3C verify', () => {
       'should return VALID status for TransferableRecords',
       { timeout: 300000 },
       async ({ expect }) => {
-        // Mock mint check so this case stays deterministic when public Amoy RPC is flaky.
-        vi.spyOn(transferableRecordsUtils, 'isTokenMintedOnRegistry').mockResolvedValue({
-          minted: true,
-          address: '0x6c2a002A5833a100f38458c50F11E71Aa1A342c6',
-        });
         expect(
           await verifyDocument(W3C_TRANSFERABLE_RECORD as any, { rpcProviderUrl: providerUrl }),
         ).toMatchInlineSnapshot(`
@@ -427,15 +422,6 @@ describe.concurrent('W3C verify', () => {
     it('should return INVALID status for TransferableRecords when token is not minted', async ({
       expect,
     }) => {
-      vi.spyOn(transferableRecordsUtils, 'isTokenMintedOnRegistry').mockResolvedValue({
-        minted: false,
-        address: '0x6c2a002A5833a100f38458c50F11E71Aa1A342c6',
-        reason: {
-          code: W3CCredentialStatusCode.DOCUMENT_NOT_ISSUED,
-          codeString: 'DOCUMENT_NOT_MINTED',
-          message: 'Document has not been issued under token registry',
-        },
-      });
       const tampered: any = {
         ...W3C_TRANSFERABLE_RECORD,
         credentialStatus: {
@@ -762,52 +748,81 @@ describe.concurrent('V3 verify', () => {
     'should verify a DID_TOKEN_REGISTRY document and return fragments',
     { timeout: 300000 },
     async ({ expect }) => {
-      const fragments = await verifyDocument(WRAPPED_DOCUMENT_DID_TOKEN_REGISTRY_V3, {
-        rpcProviderUrl: providerUrl,
-      });
-
-      expect(fragments).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            name: 'OpenAttestationHash',
-            status: 'VALID',
-            type: 'DOCUMENT_INTEGRITY',
-          }),
-          expect.objectContaining({
-            name: 'OpenAttestationEthereumDocumentStoreStatus',
-            status: 'SKIPPED',
-            type: 'DOCUMENT_STATUS',
-          }),
-          expect.objectContaining({
-            name: 'OpenAttestationDidSignedDocumentStatus',
-            status: 'SKIPPED',
-            type: 'DOCUMENT_STATUS',
-          }),
-          expect.objectContaining({
-            name: 'OpenAttestationDnsDidIdentityProof',
-            status: 'SKIPPED',
-            type: 'ISSUER_IDENTITY',
-          }),
-          expect.objectContaining({
-            name: 'OpencertsRegistryVerifier',
-            status: 'SKIPPED',
-            type: 'ISSUER_IDENTITY',
-          }),
-        ]),
-      );
-
-      // Token registry / DNS-TXT can ERROR when public Amoy RPC is flaky.
-      const tokenRegistryFragment = fragments.find(
-        (fragment) => fragment.name === 'OpenAttestationEthereumTokenRegistryStatus',
-      );
-      expect(tokenRegistryFragment).toBeDefined();
-      expect(['VALID', 'ERROR']).toContain(tokenRegistryFragment?.status);
-
-      const dnsTxtFragment = fragments.find(
-        (fragment) => fragment.name === 'OpenAttestationDnsTxtIdentityProof',
-      );
-      expect(dnsTxtFragment).toBeDefined();
-      expect(['VALID', 'ERROR']).toContain(dnsTxtFragment?.status);
+      expect(
+        await verifyDocument(WRAPPED_DOCUMENT_DID_TOKEN_REGISTRY_V3, {
+          rpcProviderUrl: providerUrl,
+        }),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "data": true,
+            "name": "OpenAttestationHash",
+            "status": "VALID",
+            "type": "DOCUMENT_INTEGRITY",
+          },
+          {
+            "data": {
+              "details": {
+                "address": "0x71D28767662cB233F887aD2Bb65d048d760bA694",
+                "minted": true,
+              },
+              "mintedOnAll": true,
+            },
+            "name": "OpenAttestationEthereumTokenRegistryStatus",
+            "status": "VALID",
+            "type": "DOCUMENT_STATUS",
+          },
+          {
+            "name": "OpenAttestationEthereumDocumentStoreStatus",
+            "reason": {
+              "code": 4,
+              "codeString": "SKIPPED",
+              "message": "Document issuers doesn't have "documentStore" or "certificateStore" property or DOCUMENT_STORE method",
+            },
+            "status": "SKIPPED",
+            "type": "DOCUMENT_STATUS",
+          },
+          {
+            "name": "OpenAttestationDidSignedDocumentStatus",
+            "reason": {
+              "code": 0,
+              "codeString": "SKIPPED",
+              "message": "Document was not signed by DID directly",
+            },
+            "status": "SKIPPED",
+            "type": "DOCUMENT_STATUS",
+          },
+          {
+            "data": {
+              "identifier": "example.tradetrust.io",
+              "value": "0x71D28767662cB233F887aD2Bb65d048d760bA694",
+            },
+            "name": "OpenAttestationDnsTxtIdentityProof",
+            "status": "VALID",
+            "type": "ISSUER_IDENTITY",
+          },
+          {
+            "name": "OpenAttestationDnsDidIdentityProof",
+            "reason": {
+              "code": 0,
+              "codeString": "SKIPPED",
+              "message": "Document was not issued using DNS-DID",
+            },
+            "status": "SKIPPED",
+            "type": "ISSUER_IDENTITY",
+          },
+          {
+            "name": "OpencertsRegistryVerifier",
+            "reason": {
+              "code": 1,
+              "codeString": "SKIPPED",
+              "message": "Document issuers doesn't have "documentStore" or "certificateStore" property or DOCUMENT_STORE method",
+            },
+            "status": "SKIPPED",
+            "type": "ISSUER_IDENTITY",
+          },
+        ]
+      `);
     },
   );
 });

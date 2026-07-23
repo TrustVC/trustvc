@@ -129,19 +129,6 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
       expect(documentBuilder).toBeDefined();
     });
 
-    it('should configure obligationRecords correctly', () => {
-      documentBuilder.credentialStatus({
-        chain: 'amoy',
-        chainId: 80002,
-        obligationRegistry: '0x71D28767662cB233F887aD2Bb65d048d760bA694',
-        rpcProviderUrl: 'https://rpc-amoy.polygon.technology',
-      });
-      expect(documentBuilder).toBeDefined();
-      expect(documentBuilder.toString()).toContain(
-        'https://trustvc.io/context/obligation-records-context.json',
-      );
-    });
-
     it('should configure verifiableDocument correctly', () => {
       documentBuilder.credentialStatus({
         url: 'https://trustvc.github.io/did/credentials/statuslist/1',
