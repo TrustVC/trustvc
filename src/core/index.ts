@@ -4,4 +4,5 @@ export * from './verify';
 export * from './endorsement-chain';
 export * from './obligation-endorsement-chain';
 export * from './documentBuilder';
+export * from './obligationDocumentBuilder';
 export { verifyObligationDocument as verifyObligationDocumentFragments } from './verifyObligation';

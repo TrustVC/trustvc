@@ -1088,6 +1088,8 @@ For local e2e coverage of these flows, see [`src/__tests__/e2e/README.md`](src/_
 
 ### 8. **Document Builder**
 > The `DocumentBuilder` class helps build and manage W3C Verifiable Credentials (VCs) with credential status features, implementing the **W3C VC Data Model 2.0** specification. It supports creating documents with two types of credential statuses: `transferableRecords` and `verifiableDocument`. It can sign the document using modern cryptographic signature schemes including **ECDSA-SD-2023** (default) and **BBS-2023**, verify its signature, and serialize the document to a JSON format. Additionally, it allows for configuration of document rendering methods and expiration dates.
+>
+> For electronic Bill of Exchange / Obligation Registry documents, use **`ObligationDocumentBuilder`** instead (parallel to classic `DocumentBuilder`, same signing / derive / verify API, but `obligationRegistry` + obligation-records context). Verify those documents with `verifyObligationDocument` — see [§4](#obligation--boe-verifyobligationdocument) and [§7c](#c-obligation-registry-boe).
 
 #### Usage
 
@@ -1115,7 +1117,7 @@ builder.credentialSubject({
 ```
 
 ##### Configure Credential Status
-You can configure credential status as classic transferable records (`tokenRegistry`), obligation / BoE records (`obligationRegistry`), or `verifiableDocument` (BitstringStatusList). For the registry forms, pass **exactly one** of `tokenRegistry` or `obligationRegistry` — never both.
+You can configure the credential status as either `transferableRecords` or `verifiableDocument`.
 
 **Transferable Records (classic Token Registry)**
 ```ts
@@ -1133,8 +1135,16 @@ Verify with `verifyDocument` (TransferableRecords fragment).
 
 **Obligation Records (BoE / Obligation Registry)**
 
+Use `ObligationDocumentBuilder` (not classic `DocumentBuilder`):
+
 ```ts
-builder.credentialStatus({
+import { ObligationDocumentBuilder } from '@trustvc/trustvc';
+
+const boeBuilder = new ObligationDocumentBuilder({
+  '@context': 'https://trustvc.io/context/bill-of-exchange.json',
+}).credentialSubject({ type: ['BillOfExchange'] });
+
+boeBuilder.credentialStatus({
   chain: 'amoy',
   chainId: 80002,
   obligationRegistry: '0x1234567890abcdef...',
@@ -1142,12 +1152,12 @@ builder.credentialStatus({
 });
 ```
 
-This attaches the obligation-records JSON-LD context and a `TransferableRecords`-typed `credentialStatus` carrying `obligationRegistry` (same `type` string as ETR; the registry field selects the assert / verify path). On-chain minting is separate — use `mintObligationRegistry` from `@trustvc/trustvc/obligation-registry-functions` (see [§7c](#c-obligation-registry-boe)).
+This attaches the obligation-records JSON-LD context and a `TransferableRecords`-typed `credentialStatus` carrying `obligationRegistry`. On-chain minting is separate — use `mintObligationRegistry` from `@trustvc/trustvc/obligation-registry-functions` (see [§7c](#c-obligation-registry-boe)).
 
-Verify BoE documents with `verifyObligationDocument`, **not** classic `verifyDocument` — see [§4](#obligation--boe-verifyobligationdocument).
+Verify BoE documents with `verifyObligationDocument` — see [§4](#obligation--boe-verifyobligationdocument).
 
 > ⚠️ **Disclaimer:**  
-> This builder **does not mint** documents on-chain. If you're using transferable / obligation records, mint separately.  
+> These builders **do not mint** documents on-chain. Mint separately.  
 > Classic ETR minting: [TradeTrust minting guide](https://docs.tradetrust.io/docs/how-tos/credential-status#2-minting-the-credential).  
 > Obligation minting: `mintObligationRegistry` in [§7c](#c-obligation-registry-boe).
 

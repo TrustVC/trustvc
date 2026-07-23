@@ -190,7 +190,7 @@ providers.forEach(({ ethersVersion, titleEscrowVersion }) => {
       };
     });
     describe('returnToIssuer', () => {
-      describe('Successful Return to Issuer', () => {
+      describe.only('Successful Return to Issuer', () => {
         beforeEach(async () => {
           await new Promise((resolve) => setTimeout(resolve, 1000));
           const contractOptions = {
