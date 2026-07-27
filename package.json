@@ -103,6 +103,16 @@
       "import": "./dist/esm/verify/fragments/index.js",
       "require": "./dist/cjs/verify/fragments/index.js"
     },
+    "./verify-obligation": {
+      "types": "./dist/types/verify-obligation/index.d.ts",
+      "import": "./dist/esm/verify-obligation/index.js",
+      "require": "./dist/cjs/verify-obligation/index.js"
+    },
+    "./verify-obligation/fragments": {
+      "types": "./dist/types/verify-obligation/fragments/index.d.ts",
+      "import": "./dist/esm/verify-obligation/fragments/index.js",
+      "require": "./dist/cjs/verify-obligation/fragments/index.js"
+    },
     "./w3c": {
       "types": "./dist/types/w3c/index.d.ts",
       "import": "./dist/esm/w3c/index.js",

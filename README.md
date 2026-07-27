@@ -1142,7 +1142,9 @@ import { ObligationDocumentBuilder } from '@trustvc/trustvc';
 
 const boeBuilder = new ObligationDocumentBuilder({
   '@context': 'https://trustvc.io/context/bill-of-exchange.json',
-}).credentialSubject({ type: ['BillOfExchange'] });
+}).credentialSubject({
+  documentIdentifier: 'BOE-2026-00147',
+});
 
 boeBuilder.credentialStatus({
   chain: 'amoy',
