@@ -36,6 +36,7 @@ TrustVC is a comprehensive wrapper library designed to simplify the signing and 
     - [8. **Document Builder**](#8-document-builder)
     - [9. **Document Store**](#9-document-store)
     - [10. **Transaction Cancel**](#10-transaction-cancel)
+  - [Obligation Registry user guide](#obligation-registry-user-guide)
 
 ## Installation
 
@@ -1582,3 +1583,84 @@ const replacementHash2 = await cancelTransaction(signer, {
   gasPrice: '25000000000', // 25 gwei in wei
 });
 ```
+
+## Obligation Registry user guide
+
+Quick integrator reference for electronic Bill of Exchange (BoE) / Obligation Registry. API detail is in [§7c](#c-obligation-registry-boe), [§4 verify](#obligation--boe-verifyobligationdocument), and [§8 Document Builder](#8-document-builder).
+
+### Classic vs Obligation
+
+| Use case | Stack | Credential status | Verify API |
+|----------|--------|-------------------|------------|
+| eBL / classic transferable record | Token Registry + Title Escrow | `tokenRegistry` | `verifyDocument` |
+| electronic Bill of Exchange | Obligation Registry + ObligationEscrow | `obligationRegistry` | `verifyObligationDocument` |
+
+Do **not** mix stacks — wrong verify/builder/mint helpers will fail or skip checks.
+
+### End-to-end flow
+
+```
+1. Deploy ObligationEscrowFactory + TrustVCToken (obligation registry)
+2. Build BoE VC with ObligationDocumentBuilder (credentialStatus.obligationRegistry)
+3. Sign the VC
+4. Mint tokenId on the registry (beneficiary + holder)
+5. Holder accept / reject → optional transfers / discharge / return
+6. Verify with verifyObligationDocument
+```
+
+Builders **do not mint**. Signing produces the credential; `mintObligationRegistry` puts the token on-chain.
+
+### BoE credential subject
+
+Use context `https://trustvc.io/context/bill-of-exchange.json` with KTDDE-aligned fields (`documentIdentifier`, `drawer`, `drawee`, `payee`, `monetaryAmount`, etc.). Party fields are `{ name, address }` objects.
+
+Sample: [`w3c` package `obligation-credential-subject.sample.json`](https://github.com/TrustVC/w3c/blob/main/packages/w3c-context/samples/obligation-credential-subject.sample.json).
+
+```ts
+import { ObligationDocumentBuilder } from '@trustvc/trustvc';
+
+const boeBuilder = new ObligationDocumentBuilder({
+  '@context': 'https://trustvc.io/context/bill-of-exchange.json',
+}).credentialSubject({
+  documentIdentifier: 'BOE-2026-00147',
+  // ... other KTDDE fields
+});
+
+boeBuilder.credentialStatus({
+  chain: 'amoy',
+  chainId: 80002,
+  obligationRegistry: '0x…',
+  rpcProviderUrl: 'https://rpc-amoy.polygon.technology',
+});
+```
+
+### Imports cheat sheet
+
+| Concern | Import path |
+|---------|-------------|
+| Deploy / mint / lifecycle / transfers / verify wrapper | `@trustvc/trustvc/obligation-registry-functions` |
+| Document builder | `@trustvc/trustvc` → `ObligationDocumentBuilder` |
+| Fragment-level verify | `@trustvc/trustvc` → `verifyObligationDocumentFragments` |
+| Endorsement chain | `@trustvc/trustvc` → `fetchObligationEndorsementChain` |
+| Typechain factories | `@trustvc/trustvc/obligation-registry` |
+
+### CLI
+
+[`trustvc-cli`](https://github.com/TrustVC/trustvc-cli) exposes `obligation-registry`, `obligation-escrow`, and `verify-obligation` command trees. See the CLI README [Obligation Registry user guide](https://github.com/TrustVC/trustvc-cli#obligation-registry-user-guide).
+
+### E2E tests
+
+```bash
+npm run test:e2e
+```
+
+Coverage: [`src/__tests__/e2e/README.md`](src/__tests__/e2e/README.md).
+
+### Things to know (not bugs)
+
+1. **Wrong verify API** — BoE → `verifyObligationDocument`. Classic ETR → `verifyDocument`.
+2. **Wrong builder** — BoE → `ObligationDocumentBuilder` + `obligationRegistry`.
+3. **Accept / reject need split roles** — `beneficiary != holder`.
+4. **Return needs dual role** — `beneficiary == holder`.
+5. **`terminationReason` is not set by return alone** — set on reject / discharge / burn.
+6. **Builders do not mint** — mint separately with `mintObligationRegistry`.
