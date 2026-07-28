@@ -3,6 +3,13 @@ import { ethers as ethersV6 } from 'ethersV6';
 import { supportInterfaceIds as supportInterfaceIdsV4 } from '../../token-registry-v4/supportInterfaceIds';
 import { supportInterfaceIds as supportInterfaceIdsV5 } from '../../token-registry-v5/supportInterfaceIds';
 import { getEthersContractFromProvider } from '../../utils/ethers';
+import { supportInterfaceIds as obligationSupportInterfaceIds } from '../../obligation-registry/supportInterfaceIds';
+import { fetchObligationEscrowTransfers } from '../obligation-endorsement-chain/fetchObligationEscrowTransfers';
+import {
+  mergeObligationTransfers,
+  ObligationEndorsementChainRpcOptions,
+} from '../obligation-endorsement-chain/helpers';
+import { getObligationEndorsementChain } from '../obligation-endorsement-chain/retrieveObligationEndorsementChain';
 import { decrypt } from '../decrypt';
 import {
   fetchEscrowTransfersV4,
@@ -13,6 +20,9 @@ import { mergeTransfersV4, mergeTransfersV5 } from '../endorsement-chain/helpers
 import { getEndorsementChain } from '../endorsement-chain/retrieveEndorsementChain';
 import { EndorsementChain, TransferBaseEvent } from '../endorsement-chain/types';
 import { Provider } from '@ethersproject/abstract-provider';
+
+/** Optional RPC tuning for obligation endorsement-chain fetches (ignored on classic ETR paths). */
+export type FetchEndorsementChainRpcOptions = ObligationEndorsementChainRpcOptions;
 
 export const TitleEscrowInterface = {
   V4: supportInterfaceIdsV4.TitleEscrow,
@@ -199,6 +209,7 @@ export const fetchEndorsementChain = async (
   provider: Provider | ethersV6.Provider,
   keyId?: string,
   titleEscrowAddress?: string,
+  rpcOptions?: FetchEndorsementChainRpcOptions,
 ): Promise<EndorsementChain> => {
   if (!tokenRegistryAddress || !tokenId || !provider) {
     throw new Error('Missing required dependencies');
@@ -206,7 +217,7 @@ export const fetchEndorsementChain = async (
   const resolvedTitleEscrowAddress =
     titleEscrowAddress ?? (await getTitleEscrowAddress(tokenRegistryAddress, tokenId, provider));
 
-  const [isV4, isV5] = await Promise.all([
+  const [isV4, isV5TitleEscrow, isObligationEscrow] = await Promise.all([
     isTitleEscrowVersion({
       titleEscrowAddress: resolvedTitleEscrowAddress,
       versionInterface: TitleEscrowInterface.V4,
@@ -217,11 +228,13 @@ export const fetchEndorsementChain = async (
       versionInterface: TitleEscrowInterface.V5,
       provider,
     }),
+    checkSupportsInterface(
+      resolvedTitleEscrowAddress,
+      obligationSupportInterfaceIds.ObligationEscrow,
+      provider,
+    ),
   ]);
-
-  if (!isV4 && !isV5) {
-    throw new Error('Only Token Registry V4/V5 is supported');
-  }
+  const isV5 = isV5TitleEscrow || isObligationEscrow;
 
   let transferEvents: TransferBaseEvent[] = [];
 
@@ -233,12 +246,25 @@ export const fetchEndorsementChain = async (
 
     transferEvents = mergeTransfersV4([...titleEscrowLogs, ...tokenLogs]);
   } else if (isV5) {
+    if (isObligationEscrow) {
+      return fetchObligationEndorsementChainEvents(
+        provider,
+        tokenRegistryAddress,
+        tokenId,
+        keyId,
+        titleEscrowAddress,
+        rpcOptions,
+      );
+    }
+
     const titleEscrowLogs = await fetchEscrowTransfersV5(
       provider,
       resolvedTitleEscrowAddress,
       tokenRegistryAddress,
     );
     transferEvents = mergeTransfersV5(titleEscrowLogs);
+  } else {
+    throw new Error('Only Token Registry V4/V5 is supported');
   }
 
   const endorsementChain = await getEndorsementChain(provider, transferEvents);
@@ -249,4 +275,40 @@ export const fetchEndorsementChain = async (
         ...event,
         remark: event?.remark?.slice(2) ? decrypt(event.remark.slice(2), keyId ?? '') : '',
       }));
+};
+
+const fetchObligationEndorsementChainEvents = async (
+  provider: Provider | ethersV6.Provider,
+  tokenRegistryAddress: string,
+  tokenId: string,
+  keyId?: string,
+  titleEscrowAddress?: string,
+  rpcOptions?: FetchEndorsementChainRpcOptions,
+): Promise<EndorsementChain> => {
+  const escrowAddress =
+    titleEscrowAddress ??
+    (await getTitleEscrowAddress(tokenRegistryAddress, tokenId, provider, {
+      titleEscrowVersion: 'v5',
+    }));
+  const { transfers, statusEvents } = await fetchObligationEscrowTransfers(
+    provider,
+    tokenRegistryAddress,
+    tokenId,
+    escrowAddress,
+    rpcOptions,
+  );
+  const merged = mergeObligationTransfers([...transfers, ...statusEvents]);
+  const chain = await getObligationEndorsementChain(provider, merged, rpcOptions);
+  if (!keyId) return chain as EndorsementChain;
+  return chain.map((event) => {
+    if (!event.remark || event.remark === '0x' || event.remark === '') {
+      return { ...event, remark: '' };
+    }
+    try {
+      const remarkHex = event.remark.startsWith('0x') ? event.remark.slice(2) : event.remark;
+      return { ...event, remark: decrypt(remarkHex, keyId) };
+    } catch {
+      return event;
+    }
+  }) as EndorsementChain;
 };

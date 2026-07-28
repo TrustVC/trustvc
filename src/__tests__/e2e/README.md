@@ -50,7 +50,7 @@ Shared fixtures live in [`fixtures.ts`](./fixtures.ts). Obligation helpers live 
 | [`obligation-registry-functions/transfer.e2e.test.ts`](./obligation-registry-functions/transfer.e2e.test.ts) | nominate, transferHolder / Beneficiary / Owners |
 | [`obligation-registry-functions/rejectTransfer.e2e.test.ts`](./obligation-registry-functions/rejectTransfer.e2e.test.ts) | rejectTransferHolder / Beneficiary / Owners |
 | [`obligation-registry-functions/returnToken.e2e.test.ts`](./obligation-registry-functions/returnToken.e2e.test.ts) | returnToIssuer, rejectReturned (restore), acceptReturned (burn) |
-| [`obligation-registry-functions/endorsementChain.e2e.test.ts`](./obligation-registry-functions/endorsementChain.e2e.test.ts) | `fetchObligationEndorsementChain` event order + RPC options smoke |
+| [`obligation-registry-functions/endorsementChain.e2e.test.ts`](./obligation-registry-functions/endorsementChain.e2e.test.ts) | `fetchEndorsementChain` (BoE / ObligationEscrow path) event order |
 
 ### Obligation lifecycle (checklist)
 
@@ -88,7 +88,7 @@ Deploy factory + registry
 
 ### Endorsement chain
 
-`fetchObligationEndorsementChain` is asserted for a mini lifecycle (`STATUS_*`, `TRANSFER_*`, `RETURNED_TO_ISSUER`). Optional `maxBlockRange` / `rpcConcurrency` are smoke-tested; Hardhat has no Alchemy Free 10-block limit, so chunking under rate limits is not stressed here.
+`fetchEndorsementChain` is asserted for a mini obligation lifecycle (`STATUS_*`, `TRANSFER_*`, `RETURNED_TO_ISSUER`). The unified function auto-routes to the ObligationEscrow path when the escrow implements the obligation interface.
 
 ## Notes
 

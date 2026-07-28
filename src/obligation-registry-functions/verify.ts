@@ -1,7 +1,7 @@
-import { verifyObligationDocument as runObligationVerification } from '../core/verifyObligation';
-import { isValid, VerificationFragment } from '../verify-obligation';
-import { OBLIGATION_RECORDS_NAME } from '../verify-obligation/fragments';
-import { ObligationRecordsResultFragment } from '../verify-obligation/fragments/document-status/obligationRecords/obligationRecordVerifier.types';
+import { verifyDocument } from '../core/verify';
+import { isValid, VerificationFragment } from '../verify';
+import { OBLIGATION_RECORDS_NAME } from '../verify/fragments';
+import { ObligationRecordsResultFragment } from '../verify/fragments/document-status/obligationRecords/obligationRecordVerifier.types';
 import { DocumentStatus, ObligationEscrowTerminationReason } from './types';
 import { ethers } from 'ethers';
 
@@ -16,21 +16,16 @@ export interface VerifyObligationDocumentResult {
 }
 
 /**
- * Verifies a signed BoE document end-to-end via the dedicated obligation verify pipeline
- * (`src/verify-obligation`): signature integrity, ObligationRecords document status, and issuer
- * identity.
- *
- * Classic ETR documents yield `ObligationRecords` SKIPPED; invalid obligation records yield
- * INVALID; valid BoE yields VALID (plus overall `valid` from all fragments).
- * @param {unknown} document - The signed BoE document to verify.
- * @param {VerifyObligationDocumentOptions} options - `rpcProviderUrl` or `provider` for on-chain checks.
- * @returns {Promise<VerifyObligationDocumentResult>} Overall validity plus every verification fragment.
+ * Verifies a signed BoE document via the unified `verifyDocument` pipeline.
+ * @param {unknown} document - Signed W3C VC with `credentialStatus.obligationRegistry`.
+ * @param {VerifyObligationDocumentOptions} [options] - RPC provider URL or ethers provider for on-chain checks.
+ * @returns {Promise<VerifyObligationDocumentResult>} Overall validity and verification fragments.
  */
 export const verifyObligationDocument = async (
   document: unknown,
   options: VerifyObligationDocumentOptions = {},
 ): Promise<VerifyObligationDocumentResult> => {
-  const fragments = await runObligationVerification(document as never, options);
+  const fragments = await verifyDocument(document as never, options);
   return { valid: isValid(fragments), fragments };
 };
 
@@ -41,11 +36,9 @@ export interface ObligationDocumentStatus {
 }
 
 /**
- * Extracts the enriched ObligationRecords status (mint + escrow lifecycle) from an
- * obligation verify result. Returns `null` if the document isn't a valid obligation record
- * (e.g. classic ETR → SKIPPED, or verification failed).
- * @param {VerificationFragment[]} fragments - Fragments from the obligation verify pipeline.
- * @returns {ObligationDocumentStatus | null} The enriched status, or `null` if not applicable.
+ * Extracts the enriched ObligationRecords status from a `verifyDocument` result.
+ * @param {VerificationFragment[]} fragments - Fragments returned by `verifyDocument`.
+ * @returns {ObligationDocumentStatus | null} On-chain obligation status when ObligationRecords is VALID; otherwise null.
  */
 export const getObligationDocumentStatus = (
   fragments: VerificationFragment[],

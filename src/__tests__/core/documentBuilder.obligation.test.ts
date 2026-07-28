@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ObligationDocumentBuilder } from '../../core/obligationDocumentBuilder';
+import { DocumentBuilder } from '../../core/documentBuilder';
 
-describe('ObligationDocumentBuilder', () => {
-  let documentBuilder: ObligationDocumentBuilder;
+describe('DocumentBuilder (obligation records)', () => {
+  let documentBuilder: DocumentBuilder;
 
   beforeEach(() => {
-    documentBuilder = new ObligationDocumentBuilder({
+    documentBuilder = new DocumentBuilder({
       '@context': 'https://trustvc.io/context/bill-of-lading.json',
     }).credentialSubject({ type: ['BillOfLading'] });
   });

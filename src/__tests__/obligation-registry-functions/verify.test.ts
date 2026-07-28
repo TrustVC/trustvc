@@ -1,10 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
-import { OBLIGATION_RECORDS_NAME } from '../../verify-obligation/fragments';
+import { OBLIGATION_RECORDS_NAME } from '../../verify/fragments';
 
-const runObligationVerificationMock = vi.fn();
+const verifyDocumentMock = vi.fn();
 
-vi.mock('../../core/verifyObligation', () => ({
-  verifyObligationDocument: (...args: unknown[]) => runObligationVerificationMock(...args),
+vi.mock('../../core/verify', () => ({
+  verifyDocument: (...args: unknown[]) => verifyDocumentMock(...args),
 }));
 
 import {
@@ -15,7 +15,7 @@ import {
 const OBLIGATION_REGISTRY = '0xObligationRegistryAddress';
 
 describe('verifyObligationDocument', () => {
-  it('runs the obligation pipeline and reports valid when every fragment is VALID', async () => {
+  it('runs the unified verify pipeline and reports valid when every fragment is VALID', async () => {
     const fragments = [
       { name: 'W3CSignatureIntegrity', type: 'DOCUMENT_INTEGRITY', status: 'VALID' },
       {
@@ -26,14 +26,14 @@ describe('verifyObligationDocument', () => {
       },
       { name: 'W3CIssuerIdentity', type: 'ISSUER_IDENTITY', status: 'VALID' },
     ];
-    runObligationVerificationMock.mockResolvedValue(fragments);
+    verifyDocumentMock.mockResolvedValue(fragments);
 
     const document = { credentialStatus: { obligationRegistry: OBLIGATION_REGISTRY } };
     const result = await verifyObligationDocument(document, {
       rpcProviderUrl: 'http://localhost:8545',
     });
 
-    expect(runObligationVerificationMock).toHaveBeenCalledWith(document, {
+    expect(verifyDocumentMock).toHaveBeenCalledWith(document, {
       rpcProviderUrl: 'http://localhost:8545',
     });
     expect(result.valid).toBe(true);
@@ -45,7 +45,7 @@ describe('verifyObligationDocument', () => {
       { name: 'W3CSignatureIntegrity', type: 'DOCUMENT_INTEGRITY', status: 'VALID' },
       { name: OBLIGATION_RECORDS_NAME, type: 'DOCUMENT_STATUS', status: 'INVALID', data: {} },
     ];
-    runObligationVerificationMock.mockResolvedValue(fragments);
+    verifyDocumentMock.mockResolvedValue(fragments);
 
     const result = await verifyObligationDocument({});
 

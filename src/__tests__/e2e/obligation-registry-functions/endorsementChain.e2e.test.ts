@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import { Signer } from 'ethers';
-import { fetchObligationEndorsementChain } from '../../../core/obligation-endorsement-chain';
+import { fetchEndorsementChain } from '../../../core/endorsement-chain';
 import {
   acceptObligationRegistry,
   returnToIssuerObligationRegistry,
@@ -79,16 +79,12 @@ obligationProviders.forEach(({ ethersVersion }) => {
       );
       await waitTx(returnTx);
 
-      const chain = await fetchObligationEndorsementChain(
+      const chain = await fetchEndorsementChain(
         obligationRegistry,
         tokenId,
         readProvider,
-        {
-          keyId: 'test-encryption-key',
-          titleEscrowAddress: escrowAddress,
-          maxBlockRange: 50,
-          rpcConcurrency: 2,
-        },
+        'test-encryption-key',
+        escrowAddress,
       );
 
       expect(chain.length).to.be.greaterThan(0);
@@ -132,11 +128,7 @@ obligationProviders.forEach(({ ethersVersion }) => {
       );
       await waitTx(acceptTx);
 
-      const chain = await fetchObligationEndorsementChain(
-        obligationRegistry,
-        tokenId,
-        readProvider,
-      );
+      const chain = await fetchEndorsementChain(obligationRegistry, tokenId, readProvider);
 
       const types = chain.map((event) => event.type);
       expect(types.some((t) => t === 'INITIAL' || t === 'STATUS_INITIALIZED')).to.equal(true);

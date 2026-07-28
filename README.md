@@ -18,8 +18,8 @@ TrustVC is a comprehensive wrapper library designed to simplify the signing and 
       - [b) TrustVC W3C Signing (signW3C)](#b-trustvc-w3c-signing-signw3c)
     - [3. **Deriving (Selective Disclosure)**](#3-deriving-selective-disclosure)
     - [4. **Verifying**](#4-verifying)
-      - [Classic ETR / general VC (`verifyDocument`)](#classic-etr--general-vc-verifydocument)
-      - [Obligation / BoE (`verifyObligationDocument`)](#obligation--boe-verifyobligationdocument)
+      - [`verifyDocument` (ETR, BoE, and general VCs)](#verifydocument-etr-boe-and-general-vcs)
+      - [Obligation / BoE (`verifyDocument` + optional wrapper)](#obligation--boe-verifydocument--optional-wrapper)
     - [5. **Encryption**](#5-encryption)
     - [6. **Decryption**](#6-decryption)
     - [7. **TradeTrust Token Registry**](#7-tradetrust-token-registry)
@@ -357,18 +357,19 @@ const derivationResult = await deriveW3C(signedDocument, {
 
 ### 4. **Verifying**
 
-> TrustVC exposes **two** W3C document-status pipelines. Pick the one that matches the credential:
+> TrustVC uses a **unified** `verifyDocument` pipeline for W3C credentials and OpenAttestation documents. Document-status checks are selected from the credential:
 >
-> | Pipeline | Entry point | Document status fragment | Use for |
-> |----------|-------------|--------------------------|---------|
-> | Classic (`src/verify`) | `verifyDocument` | TransferableRecords (`tokenRegistry`) | ETR / Title Escrow, BitstringStatusList, OA VDs |
-> | Obligation / BoE (`src/verify-obligation`) | `verifyObligationDocument` | ObligationRecords (`obligationRegistry`) | electronic Bill of Exchange |
+> | Document status fragment | Credential signal | Use for |
+> |--------------------------|-------------------|---------|
+> | TransferableRecords | `credentialStatus.tokenRegistry` | ETR / Title Escrow, classic transferable records |
+> | ObligationRecords | `credentialStatus.obligationRegistry` | electronic Bill of Exchange (BoE) |
+> | BitstringStatusList / other | `credentialStatus` type / URL | Revocable verifiable documents |
 >
-> Do **not** run BoE documents through `verifyDocument` expecting ObligationRecords — that fragment lives only in the obligation pipeline. Classic ETR docs passed to `verifyObligationDocument` get ObligationRecords **SKIPPED**.
+> Classic ETR documents get ObligationRecords **SKIPPED**; BoE documents get TransferableRecords **SKIPPED**. Pass `rpcProviderUrl` or `provider` when on-chain checks are required.
 >
-> For ECDSA-SD-2023 and BBS-2023 signed documents that normally require derivation before verification, both pipelines derive automatically when needed.
+> For ECDSA-SD-2023 and BBS-2023 signed documents that normally require derivation before verification, the pipeline derives automatically when needed.
 
-#### Classic ETR / general VC (`verifyDocument`)
+#### `verifyDocument` (ETR, BoE, and general VCs)
 
 ```ts
 import { verifyDocument } from '@trustvc/trustvc';
@@ -409,34 +410,29 @@ const signedDocument = {
 const resultFragments = await verifyDocument(signedDocument);
 ```
 
-#### Obligation / BoE (`verifyObligationDocument`)
+#### Obligation / BoE (`verifyDocument` + optional wrapper)
 
-Prefer the high-level wrapper (returns `{ valid, fragments }` plus status helpers):
+Use `verifyDocument` for BoE credentials (ObligationRecords fragment). The `verifyObligationDocument` wrapper in `obligation-registry-functions` delegates to the same pipeline and returns `{ valid, fragments }`:
 
 ```ts
 import {
+  verifyDocument,
   verifyObligationDocument,
   getObligationDocumentStatus,
-} from '@trustvc/trustvc/obligation-registry-functions';
-// also re-exported from `@trustvc/trustvc`
+} from '@trustvc/trustvc';
 
-const { valid, fragments } = await verifyObligationDocument(signedBoeVc, {
+const fragments = await verifyDocument(signedBoeVc, {
   rpcProviderUrl: 'https://rpc.sepolia.org',
   // or provider,
 });
 
-const status = getObligationDocumentStatus(fragments);
-// { obligationRegistry, status, terminationReason } | null
-```
-
-Raw fragment array (same pipeline, no `{ valid }` wrapper):
-
-```ts
-import { verifyObligationDocumentFragments } from '@trustvc/trustvc';
-
-const fragments = await verifyObligationDocumentFragments(signedBoeVc, {
+// Or use the convenience wrapper:
+const { valid, fragments } = await verifyObligationDocument(signedBoeVc, {
   rpcProviderUrl: 'https://rpc.sepolia.org',
 });
+
+const status = getObligationDocumentStatus(fragments);
+// { obligationRegistry, status, terminationReason } | null
 ```
 
 **ObligationRecords** fragment outcomes:
@@ -445,7 +441,7 @@ const fragments = await verifyObligationDocumentFragments(signedBoeVc, {
 - Classic ETR (`tokenRegistry` only) → `SKIPPED`
 - Invalid obligation (e.g. not minted / wrong registry) → `INVALID`
 
-Low-level fragment builders live under `@trustvc/trustvc/verify-obligation` (and `verifyObligation` namespace). Full SDK flow (deploy → mint → lifecycle) is in [§7c Obligation Registry (BoE)](#c-obligation-registry-boe).
+Full SDK flow (deploy → mint → lifecycle) is in [§7c Obligation Registry (BoE)](#c-obligation-registry-boe).
 
 ---
 
@@ -1036,11 +1032,11 @@ const reason = await getObligationEscrowTerminationReason(
 );
 
 import {
-  verifyObligationDocument,
+  verifyDocument,
   getObligationDocumentStatus,
-} from '@trustvc/trustvc/obligation-registry-functions';
+} from '@trustvc/trustvc';
 
-const { valid, fragments } = await verifyObligationDocument(signedVc, {
+const fragments = await verifyDocument(signedVc, {
   rpcProviderUrl: 'https://…',
   // or provider,
 });
@@ -1048,25 +1044,26 @@ const enriched = getObligationDocumentStatus(fragments);
 // { obligationRegistry, status, terminationReason } | null
 ```
 
-See [§4 Verifying → Obligation / BoE](#obligation--boe-verifyobligationdocument) for the dedicated `src/verify-obligation` pipeline, fragment outcomes, and `verifyObligationDocumentFragments`.
+See [§4 Verifying → Obligation / BoE](#obligation--boe-verifydocument--optional-wrapper) for the unified `verifyDocument` pipeline and ObligationRecords fragment outcomes.
 
 #### Endorsement chain
 
 ```ts
-import { fetchObligationEndorsementChain } from '@trustvc/trustvc';
+import { fetchEndorsementChain } from '@trustvc/trustvc';
 
-const chain = await fetchObligationEndorsementChain(
+// Works for classic ETR (Title Escrow) and BoE (ObligationEscrow).
+// Pass the registry address as tokenRegistryAddress (tokenRegistry or obligationRegistry).
+const chain = await fetchEndorsementChain(
   obligationRegistry,
   String(tokenId),
   provider,
-  {
-    keyId: encryptionKeyId, // optional — decrypts remarks
-    // titleEscrowAddress, maxBlockRange, rpcConcurrency — optional RPC tuning
-  },
+  encryptionKeyId, // optional — decrypts remarks
+  obligationEscrowAddress, // optional — skip lookup
+  { maxBlockRange: 10, rpcConcurrency: 3 }, // optional — BoE RPC tuning
 );
 ```
 
-This is separate from classic `fetchEndorsementChain` and does not use ETR V4/V5 Title Escrow paths. Events include `STATUS_*`, `TRANSFER_*`, `RETURNED_TO_ISSUER`, and related lifecycle entries.
+For BoE, events include `STATUS_*`, `TRANSFER_*`, `RETURNED_TO_ISSUER`, and related lifecycle entries. Classic ETR uses V4/V5 Title Escrow paths when applicable.
 
 #### Low-level contracts
 
@@ -1088,9 +1085,9 @@ Also exported: `obligationRegistryRoleHash`, `obligationRegistrySupportInterface
 For local e2e coverage of these flows, see [`src/__tests__/e2e/README.md`](src/__tests__/e2e/README.md).
 
 ### 8. **Document Builder**
-> The `DocumentBuilder` class helps build and manage W3C Verifiable Credentials (VCs) with credential status features, implementing the **W3C VC Data Model 2.0** specification. It supports creating documents with two types of credential statuses: `transferableRecords` and `verifiableDocument`. It can sign the document using modern cryptographic signature schemes including **ECDSA-SD-2023** (default) and **BBS-2023**, verify its signature, and serialize the document to a JSON format. Additionally, it allows for configuration of document rendering methods and expiration dates.
+> The `DocumentBuilder` class helps build and manage W3C Verifiable Credentials (VCs) with credential status features, implementing the **W3C VC Data Model 2.0** specification. It supports creating documents with credential statuses for classic transferable records (`tokenRegistry`), obligation records (`obligationRegistry`), and revocable verifiable documents. It can sign the document using modern cryptographic signature schemes including **ECDSA-SD-2023** (default) and **BBS-2023**, verify its signature, and serialize the document to a JSON format. Additionally, it allows for configuration of document rendering methods and expiration dates.
 >
-> For electronic Bill of Exchange / Obligation Registry documents, use **`ObligationDocumentBuilder`** instead (parallel to classic `DocumentBuilder`, same signing / derive / verify API, but `obligationRegistry` + obligation-records context). Verify those documents with `verifyObligationDocument` — see [§4](#obligation--boe-verifyobligationdocument) and [§7c](#c-obligation-registry-boe).
+> For electronic Bill of Exchange / Obligation Registry documents, use the same `DocumentBuilder` with `credentialStatus({ obligationRegistry, ... })` — see [§4](#obligation--boe-verifydocument--optional-wrapper) and [§7c](#c-obligation-registry-boe).
 
 #### Usage
 
@@ -1136,12 +1133,12 @@ Verify with `verifyDocument` (TransferableRecords fragment).
 
 **Obligation Records (BoE / Obligation Registry)**
 
-Use `ObligationDocumentBuilder` (not classic `DocumentBuilder`):
+Use the same `DocumentBuilder` with `obligationRegistry` (not `tokenRegistry`):
 
 ```ts
-import { ObligationDocumentBuilder } from '@trustvc/trustvc';
+import { DocumentBuilder } from '@trustvc/trustvc';
 
-const boeBuilder = new ObligationDocumentBuilder({
+const boeBuilder = new DocumentBuilder({
   '@context': 'https://trustvc.io/context/bill-of-exchange.json',
 }).credentialSubject({
   electronicDocumentIdentifier: 'urn:uuid:e6f4b2a1-9c3d-4e8f-a7b0-1d2e3f4a5b6c',
@@ -1158,7 +1155,7 @@ boeBuilder.credentialStatus({
 
 This attaches the obligation-records JSON-LD context and a `TransferableRecords`-typed `credentialStatus` carrying `obligationRegistry`. On-chain minting is separate — use `mintObligationRegistry` from `@trustvc/trustvc/obligation-registry-functions` (see [§7c](#c-obligation-registry-boe)).
 
-Verify BoE documents with `verifyObligationDocument` — see [§4](#obligation--boe-verifyobligationdocument).
+Verify BoE documents with `verifyDocument` — see [§4](#obligation--boe-verifydocument--optional-wrapper).
 
 > ⚠️ **Disclaimer:**  
 > These builders **do not mint** documents on-chain. Mint separately.  
@@ -1587,26 +1584,26 @@ const replacementHash2 = await cancelTransaction(signer, {
 
 ## Obligation Registry user guide
 
-Quick integrator reference for electronic Bill of Exchange (BoE) / Obligation Registry. API detail is in [§7c](#c-obligation-registry-boe), [§4 verify](#obligation--boe-verifyobligationdocument), and [§8 Document Builder](#8-document-builder).
+Quick integrator reference for electronic Bill of Exchange (BoE) / Obligation Registry. API detail is in [§7c](#c-obligation-registry-boe), [§4 verify](#obligation--boe-verifydocument--optional-wrapper), and [§8 Document Builder](#8-document-builder).
 
 ### Classic vs Obligation
 
 | Use case | Stack | Credential status | Verify API |
 |----------|--------|-------------------|------------|
 | eBL / classic transferable record | Token Registry + Title Escrow | `tokenRegistry` | `verifyDocument` |
-| electronic Bill of Exchange | Obligation Registry + ObligationEscrow | `obligationRegistry` | `verifyObligationDocument` |
+| electronic Bill of Exchange | Obligation Registry + ObligationEscrow | `obligationRegistry` | `verifyDocument` (ObligationRecords fragment) |
 
-Do **not** mix stacks — wrong verify/builder/mint helpers will fail or skip checks.
+Do **not** mix stacks — wrong credential fields or mint helpers will fail or skip checks.
 
 ### End-to-end flow
 
 ```
 1. Deploy ObligationEscrowFactory + TrustVCToken (obligation registry)
-2. Build BoE VC with ObligationDocumentBuilder (credentialStatus.obligationRegistry)
+2. Build BoE VC with DocumentBuilder + credentialStatus.obligationRegistry
 3. Sign the VC
 4. Mint tokenId on the registry (beneficiary + holder)
 5. Holder accept / reject → optional transfers / discharge / return
-6. Verify with verifyObligationDocument
+6. Verify with verifyDocument (or verifyObligationDocument wrapper)
 ```
 
 Builders **do not mint**. Signing produces the credential; `mintObligationRegistry` puts the token on-chain.
@@ -1618,9 +1615,9 @@ Use context `https://trustvc.io/context/bill-of-exchange.json` with finalized Bo
 Sample: [`w3c` package `obligation-credential-subject.sample.json`](https://github.com/TrustVC/w3c/blob/main/packages/w3c-context/samples/obligation-credential-subject.sample.json).
 
 ```ts
-import { ObligationDocumentBuilder } from '@trustvc/trustvc';
+import { DocumentBuilder } from '@trustvc/trustvc';
 
-const boeBuilder = new ObligationDocumentBuilder({
+const boeBuilder = new DocumentBuilder({
   '@context': 'https://trustvc.io/context/bill-of-exchange.json',
 }).credentialSubject({
   electronicDocumentIdentifier: 'urn:uuid:e6f4b2a1-9c3d-4e8f-a7b0-1d2e3f4a5b6c',
@@ -1640,15 +1637,16 @@ boeBuilder.credentialStatus({
 
 | Concern | Import path |
 |---------|-------------|
-| Deploy / mint / lifecycle / transfers / verify wrapper | `@trustvc/trustvc/obligation-registry-functions` |
-| Document builder | `@trustvc/trustvc` → `ObligationDocumentBuilder` |
-| Fragment-level verify | `@trustvc/trustvc` → `verifyObligationDocumentFragments` |
-| Endorsement chain | `@trustvc/trustvc` → `fetchObligationEndorsementChain` |
+| Deploy / mint / lifecycle / transfers | `@trustvc/trustvc/obligation-registry-functions` |
+| Document builder | `@trustvc/trustvc` → `DocumentBuilder` + `obligationRegistry` |
+| Verify | `@trustvc/trustvc` → `verifyDocument` (or `verifyObligationDocument` wrapper) |
+| Obligation status from fragments | `@trustvc/trustvc` → `getObligationDocumentStatus` |
+| Endorsement chain | `@trustvc/trustvc` → `fetchEndorsementChain` |
 | Typechain factories | `@trustvc/trustvc/obligation-registry` |
 
 ### CLI
 
-[`trustvc-cli`](https://github.com/TrustVC/trustvc-cli) exposes `obligation-registry`, `obligation-escrow`, and `verify-obligation` command trees. See the CLI README [Obligation Registry user guide](https://github.com/TrustVC/trustvc-cli#obligation-registry-user-guide).
+[`trustvc-cli`](https://github.com/TrustVC/trustvc-cli) exposes `obligation-registry` and `obligation-escrow` for on-chain BoE flows. Use **`trustvc verify`** for both ETR and BoE documents (auto-detects ObligationRecords). See the CLI README [Obligation Registry user guide](https://github.com/TrustVC/trustvc-cli#obligation-registry-user-guide).
 
 ### E2E tests
 
@@ -1660,8 +1658,8 @@ Coverage: [`src/__tests__/e2e/README.md`](src/__tests__/e2e/README.md).
 
 ### Things to know (not bugs)
 
-1. **Wrong verify API** — BoE → `verifyObligationDocument`. Classic ETR → `verifyDocument`.
-2. **Wrong builder** — BoE → `ObligationDocumentBuilder` + `obligationRegistry`.
+1. **Same verify API** — ETR and BoE both use `verifyDocument`; the active document-status fragment depends on `tokenRegistry` vs `obligationRegistry`.
+2. **Same builder** — BoE uses `DocumentBuilder` with `obligationRegistry` (not `tokenRegistry`).
 3. **Accept / reject need split roles** — `beneficiary != holder`.
 4. **Return needs dual role** — `beneficiary == holder`.
 5. **`terminationReason` is not set by return alone** — set on reject / discharge / burn.
