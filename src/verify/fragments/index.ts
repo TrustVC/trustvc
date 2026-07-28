@@ -15,8 +15,16 @@ import {
 import { w3cCredentialStatus } from './document-status/w3cCredentialStatus';
 import { w3cIssuerIdentity } from './issuer-identity/w3cIssuerIdentity';
 import { w3cEmptyCredentialStatus } from './document-status/w3cEmptyCredentialStatus';
+import {
+  w3cVpCredentialStatus,
+  w3cVpIssuerIdentity,
+  w3cVpSignatureIntegrity,
+} from './presentation/w3cVpVerifier';
 
 export {
+  w3cVpCredentialStatus,
+  w3cVpIssuerIdentity,
+  w3cVpSignatureIntegrity,
   TRANSFERABLE_RECORDS_TYPE,
   credentialStatusTransferableRecordVerifier,
   openAttestationDidSignedDocumentStatus,
