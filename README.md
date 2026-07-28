@@ -1144,7 +1144,8 @@ import { ObligationDocumentBuilder } from '@trustvc/trustvc';
 const boeBuilder = new ObligationDocumentBuilder({
   '@context': 'https://trustvc.io/context/bill-of-exchange.json',
 }).credentialSubject({
-  documentIdentifier: 'BOE-2026-00147',
+  electronicDocumentIdentifier: 'urn:uuid:e6f4b2a1-9c3d-4e8f-a7b0-1d2e3f4a5b6c',
+  referenceNumber: 'BOE-2026-00147',
 });
 
 boeBuilder.credentialStatus({
@@ -1612,7 +1613,7 @@ Builders **do not mint**. Signing produces the credential; `mintObligationRegist
 
 ### BoE credential subject
 
-Use context `https://trustvc.io/context/bill-of-exchange.json` with KTDDE-aligned fields (`documentIdentifier`, `drawer`, `drawee`, `payee`, `monetaryAmount`, etc.). Party fields are `{ name, address }` objects.
+Use context `https://trustvc.io/context/bill-of-exchange.json` with finalized BoE form fields (`electronicDocumentIdentifier`, `referenceNumber`, `amountInFigures` / `amountInWords`, `tenor`, `payee`, `drawer` / `drawee`, etc.).
 
 Sample: [`w3c` package `obligation-credential-subject.sample.json`](https://github.com/TrustVC/w3c/blob/main/packages/w3c-context/samples/obligation-credential-subject.sample.json).
 
@@ -1622,8 +1623,9 @@ import { ObligationDocumentBuilder } from '@trustvc/trustvc';
 const boeBuilder = new ObligationDocumentBuilder({
   '@context': 'https://trustvc.io/context/bill-of-exchange.json',
 }).credentialSubject({
-  documentIdentifier: 'BOE-2026-00147',
-  // ... other KTDDE fields
+  electronicDocumentIdentifier: 'urn:uuid:e6f4b2a1-9c3d-4e8f-a7b0-1d2e3f4a5b6c',
+  referenceNumber: 'BOE-2026-00147',
+  // ... other finalized BoE form fields
 });
 
 boeBuilder.credentialStatus({
