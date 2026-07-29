@@ -13,6 +13,9 @@ import {
   verifyPresentation,
 } from '@trustvc/w3c-vc';
 
+// StatusList credentialStatus types this pipeline can evaluate for revocation.
+const SUPPORTED_STATUS_TYPES = new Set(['BitstringStatusListEntry', 'StatusList2021Entry']);
+
 // A document is a Verifiable Presentation when its `type` includes
 // `VerifiablePresentation` and it carries a `verifiableCredential` field.
 const isVpDocument = (document: unknown): boolean => {
@@ -39,9 +42,15 @@ const readId = (value: unknown): string | undefined => {
 const getDidFromId = (id: string | undefined): string | undefined =>
   id ? id.split('#')[0] : undefined;
 
-// Returns the first credentialSubject (credentialSubject may be an object or an array).
-const getFirstSubject = (cred: SignedVerifiableCredential): unknown =>
-  Array.isArray(cred?.credentialSubject) ? cred.credentialSubject[0] : cred?.credentialSubject;
+// Normalises an object-or-array value into an array (empty when absent).
+const toArray = <T>(value: T | T[] | undefined | null): T[] => {
+  if (value === undefined || value === null) return [];
+  return Array.isArray(value) ? value : [value];
+};
+
+// Returns ALL credentialSubjects (credentialSubject may be an object or an array).
+const getSubjects = (cred: SignedVerifiableCredential): unknown[] =>
+  toArray(cred?.credentialSubject as unknown);
 
 // Holder binding: the signer's DID (from the proof's verificationMethod) must equal the
 // holder and every credentialSubject.id. Returns an error message, or undefined when bound.
@@ -55,12 +64,20 @@ const checkVpHolderBinding = (doc: VerifiablePresentation): string | undefined =
   const owner = holder ?? signerDid;
   const credentials = getCredentials(doc);
   for (let i = 0; i < credentials.length; i++) {
-    const subjectId = readId(getFirstSubject(credentials[i]));
-    if (!subjectId) {
-      return `credential at index ${i} has no "credentialSubject.id", so it cannot be bound to the holder.`;
+    const subjects = getSubjects(credentials[i]);
+    if (subjects.length === 0) {
+      return `credential at index ${i} has no credentialSubject, so it cannot be bound to the holder.`;
     }
-    if (subjectId !== owner) {
-      return `credentialSubject.id ("${subjectId}") of credential at index ${i} does not match the presentation holder/signer ("${owner}").`;
+    // EVERY subject must be the holder — a credential with a second subject bound to a
+    // different DID must not pass.
+    for (const subject of subjects) {
+      const subjectId = readId(subject);
+      if (!subjectId) {
+        return `credential at index ${i} has a subject with no "credentialSubject.id", so it cannot be bound to the holder.`;
+      }
+      if (subjectId !== owner) {
+        return `credentialSubject.id ("${subjectId}") of credential at index ${i} does not match the presentation holder/signer ("${owner}").`;
+      }
     }
   }
   return undefined;
@@ -199,20 +216,35 @@ export const w3cVpCredentialStatus: Verifier<VerificationFragment> = {
 
     // Embedded credentials' revocation status.
     const credentials = getCredentials(doc);
+    const allStatuses = credentials.flatMap((cred) =>
+      toArray(cred.credentialStatus as CredentialStatus | CredentialStatus[] | undefined),
+    );
+
+    // A status entry whose type we cannot evaluate must NOT be silently dropped (that would
+    // report VALID while revocation is unenforced). Surface it as ERROR.
+    const unsupported = allStatuses.filter(
+      (cs) => cs?.type && !SUPPORTED_STATUS_TYPES.has(cs.type),
+    );
+    if (unsupported.length > 0) {
+      const types = [...new Set(unsupported.map((cs) => cs.type))].join(', ');
+      return {
+        type: 'DOCUMENT_STATUS',
+        name: 'W3CVpCredentialStatus',
+        reason: { message: `Unsupported credentialStatus type(s) cannot be verified: ${types}.` },
+        status: 'ERROR',
+      };
+    }
+
     const statusChecks = await Promise.all(
-      credentials.flatMap((cred) => {
-        const raw = cred.credentialStatus;
-        const statuses = (Array.isArray(raw) ? raw : raw ? [raw] : []) as CredentialStatus[];
-        return statuses
-          .filter((cs) => ['BitstringStatusListEntry', 'StatusList2021Entry'].includes(cs?.type))
-          .map((cs) =>
-            verifyCredentialStatus(
-              cs as BitstringStatusListCredentialStatus,
-              cs.type as CredentialStatusType,
-              verifierOptions,
-            ),
-          );
-      }),
+      allStatuses
+        .filter((cs) => SUPPORTED_STATUS_TYPES.has(cs?.type))
+        .map((cs) =>
+          verifyCredentialStatus(
+            cs as BitstringStatusListCredentialStatus,
+            cs.type as CredentialStatusType,
+            verifierOptions,
+          ),
+        ),
     );
 
     const revoked = statusChecks.find((r) => r.status === true);
@@ -265,16 +297,25 @@ export const w3cVpIssuerIdentity: Verifier<VerificationFragment> = {
   verify: async (document: unknown, verifierOptions: VerifierOptions) => {
     const doc = document as VerifiablePresentation;
     const credentials = getCredentials(doc);
-    const issuers = credentials.map((c) => readId(c.issuer)).filter(Boolean) as string[];
+    const issuerIds = credentials.map((c) => readId(c.issuer));
 
-    if (issuers.length === 0) {
+    // Every embedded credential must declare an issuer — a missing issuer cannot be
+    // resolved, so it must fail rather than be silently dropped.
+    const missing = issuerIds.filter((id) => !id).length;
+    if (credentials.length === 0 || missing > 0) {
       return {
         type: 'ISSUER_IDENTITY',
         name: 'W3CVpIssuerIdentity',
-        reason: { message: 'No embedded credential has an issuer.' },
+        reason: {
+          message:
+            credentials.length === 0
+              ? 'Presentation contains no verifiable credentials.'
+              : `${missing} embedded credential(s) have no issuer.`,
+        },
         status: 'INVALID',
       };
     }
+    const issuers = issuerIds as string[];
 
     const resolved = await Promise.all(
       issuers.map((did) => checkDidResolve(did, verifierOptions?.documentLoader)),

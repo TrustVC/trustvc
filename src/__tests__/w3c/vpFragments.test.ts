@@ -17,6 +17,12 @@ import {
 import { w3cIssuerIdentity } from '../../verify/fragments/issuer-identity/w3cIssuerIdentity';
 import { verifyDocument } from '../../core/verify';
 
+// Asserts a value is defined and returns it narrowed (avoids `!` assertions).
+const assertDefined = <T>(value: T | undefined, message: string): T => {
+  if (value === undefined) throw new Error(message);
+  return value;
+};
+
 const PUB = 'zDnaemDNwi4G5eTzGfRooFFu5Kns3be6yfyVNtiaMhWkZbwtc';
 const SEC = 'z42tmUXTVn3n9BihE6NhdMpvVBTnFTgmb6fw18o5Ud6puhRW';
 const DID = `did:key:${PUB}`;
@@ -42,9 +48,11 @@ describe('W3C VP verification fragments', () => {
       credentialSubject: { ...W3C_RAW_CREDENTIAL_V2_0.credentialSubject, id: DID },
     };
     const s = await signCredential(raw as never, holderKey as never, 'ecdsa-sd-2023');
-    embeddedVc = (
-      await deriveCredential(s.signed!, ['/credentialSubject/id', '/credentialSubject/blNumber'])
-    ).derived!;
+    const derived = await deriveCredential(assertDefined(s.signed, 'signed'), [
+      '/credentialSubject/id',
+      '/credentialSubject/blNumber',
+    ]);
+    embeddedVc = assertDefined(derived.derived, 'derived');
   });
 
   it('test() detects a VP and the VC-only issuer verifier skips it', async () => {
@@ -109,8 +117,15 @@ describe('W3C VP verification fragments', () => {
       credentialSubject: { ...W3C_RAW_CREDENTIAL_V2_0.credentialSubject, id: DID },
     };
     const s = await signCredential(raw as never, holderKey as never, 'ecdsa-sd-2023');
-    const vc = (await deriveCredential(s.signed!, ['/credentialSubject/id', '/validUntil']))
-      .derived!;
+    const vc = assertDefined(
+      (
+        await deriveCredential(assertDefined(s.signed, 'signed'), [
+          '/credentialSubject/id',
+          '/validUntil',
+        ])
+      ).derived,
+      'derived',
+    );
     const vp = await createPresentation(vc as never, {
       holder: DID,
       now: new Date('2020-06-01T00:00:00Z'),
@@ -145,6 +160,28 @@ describe('W3C VP verification fragments', () => {
     const status = await w3cVpCredentialStatus.verify(vp as never, o as never);
     expect(status.status).toBe('INVALID');
     expect((status as { reason?: { message?: string } }).reason?.message).toMatch(/revoked/i);
+  });
+
+  it('w3cVpCredentialStatus ERRORs on an unsupported credentialStatus type (not silently dropped)', async () => {
+    const vc = {
+      ...W3C_VERIFIABLE_DOCUMENT,
+      credentialStatus: { type: 'TransferableRecords' },
+    };
+    const vp = { type: ['VerifiablePresentation'], verifiableCredential: [vc] };
+    const o = await opts();
+    const status = await w3cVpCredentialStatus.verify(vp as never, o as never);
+    expect(status.status).toBe('ERROR');
+    expect((status as { reason?: { message?: string } }).reason?.message).toMatch(/Unsupported/i);
+  });
+
+  it('w3cVpIssuerIdentity emits INVALID when an embedded credential has no issuer', async () => {
+    const noIssuer = { ...W3C_VERIFIABLE_DOCUMENT } as { issuer?: string };
+    delete noIssuer.issuer;
+    const vp = { type: ['VerifiablePresentation'], verifiableCredential: [noIssuer] };
+    const o = await opts();
+    const issuer = await w3cVpIssuerIdentity.verify(vp as never, o as never);
+    expect(issuer.status).toBe('INVALID');
+    expect((issuer as { reason?: { message?: string } }).reason?.message).toMatch(/no issuer/i);
   });
 
   it('w3cVpIssuerIdentity resolves an embedded did:web issuer (→ VALID)', async () => {

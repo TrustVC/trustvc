@@ -18,7 +18,7 @@ import {
 import { W3CCredentialStatusCode } from '../../verify/fragments/document-status/w3cCredentialStatus';
 import { openAttestationDidSignedDocumentStatus } from '@tradetrust-tt/tt-verify';
 
-const providerUrl = 'https://rpc-amoy.polygon.technology';
+const providerUrl = 'https://polygon-amoy-bor-rpc.publicnode.com';
 
 describe.concurrent('W3C verify', () => {
   describe.concurrent('W3C_VERIFIABLE_DOCUMENT', () => {
@@ -86,6 +86,36 @@ describe.concurrent('W3C verify', () => {
             "data": true,
             "name": "W3CIssuerIdentity",
             "status": "VALID",
+            "type": "ISSUER_IDENTITY",
+          },
+          {
+            "name": "W3CVpSignatureIntegrity",
+            "reason": {
+              "code": 0,
+              "codeString": "SKIPPED",
+              "message": "Document is not a Verifiable Presentation.",
+            },
+            "status": "SKIPPED",
+            "type": "DOCUMENT_INTEGRITY",
+          },
+          {
+            "name": "W3CVpCredentialStatus",
+            "reason": {
+              "code": 0,
+              "codeString": "SKIPPED",
+              "message": "Document is not a Verifiable Presentation.",
+            },
+            "status": "SKIPPED",
+            "type": "DOCUMENT_STATUS",
+          },
+          {
+            "name": "W3CVpIssuerIdentity",
+            "reason": {
+              "code": 0,
+              "codeString": "SKIPPED",
+              "message": "Document is not a Verifiable Presentation.",
+            },
+            "status": "SKIPPED",
             "type": "ISSUER_IDENTITY",
           },
         ]
@@ -355,6 +385,36 @@ describe.concurrent('W3C verify', () => {
               "data": true,
               "name": "W3CIssuerIdentity",
               "status": "VALID",
+              "type": "ISSUER_IDENTITY",
+            },
+            {
+              "name": "W3CVpSignatureIntegrity",
+              "reason": {
+                "code": 0,
+                "codeString": "SKIPPED",
+                "message": "Document is not a Verifiable Presentation.",
+              },
+              "status": "SKIPPED",
+              "type": "DOCUMENT_INTEGRITY",
+            },
+            {
+              "name": "W3CVpCredentialStatus",
+              "reason": {
+                "code": 0,
+                "codeString": "SKIPPED",
+                "message": "Document is not a Verifiable Presentation.",
+              },
+              "status": "SKIPPED",
+              "type": "DOCUMENT_STATUS",
+            },
+            {
+              "name": "W3CVpIssuerIdentity",
+              "reason": {
+                "code": 0,
+                "codeString": "SKIPPED",
+                "message": "Document is not a Verifiable Presentation.",
+              },
+              "status": "SKIPPED",
               "type": "ISSUER_IDENTITY",
             },
           ]
