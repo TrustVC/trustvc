@@ -207,8 +207,10 @@ describe('W3C VP verification fragments', () => {
     expect(byName('W3CVpSignatureIntegrity')?.status).toBe('VALID');
     expect(byName('W3CVpCredentialStatus')?.status).toBe('VALID');
     expect(byName('W3CVpIssuerIdentity')?.status).toBe('VALID');
-    // No VP fragment errored.
-    const vpFragments = fragments.filter((f) => f.name?.startsWith('W3CVp'));
-    expect(vpFragments.every((f) => f.status !== 'ERROR')).toBe(true);
+    // VC-only verifiers must SKIP a VP — in particular W3CEmptyCredentialStatus must not
+    // report a valid VP as INVALID.
+    expect(byName('W3CEmptyCredentialStatus')?.status).toBe('SKIPPED');
+    // A valid VP must produce NO INVALID/ERROR fragment across the whole pipeline.
+    expect(fragments.every((f) => f.status === 'VALID' || f.status === 'SKIPPED')).toBe(true);
   });
 });
