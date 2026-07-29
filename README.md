@@ -354,21 +354,31 @@ const derivationResult = await deriveW3C(signedDocument, {
 >
 > Credentials carrying a `TransferableRecords` status cannot be presented (they are controlled on-chain). The holder proof uses the `ecdsa-rdfc-2019` cryptosuite and reuses the holder's ECDSA (P-256) Multikey. A `challenge` produces an `authentication` proof (anti-replay); omitting it produces an `assertionMethod` proof.
 
+Only the **lifetime** is required. `challenge` and `domain` are **optional**: pass a `challenge` for anti-replay (authentication proof); omit it for a plain `assertionMethod` proof. `domain` may only be used together with a `challenge`.
+
 ```ts
 import { signW3CPresentation, verifyW3CPresentation } from '@trustvc/trustvc';
 
 // `derivedCredential` is a signed (and, for SD suites, derived) W3C VC whose
 // credentialSubject.id is the holder. `holderKeyPair` is the holder's ECDSA Multikey.
-const { signed, error } = await signW3CPresentation(derivedCredential, holderKeyPair, {
-  holder: 'did:key:zDnae...',
-  challenge: 'nonce-issued-by-the-verifier', // authentication proof (anti-replay)
-  domain: 'verifier.example.com',            // optional; requires a challenge
-  expiresInSeconds: 600,                      // REQUIRED (or `validUntil`)
-});
 
-// Verify: holder proof + holder binding + VP expiry + every embedded credential
-// (signature, expiry and revocation). Pass the same challenge the verifier issued.
-const result = await verifyW3CPresentation(signed, {
+// Minimal — no challenge/domain → an assertionMethod proof (only lifetime is required):
+const { signed } = await signW3CPresentation(derivedCredential, holderKeyPair, {
+  holder: 'did:key:zDnae...',
+  expiresInSeconds: 600, // REQUIRED (or `validUntil`)
+});
+const result = await verifyW3CPresentation(signed); // no challenge needed to verify it
+
+// With anti-replay — pass a challenge (→ authentication proof); domain is optional:
+const { signed: authVp } = await signW3CPresentation(derivedCredential, holderKeyPair, {
+  holder: 'did:key:zDnae...',
+  expiresInSeconds: 600,
+  challenge: 'nonce-issued-by-the-verifier', // optional → authentication proof (anti-replay)
+  domain: 'verifier.example.com',            // optional; only valid with a challenge
+});
+// Verify: holder proof + holder binding + VP expiry + every embedded credential.
+// For an authentication proof, pass the SAME challenge the verifier issued.
+const authResult = await verifyW3CPresentation(authVp, {
   challenge: 'nonce-issued-by-the-verifier',
   domain: 'verifier.example.com',
 });
