@@ -9,6 +9,7 @@ import {
 import { TransferableRecordsCredentialStatus } from '@trustvc/w3c-credential-status';
 import * as w3cVC from '@trustvc/w3c-vc';
 import { SignedVerifiableCredential } from '@trustvc/w3c-vc';
+import { isObligationRecordCredentialStatus } from '../../../../utils/documents/obligation';
 import {
   TransferableRecordsErrorFragment,
   TransferableRecordsResultFragment,
@@ -112,10 +113,7 @@ const test: VerifierType['test'] = (
     w3cVC.isSignedDocument(document) &&
     credentialStatuses.every(
       (cs: w3cVC.CredentialStatus) =>
-        cs?.type === TRANSFERABLE_RECORDS_TYPE &&
-        !!(cs as TransferableRecordsCredentialStatus).tokenRegistry &&
-        !(cs as TransferableRecordsCredentialStatus & { obligationRegistry?: string })
-          .obligationRegistry,
+        cs?.type === TRANSFERABLE_RECORDS_TYPE && !isObligationRecordCredentialStatus(cs),
     )
   ) {
     return true;

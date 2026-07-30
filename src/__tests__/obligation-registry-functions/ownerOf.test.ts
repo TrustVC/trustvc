@@ -30,7 +30,6 @@ describe('ownerOfObligationRegistry', () => {
       { obligationRegistryAddress: MOCK_OBLIGATION_REGISTRY_ADDRESS },
       wallet,
       { tokenId: '1' },
-      {},
     );
 
     expect(owner).toBe(MOCK_OWNER_ADDRESS);
@@ -38,7 +37,7 @@ describe('ownerOfObligationRegistry', () => {
 
   it('throws when registry address is missing', async () => {
     await expect(
-      ownerOfObligationRegistry({ obligationRegistryAddress: '' }, wallet, { tokenId: '1' }, {}),
+      ownerOfObligationRegistry({ obligationRegistryAddress: '' }, wallet, { tokenId: '1' }),
     ).rejects.toThrow('Obligation registry address is required');
   });
 });
