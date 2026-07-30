@@ -37,7 +37,7 @@ jobs:
         env:
           ANKR_API_KEY: ${{ secrets.ANKR_API_KEY }}
           POLYGONSCAN_API_KEY: ${{ secrets.POLYGONSCAN_API_KEY }}
-          AMOY_RPC: ${{ secrets.AMOY_RPC }}
+          AMOY_RPC: https://polygon-amoy-bor-rpc.publicnode.com
 
   test-build:
     name: Test Build

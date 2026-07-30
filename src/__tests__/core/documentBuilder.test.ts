@@ -7,7 +7,7 @@ import {
   VerificationType,
 } from '@trustvc/w3c-issuer';
 
-const amoyRpcUrl = process.env.AMOY_RPC || 'https://rpc-amoy.polygon.technology';
+const amoyRpcUrl = process.env.AMOY_RPC || 'https://polygon-amoy-bor-rpc.publicnode.com';
 
 // -----------------------------
 // Note: Dummy/test cryptographic key pairs for local development and CI/CD.

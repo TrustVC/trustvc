@@ -12,6 +12,7 @@ import { getObligationEscrowContract, resolveObligationEscrowAddress } from './u
 const getObligationRegistryStatus = async (
   contractOptions: ObligationContractOptions,
   signer: Signer | SignerV6,
+  // Unused; escrow resolution uses contractOptions.tokenId (API parity).
   _params: ObligationTokenIdParams,
   options: ObligationStatusReadOptions = {},
 ): Promise<ObligationDocumentStatus> => {
@@ -27,6 +28,7 @@ const getObligationRegistryStatus = async (
 const isObligationRegistryRegistered = async (
   contractOptions: ObligationContractOptions,
   signer: Signer | SignerV6,
+  // Unused; escrow resolution uses contractOptions.tokenId (API parity).
   _params: ObligationTokenIdParams,
   options: ObligationStatusReadOptions = {},
 ): Promise<boolean> => {
@@ -41,6 +43,7 @@ const isObligationRegistryRegistered = async (
 const getObligationEscrowTerminationReason = async (
   contractOptions: ObligationContractOptions,
   signer: Signer | SignerV6,
+  // Unused; escrow resolution uses contractOptions.tokenId (API parity).
   _params: ObligationTokenIdParams,
   options: ObligationStatusReadOptions = {},
 ): Promise<ObligationEscrowTerminationReason> => {
