@@ -36,7 +36,9 @@ describe.each(providers)(
         vi.spyOn(wallet, 'getChainId').mockResolvedValue(mockChainId as unknown as number);
       } else {
         wallet = new WalletV6(PRIVATE_KEY, Provider as any);
-        vi.spyOn(Provider, 'getNetwork').mockResolvedValue({ chainId: mockChainId } as Network);
+        vi.spyOn(Provider, 'getNetwork').mockResolvedValue({
+          chainId: mockChainId,
+        } as unknown as Network);
       }
 
       vi.spyOn(coreModule, 'getObligationEscrowAddress').mockResolvedValue(

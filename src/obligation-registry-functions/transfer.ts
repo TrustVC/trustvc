@@ -69,7 +69,7 @@ const transferOwnersObligationRegistry = async (
     contractOptions,
     signer,
     'transferOwners',
-    [params.newHolderAddress, params.newBeneficiaryAddress, encryptedRemarks],
+    [params.newBeneficiaryAddress, params.newHolderAddress, encryptedRemarks],
     options,
   );
 };

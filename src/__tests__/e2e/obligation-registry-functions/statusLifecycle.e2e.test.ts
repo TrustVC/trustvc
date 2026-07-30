@@ -2,6 +2,7 @@ import { expect } from 'chai';
 import { network } from 'hardhat';
 import '@nomiclabs/hardhat-ethers';
 import '@nomicfoundation/hardhat-chai-matchers';
+import 'chai-as-promised';
 import {
   acceptObligationRegistry,
   rejectObligationRegistry,

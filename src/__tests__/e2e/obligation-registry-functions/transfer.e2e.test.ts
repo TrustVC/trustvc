@@ -2,6 +2,7 @@ import { expect } from 'chai';
 import { network } from 'hardhat';
 import '@nomiclabs/hardhat-ethers';
 import '@nomicfoundation/hardhat-chai-matchers';
+import 'chai-as-promised';
 import {
   acceptObligationRegistry,
   nominateObligationRegistry,
@@ -13,10 +14,12 @@ import {
   buildObligationE2ESetup,
   createObligationE2ESigners,
   deployObligationE2ERegistry,
+  getObligationE2EEscrowAddress,
   mintObligationE2EToken,
   obligationE2EProviders,
   type ObligationE2ESetup,
 } from './fixtures';
+import { createObligationContract } from '../utils';
 
 obligationE2EProviders.forEach(({ ethersVersion }) => {
   describe(`Obligation transfer E2E (ethers ${ethersVersion})`, function () {
@@ -156,6 +159,19 @@ obligationE2EProviders.forEach(({ ethersVersion }) => {
       await tx.wait();
 
       expect(tx.hash).to.be.a('string');
+
+      const escrowAddress = await getObligationE2EEscrowAddress(setup, tokenId);
+      const escrow = createObligationContract(
+        escrowAddress,
+        'ObligationEscrow',
+        ethersVersion,
+        setup.deployer,
+      );
+
+      // transferOwners must apply newHolderAddress to the holder role and
+      // newBeneficiaryAddress to the beneficiary role, not swapped.
+      expect(await escrow.holder()).to.equal(setup.other.address);
+      expect(await escrow.beneficiary()).to.equal(setup.beneficiary.address);
     });
 
     it('E15: transferOwners fails when not dual-role', async function () {

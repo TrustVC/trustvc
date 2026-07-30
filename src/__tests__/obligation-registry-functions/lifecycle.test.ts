@@ -17,6 +17,7 @@ import {
 } from './fixtures.js';
 import * as coreModule from '../../core';
 import { CHAIN_ID } from '../../utils';
+import { ObligationContractOptions } from '../../obligation-registry-functions/types';
 
 const providers = [
   { Provider: providerV5, ethersVersion: 'v5' as const },
@@ -36,7 +37,9 @@ describe.each(providers)(
         vi.spyOn(wallet, 'getChainId').mockResolvedValue(mockChainId as unknown as number);
       } else {
         wallet = new WalletV6(PRIVATE_KEY, Provider as any);
-        vi.spyOn(Provider, 'getNetwork').mockResolvedValue({ chainId: mockChainId } as Network);
+        vi.spyOn(Provider, 'getNetwork').mockResolvedValue({
+          chainId: mockChainId,
+        } as unknown as Network);
       }
 
       vi.spyOn(coreModule, 'getObligationEscrowAddress').mockResolvedValue(
@@ -87,7 +90,9 @@ describe.each(providers)(
     it('throws when escrow cannot be resolved', async () => {
       await expect(
         acceptObligationRegistry(
-          { obligationRegistryAddress: MOCK_OBLIGATION_REGISTRY_ADDRESS },
+          {
+            obligationRegistryAddress: MOCK_OBLIGATION_REGISTRY_ADDRESS,
+          } as ObligationContractOptions,
           wallet,
           {},
           { chainId: mockChainId },

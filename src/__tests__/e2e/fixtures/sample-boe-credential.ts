@@ -57,7 +57,7 @@ export const SAMPLE_BOE_ENCRYPTION_ID = 'e2e-boe-encryption-key';
 // DocumentBuilder.obligationCredentialStatus() config for Hardhat local network.
 export const createSampleBoeCredentialStatusConfig = (obligationRegistry: string) => ({
   chain: 'local',
-  chainId: CHAIN_ID.local,
+  chainId: Number(CHAIN_ID.local),
   obligationRegistry,
   rpcProviderUrl: 'http://127.0.0.1:8545',
 });
