@@ -35,7 +35,7 @@ export const resolveObligationEscrowAddress = async (
     if (!obligationRegistryAddress) {
       throw new Error('Obligation registry address is required');
     }
-    if (!tokenId) {
+    if (tokenId === undefined || tokenId === '') {
       throw new Error('Token ID is required');
     }
     if (!signer.provider) {
