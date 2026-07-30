@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { DocumentBuilder } from '../../core/documentBuilder';
 import {
   Bbs2023PrivateKeyPair,
@@ -168,6 +168,10 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
       );
     });
 
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
     it('should sign, derive and verify the document successfully for transferableRecords using ECDSA', async () => {
       documentBuilder.credentialStatus({
         chain: 'amoy',
@@ -241,10 +245,8 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
   });
 
   describe('Error Handling', () => {
-    beforeEach(() => {
-      vi.spyOn(DocumentBuilder.prototype as never, 'verifyTokenRegistry').mockResolvedValue(
-        undefined,
-      );
+    afterEach(() => {
+      vi.restoreAllMocks();
     });
 
     it('Should throw error if document builder initialized with data model v1.1 context', () => {
@@ -254,6 +256,9 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
     });
 
     it('Should throw an error when trying to verify without deriving using ECDSA', async () => {
+      vi.spyOn(DocumentBuilder.prototype as never, 'verifyTokenRegistry').mockResolvedValue(
+        undefined,
+      );
       documentBuilder.credentialStatus({
         chain: 'amoy',
         chainId: 80002,
@@ -268,6 +273,9 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
     });
 
     it('Should throw an error when trying to verify without deriving using BBS2023', async () => {
+      vi.spyOn(DocumentBuilder.prototype as never, 'verifyTokenRegistry').mockResolvedValue(
+        undefined,
+      );
       documentBuilder.credentialStatus({
         chain: 'amoy',
         chainId: 80002,
