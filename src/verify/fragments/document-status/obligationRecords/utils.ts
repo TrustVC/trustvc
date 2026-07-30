@@ -5,16 +5,8 @@ import {
   OpenAttestationEthereumTokenRegistryStatusCode,
   ValidTokenRegistryStatus,
 } from '@tradetrust-tt/tt-verify';
-import { constants, errors, providers } from 'ethers';
+import { constants, providers } from 'ethers';
 import { decodeError } from '../transferableRecords/utils';
-
-type EthersError = {
-  message?: string;
-  data?: string;
-  method?: string;
-  reason?: string;
-  code?: errors;
-};
 
 export const isTokenMintedOnObligationRegistry = async ({
   obligationRegistryAddress,
@@ -31,8 +23,10 @@ export const isTokenMintedOnObligationRegistry = async ({
     const network = await provider.getNetwork();
     const expectedChainId =
       typeof chainId === 'string' ? Number.parseInt(chainId, 10) : Number(chainId);
+    // ethers v6 returns chainId as bigint
+    const actualChainId = Number(network.chainId);
 
-    if (!Number.isFinite(expectedChainId) || network.chainId !== expectedChainId) {
+    if (!Number.isFinite(expectedChainId) || actualChainId !== expectedChainId) {
       return {
         minted: false,
         address: obligationRegistryAddress,
@@ -42,7 +36,7 @@ export const isTokenMintedOnObligationRegistry = async ({
             OpenAttestationEthereumTokenRegistryStatusCode[
               OpenAttestationEthereumTokenRegistryStatusCode.UNRECOGNIZED_DOCUMENT
             ],
-          message: `Provider chain ID ${network.chainId} does not match credentialStatus.tokenNetwork.chainId ${expectedChainId}`,
+          message: `Provider chain ID ${actualChainId} does not match credentialStatus.tokenNetwork.chainId ${expectedChainId}`,
         },
       };
     }
@@ -72,19 +66,23 @@ export const isTokenMintedOnObligationRegistry = async ({
           },
         };
   } catch (error: unknown) {
-    if (error instanceof CodedError) {
-      throw error;
+    // Same shape as transferableRecords: map ownerOf failures to DOCUMENT_NOT_MINTED via decodeError.
+    // If decodeError rethrows (e.g. ethers v6 BAD_DATA with hex-only revert data), still treat as not minted.
+    let message: string;
+    try {
+      message = decodeError(error);
+    } catch (decodedError) {
+      if (decodedError instanceof CodedError) {
+        throw decodedError;
+      }
+      message = `Document ${tokenId} has not been issued under contract ${obligationRegistryAddress}`;
     }
-    if ((error as EthersError).code !== errors.CALL_EXCEPTION) {
-      throw error;
-    }
-    const decodedMessage = decodeError(error as EthersError);
 
     return {
       minted: false,
       address: obligationRegistryAddress,
       reason: {
-        message: decodedMessage,
+        message,
         code: OpenAttestationEthereumTokenRegistryStatusCode.DOCUMENT_NOT_MINTED,
         codeString:
           OpenAttestationEthereumTokenRegistryStatusCode[
