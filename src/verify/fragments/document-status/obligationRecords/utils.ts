@@ -9,7 +9,7 @@ import {
 } from '@tradetrust-tt/tt-verify';
 import { constants, providers } from 'ethers';
 import { getObligationEscrowAddress } from '../../../../core/endorsement-chain/obligation';
-import { decodeError } from '../transferableRecords/utils';
+import { decodeError, type EthersError } from '../transferableRecords/utils';
 
 const notMintedReason = (
   obligationRegistryAddress: string,
@@ -78,7 +78,8 @@ export const isTokenMintedOnObligationRegistry = async ({
   } catch (error: unknown) {
     // Only ownerOf absence / registry miss maps to DOCUMENT_NOT_MINTED.
     // CodedError (e.g. SERVER_ERROR) and unexpected reverts from decodeError propagate.
-    return notMintedReason(obligationRegistryAddress, tokenId, decodeError(error));
+    const ethersError = error as EthersError;
+    return notMintedReason(obligationRegistryAddress, tokenId, decodeError(ethersError));
   }
 
   const obligationEscrowAddress = await getObligationEscrowAddress(
