@@ -1,8 +1,7 @@
-import { checkSupportsInterface, encrypt } from '../core';
+import { checkSupportsInterface } from '../core';
 import { v5SupportInterfaceIds } from '../token-registry-v5';
-import { Signer as SignerV6, Contract as ContractV6 } from 'ethersV6';
-import { Contract as ContractV5, ContractTransaction, Signer } from 'ethers';
-import { isV6EthersProvider } from '../utils/ethers';
+import { Signer as SignerV6 } from 'ethersV6';
+import { ContractTransaction, Signer } from 'ethers';
 import {
   AcceptReturnedObligationOptions,
   AcceptReturnedObligationParams,
@@ -65,20 +64,10 @@ const acceptReturnedObligationRegistry = async (
     obligationRegistryAddress,
     signer,
   );
-  const encryptedRemarks = remarks ? `0x${encrypt(remarks, options.id ?? '')}` : '0x';
+  const encryptedRemarks = getEncryptedRemarks(remarks, options.id);
+  const args = [tokenId, encryptedRemarks];
 
-  try {
-    const isV6 = isV6EthersProvider(signer.provider);
-    const args = [tokenId, encryptedRemarks];
-    if (isV6) {
-      await (obligationRegistryContract as ContractV6).burn.staticCall(...args);
-    } else {
-      await (obligationRegistryContract as ContractV5).callStatic.burn(...args);
-    }
-  } catch (error) {
-    console.error('callStatic failed:', error);
-    throw new Error('Pre-check (callStatic) for acceptReturned failed');
-  }
+  await runStaticCall(obligationRegistryContract, 'burn', args, signer.provider);
 
   const txOptions = await getTxOptions(signer, chainId, maxFeePerGas, maxPriorityFeePerGas);
   return obligationRegistryContract.burn(tokenId, encryptedRemarks, txOptions);
@@ -110,20 +99,10 @@ const rejectReturnedObligationRegistry = async (
     obligationRegistryAddress,
     signer,
   );
-  const encryptedRemarks = remarks ? `0x${encrypt(remarks, options.id ?? '')}` : '0x';
+  const encryptedRemarks = getEncryptedRemarks(remarks, options.id);
+  const args = [tokenId, encryptedRemarks];
 
-  try {
-    const isV6 = isV6EthersProvider(signer.provider);
-    const args = [tokenId, encryptedRemarks];
-    if (isV6) {
-      await (obligationRegistryContract as ContractV6).restore.staticCall(...args);
-    } else {
-      await (obligationRegistryContract as ContractV5).callStatic.restore(...args);
-    }
-  } catch (error) {
-    console.error('callStatic failed:', error);
-    throw new Error('Pre-check (callStatic) for rejectReturned failed');
-  }
+  await runStaticCall(obligationRegistryContract, 'restore', args, signer.provider);
 
   const txOptions = await getTxOptions(signer, chainId, maxFeePerGas, maxPriorityFeePerGas);
   return obligationRegistryContract.restore(tokenId, encryptedRemarks, txOptions);

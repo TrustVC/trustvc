@@ -1,9 +1,9 @@
-import { checkSupportsInterface, encrypt } from '../core';
+import { checkSupportsInterface } from '../core';
 import { v5Contracts, v5SupportInterfaceIds } from '../token-registry-v5';
 import { Signer as SignerV6, Contract as ContractV6 } from 'ethersV6';
 import { Contract as ContractV5, ContractTransaction, Signer } from 'ethers';
-import { getEthersContractFromProvider, isV6EthersProvider } from '../utils/ethers';
-import { getTxOptions } from './utils';
+import { getEthersContractFromProvider } from '../utils/ethers';
+import { getEncryptedRemarks, getTxOptions, runStaticCall } from './utils';
 import { MintObligationTokenOptions, MintObligationTokenParams, TransactionOptions } from './types';
 
 const mintObligationRegistry = async (
@@ -36,20 +36,10 @@ const mintObligationRegistry = async (
     signer as any,
   ) as ContractV5 | ContractV6;
 
-  const encryptedRemarks = remarks ? `0x${encrypt(remarks, options.id ?? '')}` : '0x';
+  const encryptedRemarks = getEncryptedRemarks(remarks, options.id);
+  const args = [beneficiaryAddress, holderAddress, tokenId, encryptedRemarks];
 
-  try {
-    const isV6 = isV6EthersProvider(signer.provider);
-    const args = [beneficiaryAddress, holderAddress, tokenId, encryptedRemarks];
-    if (isV6) {
-      await (obligationRegistryContract as ContractV6).mint.staticCall(...args);
-    } else {
-      await (obligationRegistryContract as ContractV5).callStatic.mint(...args);
-    }
-  } catch (error) {
-    console.error('callStatic failed:', error);
-    throw new Error('Pre-check (callStatic) for mint failed');
-  }
+  await runStaticCall(obligationRegistryContract, 'mint', args, signer.provider);
 
   const txOptions = await getTxOptions(signer, chainId, maxFeePerGas, maxPriorityFeePerGas);
   return obligationRegistryContract.mint(
