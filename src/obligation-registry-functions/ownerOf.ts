@@ -14,9 +14,9 @@ const ownerOfObligationRegistry = async (
   signer: Signer | SignerV6,
   params: OwnerOfObligationTokenParams,
   // Kept for API parity with other obligation-registry functions.
-  options: TransactionOptions,
+  _options: TransactionOptions,
 ): Promise<string> => {
-  void options;
+  const { obligationRegistryAddress } = contractOptions;
   const { obligationRegistryAddress } = contractOptions;
   const { tokenId } = params;
 
