@@ -80,7 +80,7 @@ obligationE2EProviders.forEach(({ ethersVersion }) => {
           { holderAddress: setup.other.address },
           setup.txOptions,
         ),
-      ).to.be.rejectedWith(/transferHolder failed/);
+      ).to.be.revertedWith(/transferHolder failed/);
     });
 
     it('E12: nominate + transferBeneficiary', async function () {
