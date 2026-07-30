@@ -63,10 +63,10 @@ export interface W3CTransferableRecordsConfig {
  * @property {string} rpcProviderUrl - The RPC endpoint URL for interacting with the blockchain.
  */
 export interface W3CObligationRecordsConfig {
-  chain: string;
-  chainId: number;
-  obligationRegistry: string;
-  rpcProviderUrl: string;
+  readonly chain: string;
+  readonly chainId: number;
+  readonly obligationRegistry: string;
+  readonly rpcProviderUrl: string;
 }
 
 /**
@@ -105,7 +105,7 @@ export interface SignOptions {
  */
 export class DocumentBuilder {
   private document: Partial<VerifiableCredential>; // Holds the document to be built and signed.
-  private documentType: string = 'w3c'; // Default to W3C
+  private readonly documentType: string = 'w3c'; // Default to W3C
   private selectedStatusType:
     | 'transferableRecords'
     | 'obligationRecords'
@@ -113,7 +113,7 @@ export class DocumentBuilder {
     | null = null; // Tracks selected status type.
   private statusConfig: Partial<CredentialStatus> = {}; // Configuration for the credential status.
   private rpcProviderUrl: string; // Holds the RPC provider URL for verifying token registry.
-  private requiredFields: string[] = ['credentialSubject']; // Required fields that must be present in the document.
+  private readonly requiredFields: string[] = ['credentialSubject']; // Required fields that must be present in the document.
   private isSigned: boolean = false; // Tracks if a document is signed
   private isDerived: boolean = false; // Tracks if a document is derived
   /**
