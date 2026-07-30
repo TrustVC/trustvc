@@ -7,6 +7,7 @@ import { decrypt } from '../decrypt';
 import {
   fetchEscrowTransfersV4,
   fetchEscrowTransfersV5,
+  fetchEscrowTransfersObligation,
 } from '../endorsement-chain/fetchEscrowTransfer';
 import { fetchTokenTransfers } from '../endorsement-chain/fetchTokenTransfer';
 import { mergeTransfersV4, mergeTransfersV5 } from '../endorsement-chain/helpers';
@@ -18,6 +19,8 @@ export const TitleEscrowInterface = {
   V4: supportInterfaceIdsV4.TitleEscrow,
   V5: supportInterfaceIdsV5.TitleEscrow,
 };
+
+export const ObligationEscrowInterface = supportInterfaceIdsV5.ObligationEscrow;
 
 // Helper to fetch Title Escrow Factory Address
 const getTitleEscrowFactoryAddress = async (
@@ -206,7 +209,7 @@ export const fetchEndorsementChain = async (
   const resolvedTitleEscrowAddress =
     titleEscrowAddress ?? (await getTitleEscrowAddress(tokenRegistryAddress, tokenId, provider));
 
-  const [isV4, isV5] = await Promise.all([
+  const [isV4, isV5, isObligation] = await Promise.all([
     isTitleEscrowVersion({
       titleEscrowAddress: resolvedTitleEscrowAddress,
       versionInterface: TitleEscrowInterface.V4,
@@ -217,10 +220,15 @@ export const fetchEndorsementChain = async (
       versionInterface: TitleEscrowInterface.V5,
       provider,
     }),
+    isTitleEscrowVersion({
+      titleEscrowAddress: resolvedTitleEscrowAddress,
+      versionInterface: ObligationEscrowInterface,
+      provider,
+    }),
   ]);
 
-  if (!isV4 && !isV5) {
-    throw new Error('Only Token Registry V4/V5 is supported');
+  if (!isV4 && !isV5 && !isObligation) {
+    throw new Error('Only Token Registry V4/V5 or Obligation Registry is supported');
   }
 
   let transferEvents: TransferBaseEvent[] = [];
@@ -232,6 +240,13 @@ export const fetchEndorsementChain = async (
     ]);
 
     transferEvents = mergeTransfersV4([...titleEscrowLogs, ...tokenLogs]);
+  } else if (isObligation) {
+    const obligationEscrowLogs = await fetchEscrowTransfersObligation(
+      provider,
+      resolvedTitleEscrowAddress,
+      tokenRegistryAddress,
+    );
+    transferEvents = mergeTransfersV5(obligationEscrowLogs);
   } else if (isV5) {
     const titleEscrowLogs = await fetchEscrowTransfersV5(
       provider,
