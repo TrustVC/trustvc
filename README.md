@@ -918,7 +918,7 @@ boeBuilder.obligationCredentialStatus({
 });
 ```
 
-This sets `credentialStatus.type` to `ObligationRecords` with an `obligationRegistry` field (not `tokenRegistry`). On-chain minting is separate — use `mintObligationRegistry` from `@trustvc/trustvc` (see [§7c](`#c-obligation-registry-boe`)). Verify with `verifyDocument` (ObligationRecords fragment) — see [§4](`#obligation--boe-verifydocument`).
+This sets `credentialStatus.type` to `ObligationRecords` with an `obligationRegistry` field (not `tokenRegistry`). On-chain minting is separate — use `mintObligationRegistry` from `@trustvc/trustvc` (see [§7c](#c-obligation-registry-boe)). Verify with `verifyDocument` (ObligationRecords fragment) — see [§4](#obligation--boe-verifydocument).
 
 > ⚠️ **Disclaimer:**  
 > These builders **do not mint** on-chain. Mint separately via `mint` (ETR) or `mintObligationRegistry` (BoE).  
