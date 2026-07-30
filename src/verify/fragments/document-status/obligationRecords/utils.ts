@@ -1,4 +1,7 @@
-import { TrustVCToken__factory } from '@tradetrust-tt/token-registry-v5/contracts';
+import {
+  ObligationEscrow__factory,
+  TrustVCToken__factory,
+} from '@tradetrust-tt/token-registry-v5/contracts';
 import {
   CodedError,
   InvalidTokenRegistryStatus,
@@ -6,7 +9,27 @@ import {
   ValidTokenRegistryStatus,
 } from '@tradetrust-tt/tt-verify';
 import { constants, providers } from 'ethers';
+import { getObligationEscrowAddress } from '../../../../core/endorsement-chain/obligation';
 import { decodeError } from '../transferableRecords/utils';
+
+const notMintedReason = (
+  obligationRegistryAddress: string,
+  tokenId: string,
+  message?: string,
+): InvalidTokenRegistryStatus => ({
+  minted: false,
+  address: obligationRegistryAddress,
+  reason: {
+    code: OpenAttestationEthereumTokenRegistryStatusCode.DOCUMENT_NOT_MINTED,
+    codeString:
+      OpenAttestationEthereumTokenRegistryStatusCode[
+        OpenAttestationEthereumTokenRegistryStatusCode.DOCUMENT_NOT_MINTED
+      ],
+    message:
+      message ??
+      `Document ${tokenId} has not been issued under contract ${obligationRegistryAddress}`,
+  },
+});
 
 export const isTokenMintedOnObligationRegistry = async ({
   obligationRegistryAddress,
@@ -50,20 +73,31 @@ export const isTokenMintedOnObligationRegistry = async ({
       .ownerOf(tokenId)
       .then((owner: string) => owner !== constants.AddressZero);
 
-    return minted
-      ? { minted, address: obligationRegistryAddress }
-      : {
-          minted,
-          address: obligationRegistryAddress,
-          reason: {
-            code: OpenAttestationEthereumTokenRegistryStatusCode.DOCUMENT_NOT_MINTED,
-            codeString:
-              OpenAttestationEthereumTokenRegistryStatusCode[
-                OpenAttestationEthereumTokenRegistryStatusCode.DOCUMENT_NOT_MINTED
-              ],
-            message: `Document ${tokenId} has not been issued under contract ${obligationRegistryAddress}`,
-          },
-        };
+    if (!minted) {
+      return notMintedReason(obligationRegistryAddress, tokenId);
+    }
+
+    const obligationEscrowAddress = await getObligationEscrowAddress(
+      obligationRegistryAddress,
+      tokenId,
+      provider,
+      { titleEscrowVersion: 'v5' },
+    );
+    const obligationEscrow = ObligationEscrow__factory.connect(obligationEscrowAddress, provider);
+    const [active, isHoldingToken] = await Promise.all([
+      obligationEscrow.active(),
+      obligationEscrow.isHoldingToken(),
+    ]);
+
+    if (!active || !isHoldingToken) {
+      return notMintedReason(
+        obligationRegistryAddress,
+        tokenId,
+        `Document ${tokenId} title is not active under contract ${obligationRegistryAddress}`,
+      );
+    }
+
+    return { minted: true, address: obligationRegistryAddress };
   } catch (error: unknown) {
     // Same shape as transferableRecords: map ownerOf failures to DOCUMENT_NOT_MINTED via decodeError.
     // If decodeError rethrows (e.g. ethers v6 BAD_DATA with hex-only revert data), still treat as not minted.
@@ -77,17 +111,6 @@ export const isTokenMintedOnObligationRegistry = async ({
       message = `Document ${tokenId} has not been issued under contract ${obligationRegistryAddress}`;
     }
 
-    return {
-      minted: false,
-      address: obligationRegistryAddress,
-      reason: {
-        message,
-        code: OpenAttestationEthereumTokenRegistryStatusCode.DOCUMENT_NOT_MINTED,
-        codeString:
-          OpenAttestationEthereumTokenRegistryStatusCode[
-            OpenAttestationEthereumTokenRegistryStatusCode.DOCUMENT_NOT_MINTED
-          ],
-      },
-    };
+    return notMintedReason(obligationRegistryAddress, tokenId, message);
   }
 };
