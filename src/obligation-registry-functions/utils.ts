@@ -74,6 +74,9 @@ export const getEncryptedRemarks = (
   remarks: string | undefined,
   id: string | undefined,
 ): string => {
+  if (remarks && !id) {
+    throw new Error('An `id` is required to encrypt remarks');
+  }
   return remarks && id ? `0x${encrypt(remarks, id)}` : '0x';
 };
 
