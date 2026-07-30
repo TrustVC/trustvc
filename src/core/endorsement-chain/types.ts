@@ -15,7 +15,34 @@ export type TradeTrustTokenEventType =
   | 'TRANSFER_TO_WALLET'
   | 'INVALID';
 
-export type TransferEventType = TokenTransferEventType | TitleEscrowTransferEventType;
+export type TokenTransferEventType =
+  | 'INITIAL'
+  | 'SURRENDERED' // V4
+  | 'RETURNED_TO_ISSUER' // V5
+  | 'SURRENDER_REJECTED' // V4
+  | 'RETURN_TO_ISSUER_REJECTED' // V5
+  | 'SURRENDER_ACCEPTED' // V4
+  | 'RETURN_TO_ISSUER_ACCEPTED'; // V5
+
+export type TitleEscrowTransferEventType =
+  | 'TRANSFER_BENEFICIARY'
+  | 'TRANSFER_HOLDER'
+  | 'TRANSFER_OWNERS'
+  | 'REJECT_TRANSFER_BENEFICIARY' // V5
+  | 'REJECT_TRANSFER_HOLDER' // V5
+  | 'REJECT_TRANSFER_OWNERS'; // V5
+
+/** Obligation escrow status lifecycle events (returned by unified fetchEndorsementChain). */
+export type ObligationStatusEventType =
+  | 'STATUS_INITIALIZED'
+  | 'STATUS_ACCEPTED'
+  | 'STATUS_REJECTED'
+  | 'STATUS_DISCHARGED';
+
+export type TransferEventType =
+  | TokenTransferEventType
+  | TitleEscrowTransferEventType
+  | ObligationStatusEventType;
 
 export interface TransferBaseEvent {
   type: TransferEventType;
@@ -27,26 +54,9 @@ export interface TransferBaseEvent {
   remark?: string;
 }
 
-export type TokenTransferEventType =
-  | 'INITIAL'
-  | 'SURRENDERED' // V4
-  | 'RETURNED_TO_ISSUER' // V5
-  | 'SURRENDER_REJECTED' // V4
-  | 'RETURN_TO_ISSUER_REJECTED' // V5
-  | 'SURRENDER_ACCEPTED' // V4
-  | 'RETURN_TO_ISSUER_ACCEPTED'; // V5
-
 export interface TitleEscrowTransferEvent extends TransferBaseEvent {
   type: TitleEscrowTransferEventType;
 }
-
-export type TitleEscrowTransferEventType =
-  | 'TRANSFER_BENEFICIARY'
-  | 'TRANSFER_HOLDER'
-  | 'TRANSFER_OWNERS'
-  | 'REJECT_TRANSFER_BENEFICIARY' // V5
-  | 'REJECT_TRANSFER_HOLDER' // V5
-  | 'REJECT_TRANSFER_OWNERS'; // V5
 
 export interface TokenTransferEvent extends TransferBaseEvent {
   type: TokenTransferEventType;
