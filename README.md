@@ -803,7 +803,6 @@ For more information on Token Registry and Title Escrow contracts **version v5**
 
 #### Lifecycle
 
-```
 Deploy factory + registry
         │
         ▼
