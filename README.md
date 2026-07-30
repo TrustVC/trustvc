@@ -767,7 +767,7 @@ For more information on Token Registry and Title Escrow contracts **version v5**
 
 > **New:** Obligation Registry supports electronic Bill of Exchange (BoE). It mirrors the classic Transferable Records pattern using **`TrustVCToken`** + **`ObligationEscrow`** (v5 only — no Obligation v4 path).
 >
-> Import on-chain helpers from `@trustvc/trustvc/obligation-registry-functions`. Functions use the `*ObligationRegistry` suffix (e.g. `mintObligationRegistry`) so they never clash with classic ETR exports on `@trustvc/trustvc`.
+> Import on-chain helpers from `@trustvc/trustvc` (same as Token Registry helpers). Functions use the `*ObligationRegistry` suffix (e.g. `mintObligationRegistry`) so they never clash with classic ETR exports (`mint`, `transferHolder`, …).
 
 **Lifecycle**
 
@@ -777,7 +777,7 @@ Deploy factory + registry → Mint (Issued) → Accept (Accepted) / Reject (Reje
 
 **Role rules:** accept / reject / discharge require `beneficiary != holder`; `returnToIssuerObligationRegistry` requires dual role (`beneficiary == holder`).
 
-**Status enums** (`@trustvc/trustvc/obligation-registry-functions`):
+**Status enums** (from `@trustvc/trustvc`):
 
 | Enum | Values |
 |------|--------|
@@ -805,7 +805,7 @@ import {
   getObligationRegistryStatus,
   getObligationEscrowTerminationReason,
   ownerOfObligationRegistry,
-} from '@trustvc/trustvc/obligation-registry-functions';
+} from '@trustvc/trustvc';
 
 // Deploy
 const { obligationRegistry, obligationEscrowFactoryAddress } =
@@ -918,7 +918,7 @@ boeBuilder.obligationCredentialStatus({
 });
 ```
 
-This sets `credentialStatus.type` to `TransferableRecords` with an `obligationRegistry` field (not `tokenRegistry`). On-chain minting is separate — use `mintObligationRegistry` from `@trustvc/trustvc/obligation-registry-functions` (see [§7c](#c-obligation-registry-boe)). Verify with `verifyDocument` (ObligationRecords fragment) — see [§4](#obligation--boe-verifydocument).
+This sets `credentialStatus.type` to `TransferableRecords` with an `obligationRegistry` field (not `tokenRegistry`). On-chain minting is separate — use `mintObligationRegistry` from `@trustvc/trustvc` (see [§7c](#c-obligation-registry-boe)). Verify with `verifyDocument` (ObligationRecords fragment) — see [§4](#obligation--boe-verifydocument).
 
 > ⚠️ **Disclaimer:**  
 > These builders **do not mint** on-chain. Mint separately via `mint` (ETR) or `mintObligationRegistry` (BoE).  
