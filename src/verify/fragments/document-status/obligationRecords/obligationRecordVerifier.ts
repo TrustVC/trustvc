@@ -6,20 +6,21 @@ import {
   ValidTokenRegistryStatus,
   VerifierOptions,
 } from '@tradetrust-tt/tt-verify';
-import { TransferableRecordsCredentialStatus } from '@trustvc/w3c-credential-status';
+import { ObligationRecordsCredentialStatus } from '@trustvc/w3c-credential-status';
 import * as w3cVC from '@trustvc/w3c-vc';
 import { SignedVerifiableCredential } from '@trustvc/w3c-vc';
+import { isObligationRecordCredentialStatus } from '../../../../utils/documents/obligation';
 import {
-  TransferableRecordsErrorFragment,
-  TransferableRecordsResultFragment,
-  TransferableRecordsVerificationFragment,
+  ObligationRecordsErrorFragment,
+  ObligationRecordsResultFragment,
+  ObligationRecordsVerificationFragment,
   VerifierType,
-} from './transferableRecordVerifier.types';
-import { isTokenMintedOnRegistry } from './utils';
+} from './obligationRecordVerifier.types';
+import { isTokenMintedOnObligationRegistry } from './utils';
 
-export const TRANSFERABLE_RECORDS_TYPE = 'TransferableRecords';
+export const OBLIGATION_RECORDS_TYPE = 'ObligationRecords';
 const type = 'DOCUMENT_STATUS';
-const name = TRANSFERABLE_RECORDS_TYPE;
+const name = OBLIGATION_RECORDS_TYPE;
 
 const verify: VerifierType['verify'] = async (
   document: DocumentsToVerify | SignedVerifiableCredential,
@@ -30,16 +31,16 @@ const verify: VerifierType['verify'] = async (
     Array.isArray(signedDocument?.credentialStatus)
       ? signedDocument?.credentialStatus
       : [signedDocument?.credentialStatus]
-  ) as TransferableRecordsCredentialStatus[];
+  ) as ObligationRecordsCredentialStatus[];
   const { provider } = options;
 
   const verificationResult = await Promise.all(
-    credentialStatuses.map(async (credentialStatus: TransferableRecordsCredentialStatus) => {
+    credentialStatuses.map(async (credentialStatus: ObligationRecordsCredentialStatus) => {
       const tokenId = '0x' + credentialStatus.tokenId;
 
-      if (!credentialStatus?.tokenRegistry) {
+      if (!credentialStatus?.obligationRegistry) {
         throw new CodedError(
-          "Document's credentialStatus does not have tokenRegistry",
+          "Document's credentialStatus does not have obligationRegistry",
           OpenAttestationEthereumTokenRegistryStatusCode.UNRECOGNIZED_DOCUMENT,
           OpenAttestationEthereumTokenRegistryStatusCode[
             OpenAttestationEthereumTokenRegistryStatusCode.UNRECOGNIZED_DOCUMENT
@@ -47,7 +48,10 @@ const verify: VerifierType['verify'] = async (
         );
       }
 
-      if (!credentialStatus?.tokenNetwork || !credentialStatus?.tokenNetwork?.chainId) {
+      if (
+        !credentialStatus?.tokenNetwork ||
+        credentialStatus?.tokenNetwork?.chainId === undefined
+      ) {
         throw new CodedError(
           "Document's credentialStatus does not have tokenNetwork.chainId",
           OpenAttestationEthereumTokenRegistryStatusCode.UNRECOGNIZED_DOCUMENT,
@@ -57,22 +61,21 @@ const verify: VerifierType['verify'] = async (
         );
       }
 
-      const mintStatus = await isTokenMintedOnRegistry({
-        tokenRegistryAddress: credentialStatus?.tokenRegistry,
+      return isTokenMintedOnObligationRegistry({
+        obligationRegistryAddress: credentialStatus.obligationRegistry,
         tokenId,
         provider,
+        chainId: credentialStatus.tokenNetwork.chainId,
       });
-
-      return mintStatus;
     }),
   );
 
-  const result: TransferableRecordsResultFragment = {
+  const result: ObligationRecordsResultFragment = {
     name,
     type,
     status: 'INVALID' as const,
     data: {
-      tokenRegistry: credentialStatuses?.[0]?.tokenRegistry,
+      obligationRegistry: credentialStatuses?.[0]?.obligationRegistry,
     },
   };
 
@@ -81,6 +84,7 @@ const verify: VerifierType['verify'] = async (
   } else {
     result.reason = (verificationResult as InvalidTokenRegistryStatus[])?.[0]?.reason;
   }
+
   return result;
 };
 
@@ -95,7 +99,7 @@ const skip: VerifierType['skip'] = async () => {
         OpenAttestationEthereumTokenRegistryStatusCode[
           OpenAttestationEthereumTokenRegistryStatusCode.SKIPPED
         ],
-      message: `Document does not have TransferableRecords status`,
+      message: `Document does not have ObligationRecords status`,
     },
   };
 };
@@ -110,28 +114,23 @@ const test: VerifierType['test'] = (
 
   if (
     w3cVC.isSignedDocument(document) &&
-    credentialStatuses.every(
-      (cs: w3cVC.CredentialStatus) =>
-        cs?.type === TRANSFERABLE_RECORDS_TYPE &&
-        !!(cs as TransferableRecordsCredentialStatus).tokenRegistry &&
-        !(cs as TransferableRecordsCredentialStatus & { obligationRegistry?: string })
-          .obligationRegistry,
-    )
+    credentialStatuses.every((cs: w3cVC.CredentialStatus) => isObligationRecordCredentialStatus(cs))
   ) {
     return true;
   }
+
   return false;
 };
 
-export const credentialStatusTransferableRecordVerifier: VerifierType = {
+export const credentialStatusObligationRecordVerifier: VerifierType = {
   skip,
   test,
-  verify: async (...args): Promise<TransferableRecordsVerificationFragment> => {
+  verify: async (...args): Promise<ObligationRecordsVerificationFragment> => {
     try {
       return await verify(...args);
     } catch (e: unknown) {
       if (e instanceof CodedError) {
-        const err: TransferableRecordsErrorFragment = {
+        const err: ObligationRecordsErrorFragment = {
           name,
           type,
           status: 'ERROR' as const,

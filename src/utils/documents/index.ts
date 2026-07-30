@@ -14,8 +14,11 @@ import { TRANSFERABLE_RECORDS_TYPE } from '../../verify/fragments';
 import { TransferableRecordsCredentialStatus } from '../../w3c/credential-status';
 import { isDerived, isSignedDocument, SignedVerifiableCredential } from '../../w3c/vc';
 import { CHAIN_ID } from '../supportedChains';
+import { isObligationRecordCredentialStatus } from './obligation';
 
 export type WrappedOrSignedOpenAttestationDocument = WrappedDocument<OpenAttestationDocument>;
+
+export * from './obligation';
 
 export const getTransferableRecordsCredentialStatus = (
   document: unknown,
@@ -31,7 +34,9 @@ export const isTransferableRecord = (
   let isTransferableAssetVal: boolean = false;
   if (isSignedDocument(document)) {
     const credentialStatus = getTransferableRecordsCredentialStatus(document);
-    isTransferableAssetVal = credentialStatus?.type === TRANSFERABLE_RECORDS_TYPE;
+    isTransferableAssetVal =
+      credentialStatus?.type === TRANSFERABLE_RECORDS_TYPE &&
+      !isObligationRecordCredentialStatus(credentialStatus);
   } else {
     isTransferableAssetVal = isTransferableAsset(document);
   }

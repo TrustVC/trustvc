@@ -1,6 +1,10 @@
 import { PrivateKeyPair } from '@trustvc/w3c-issuer';
 import { deriveW3C, signW3C, verifyW3CSignature } from '../w3c';
-import { assertCredentialStatus, assertTransferableRecords } from '@trustvc/w3c-credential-status';
+import {
+  assertCredentialStatus,
+  assertObligationRecords,
+  assertTransferableRecords,
+} from '@trustvc/w3c-credential-status';
 import {
   CredentialStatus,
   CryptoSuiteName,
@@ -52,6 +56,20 @@ export interface W3CTransferableRecordsConfig {
 }
 
 /**
+ * Configuration for W3C Obligation Records (Bill of Exchange), including blockchain details and obligation registry information.
+ * @property {string} chain - The name of the blockchain network (e.g., "Ethereum", "Polygon").
+ * @property {number} chainId - The unique identifier of the blockchain network.
+ * @property {string} obligationRegistry - The smart contract address of the obligation registry (TrustVCToken).
+ * @property {string} rpcProviderUrl - The RPC endpoint URL for interacting with the blockchain.
+ */
+export interface W3CObligationRecordsConfig {
+  chain: string;
+  chainId: number;
+  obligationRegistry: string;
+  rpcProviderUrl: string;
+}
+
+/**
  * Configuration for the rendering method used in a Verifiable Credential document.
  * @property {string} id - A unique identifier for the rendering method, typically a URL or URI.
  * @property {string} type - The type of the renderer, which specifies the method of rendering (e.g., 'EMBEDDED_RENDERER').
@@ -88,7 +106,11 @@ export interface SignOptions {
 export class DocumentBuilder {
   private document: Partial<VerifiableCredential>; // Holds the document to be built and signed.
   private documentType: string = 'w3c'; // Default to W3C
-  private selectedStatusType: 'transferableRecords' | 'verifiableDocument' | null = null; // Tracks selected status type.
+  private selectedStatusType:
+    | 'transferableRecords'
+    | 'obligationRecords'
+    | 'verifiableDocument'
+    | null = null; // Tracks selected status type.
   private statusConfig: Partial<CredentialStatus> = {}; // Configuration for the credential status.
   private rpcProviderUrl: string; // Holds the RPC provider URL for verifying token registry.
   private requiredFields: string[] = ['credentialSubject']; // Required fields that must be present in the document.
@@ -148,6 +170,28 @@ export class DocumentBuilder {
     return this;
   }
 
+  // Configures the credential status for obligation records (Bill of Exchange).
+  obligationCredentialStatus(config: W3CObligationRecordsConfig) {
+    if (this.isSigned) throw new Error('Configuration Error: Document is already signed.');
+
+    if (!this.isObligationRecordsConfig(config)) {
+      throw new Error(
+        'Configuration Error: Missing required fields for obligation credential status.',
+      );
+    }
+
+    this.selectedStatusType = 'obligationRecords';
+    this.statusConfig = {
+      type: 'TransferableRecords',
+      tokenNetwork: { chain: config.chain, chainId: config.chainId },
+      obligationRegistry: config.obligationRegistry,
+    };
+    this.rpcProviderUrl = config.rpcProviderUrl;
+    this.addContext(TR_CONTEXT_URL);
+
+    return this;
+  }
+
   // Sets the expiration date of the document.
   expirationDate(date: string | Date) {
     if (this.isSigned) throw new Error('Configuration Error: Document is already signed.');
@@ -203,6 +247,9 @@ export class DocumentBuilder {
     } else if (this.selectedStatusType === 'transferableRecords') {
       assertTransferableRecords(this.document.credentialStatus, 'sign');
       await this.verifyTokenRegistry(); // Verify that the token registry supports the required interface.
+    } else if (this.selectedStatusType === 'obligationRecords') {
+      assertObligationRecords(this.document.credentialStatus, 'sign');
+      await this.verifyObligationRegistry();
     }
 
     this.document.issuer = this.document.issuer || privateKey.id.split('#')[0]; // Set the issuer of the document.
@@ -269,6 +316,18 @@ export class DocumentBuilder {
     config: Partial<CredentialStatus>,
   ): config is W3CVerifiableDocumentConfig {
     return config && typeof config.url === 'string' && typeof config.index === 'number';
+  }
+
+  private isObligationRecordsConfig(
+    config: Partial<CredentialStatus>,
+  ): config is W3CObligationRecordsConfig {
+    return (
+      config &&
+      typeof config.obligationRegistry === 'string' &&
+      typeof config.chain === 'string' &&
+      typeof config.chainId === 'number' &&
+      typeof config.rpcProviderUrl === 'string'
+    );
   }
 
   // Private helper method to validate that the required fields are present in the input document.
@@ -340,15 +399,48 @@ export class DocumentBuilder {
     }
   }
 
+  private async verifyObligationRegistry() {
+    const chainId = this.document.credentialStatus.tokenNetwork
+      .chainId as keyof typeof SUPPORTED_CHAINS;
+    if (!(chainId in SUPPORTED_CHAINS)) {
+      throw new Error(`Unsupported Chain: Chain ID ${chainId} is not supported.`);
+    }
+
+    try {
+      const provider = new ethers.providers.JsonRpcProvider(this.rpcProviderUrl);
+      const isSupported = await this.supportsInterface(
+        v5Contracts.TrustVCToken__factory,
+        constantsV5.contractInterfaceId.TradeTrustTokenMintable,
+        provider,
+        this.statusConfig.obligationRegistry,
+      );
+      if (!isSupported) {
+        throw new Error('Obligation registry version is not supported.');
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      if (error.message === 'Obligation registry version is not supported.') {
+        throw error;
+      } else {
+        throw new Error(
+          `Network Error: Unable to verify obligation registry. Please check the RPC URL or obligation registry address.`,
+        );
+      }
+    }
+  }
+
   // Private helper method to check if a contract supports a specific interface ID.
   private async supportsInterface(
     contractFactory:
       | typeof v4Contracts.TradeTrustToken__factory
-      | typeof v5Contracts.TradeTrustToken__factory,
+      | typeof v5Contracts.TradeTrustToken__factory
+      | typeof v5Contracts.TrustVCToken__factory,
     interfaceId: string,
     provider: ethers.providers.JsonRpcProvider,
+    contractAddress?: string,
   ) {
-    const contract = contractFactory.connect(this.statusConfig.tokenRegistry, provider);
+    const address = contractAddress ?? this.statusConfig.tokenRegistry;
+    const contract = contractFactory.connect(address, provider);
     return contract.supportsInterface(interfaceId);
   }
 }
