@@ -18,7 +18,7 @@ import {
 import { W3CCredentialStatusCode } from '../../verify/fragments/document-status/w3cCredentialStatus';
 import { openAttestationDidSignedDocumentStatus } from '@tradetrust-tt/tt-verify';
 
-const providerUrl = 'https://rpc-amoy.polygon.technology';
+const providerUrl = process.env.AMOY_RPC || 'https://rpc-amoy.polygon.technology';
 
 describe.concurrent('W3C verify', () => {
   describe.concurrent('W3C_VERIFIABLE_DOCUMENT', () => {
