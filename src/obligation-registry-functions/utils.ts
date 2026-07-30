@@ -1,10 +1,10 @@
-import { encrypt, getObligationEscrowAddress } from '../core';
+import { encrypt, getObligationEscrowAddress, checkSupportsInterface } from '../core';
 import { v5Contracts } from '../token-registry-v5';
 import { getTxOptions } from '../token-registry-functions/utils';
 import { Signer as SignerV6, Contract as ContractV6 } from 'ethersV6';
-import { Contract as ContractV5, Signer } from 'ethers';
+import { Contract as ContractV5, ContractTransaction, Signer } from 'ethers';
 import { getEthersContractFromProvider, isV6EthersProvider } from '../utils/ethers';
-import { ObligationContractOptions } from './types';
+import { ObligationContractOptions, TransactionOptions } from './types';
 
 export const getObligationRegistryContract = (
   obligationRegistryAddress: string,
@@ -116,6 +116,71 @@ export const sendTransaction = async (
     options.maxPriorityFeePerGas,
   );
   return (contract as ContractV5)[method](...args, txOptions);
+};
+
+export const getEscrowContract = async (
+  contractOptions: ObligationContractOptions,
+  signer: Signer | SignerV6,
+): Promise<ContractV5 | ContractV6> => {
+  if (!signer.provider) throw new Error('Provider is required');
+  const address = await resolveObligationEscrowAddress(contractOptions, signer);
+  return getObligationEscrowContract(address, signer);
+};
+
+export const executeEscrowMethod = async (
+  contractOptions: ObligationContractOptions,
+  signer: Signer | SignerV6,
+  method: string,
+  args: unknown[],
+  options: TransactionOptions,
+): Promise<ContractTransaction> => {
+  const obligationEscrowContract = await getEscrowContract(contractOptions, signer);
+  await runStaticCall(obligationEscrowContract, method, args, signer.provider);
+  return sendTransaction(obligationEscrowContract, method, args, signer, options);
+};
+
+export const createRemarkEscrowMethod =
+  (method: string) =>
+  (
+    contractOptions: ObligationContractOptions,
+    signer: Signer | SignerV6,
+    params: { remarks?: string },
+    options: TransactionOptions,
+  ): Promise<ContractTransaction> =>
+    executeEscrowMethod(
+      contractOptions,
+      signer,
+      method,
+      [getEncryptedRemarks(params.remarks, options.id)],
+      options,
+    );
+
+export const executeRegistryMethod = async (
+  obligationRegistryAddress: string,
+  signer: Signer | SignerV6,
+  interfaceId: string,
+  method: string,
+  args: unknown[],
+  options: TransactionOptions,
+): Promise<ContractTransaction> => {
+  if (!obligationRegistryAddress) throw new Error('Obligation registry address is required');
+  if (!signer.provider) throw new Error('Provider is required');
+
+  const isSupported = await checkSupportsInterface(
+    obligationRegistryAddress,
+    interfaceId,
+    signer.provider,
+  );
+  if (!isSupported) {
+    throw new Error('Only TrustVCToken obligation registry is supported');
+  }
+
+  const obligationRegistryContract = getObligationRegistryContract(
+    obligationRegistryAddress,
+    signer,
+  );
+  await runStaticCall(obligationRegistryContract, method, args, signer.provider);
+  return sendTransaction(obligationRegistryContract, method, args, signer, options);
 };
 
 export { getTxOptions };

@@ -11,12 +11,15 @@ import * as w3cVC from '@trustvc/w3c-vc';
 import { SignedVerifiableCredential } from '@trustvc/w3c-vc';
 import { isObligationRecordCredentialStatus } from '../../../../utils/documents/obligation';
 import {
-  ObligationRecordsErrorFragment,
   ObligationRecordsResultFragment,
   ObligationRecordsVerificationFragment,
   VerifierType,
 } from './obligationRecordVerifier.types';
 import { isTokenMintedOnObligationRegistry } from './utils';
+import {
+  createObligationRecordsSkipFragment,
+  toObligationRecordsErrorFragment,
+} from './verifierHelpers';
 
 export const OBLIGATION_RECORDS_TYPE = 'ObligationRecords';
 const type = 'DOCUMENT_STATUS';
@@ -88,21 +91,8 @@ const verify: VerifierType['verify'] = async (
   return result;
 };
 
-const skip: VerifierType['skip'] = async () => {
-  return {
-    status: 'SKIPPED',
-    type,
-    name,
-    reason: {
-      code: OpenAttestationEthereumTokenRegistryStatusCode.SKIPPED,
-      codeString:
-        OpenAttestationEthereumTokenRegistryStatusCode[
-          OpenAttestationEthereumTokenRegistryStatusCode.SKIPPED
-        ],
-      message: `Document does not have ObligationRecords status`,
-    },
-  };
-};
+const skip: VerifierType['skip'] = async () =>
+  createObligationRecordsSkipFragment(name, 'Document does not have ObligationRecords status');
 
 const test: VerifierType['test'] = (
   document: DocumentsToVerify | SignedVerifiableCredential,
@@ -112,14 +102,12 @@ const test: VerifierType['test'] = (
     ? doc?.credentialStatus
     : [doc?.credentialStatus];
 
-  if (
+  return Boolean(
     w3cVC.isSignedDocument(document) &&
-    credentialStatuses.every((cs: w3cVC.CredentialStatus) => isObligationRecordCredentialStatus(cs))
-  ) {
-    return true;
-  }
-
-  return false;
+      credentialStatuses.every((cs: w3cVC.CredentialStatus) =>
+        isObligationRecordCredentialStatus(cs),
+      ),
+  );
 };
 
 export const credentialStatusObligationRecordVerifier: VerifierType = {
@@ -128,34 +116,8 @@ export const credentialStatusObligationRecordVerifier: VerifierType = {
   verify: async (...args): Promise<ObligationRecordsVerificationFragment> => {
     try {
       return await verify(...args);
-    } catch (e: unknown) {
-      if (e instanceof CodedError) {
-        const err: ObligationRecordsErrorFragment = {
-          name,
-          type,
-          status: 'ERROR' as const,
-          reason: {
-            code: e.code,
-            codeString: e.codeString,
-            message: e.message,
-          },
-        };
-        return err;
-      }
-
-      return {
-        name,
-        type,
-        status: 'ERROR' as const,
-        reason: {
-          code: OpenAttestationEthereumTokenRegistryStatusCode.UNEXPECTED_ERROR,
-          codeString:
-            OpenAttestationEthereumTokenRegistryStatusCode[
-              OpenAttestationEthereumTokenRegistryStatusCode.UNEXPECTED_ERROR
-            ],
-          message: e instanceof Error ? e.message : 'An unexpected error occurred',
-        },
-      };
+    } catch (error: unknown) {
+      return toObligationRecordsErrorFragment(name, error);
     }
   },
 };

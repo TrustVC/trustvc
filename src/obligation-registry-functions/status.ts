@@ -7,54 +7,43 @@ import {
   ObligationStatusReadOptions,
   ObligationTokenIdParams,
 } from './types';
-import { getObligationEscrowContract, resolveObligationEscrowAddress } from './utils';
+import { getEscrowContract } from './utils';
 
-const getObligationRegistryStatus = async (
+type EscrowViewReader<T> = (
   contractOptions: ObligationContractOptions,
   signer: Signer | SignerV6,
-  // Unused; escrow resolution uses contractOptions.tokenId (API parity).
   _params: ObligationTokenIdParams,
-  options: ObligationStatusReadOptions = {},
-): Promise<ObligationDocumentStatus> => {
-  if (!signer.provider) throw new Error('Provider is required');
+  options?: ObligationStatusReadOptions,
+) => Promise<T>;
 
-  const obligationEscrowAddress = await resolveObligationEscrowAddress(contractOptions, signer);
-  const obligationEscrowContract = getObligationEscrowContract(obligationEscrowAddress, signer);
-  const status = await obligationEscrowContract.status({ blockTag: options.blockTag });
-
-  return Number(status) as ObligationDocumentStatus;
+const createEscrowViewReader = <T>(
+  read: (
+    contract: Awaited<ReturnType<typeof getEscrowContract>>,
+    options: ObligationStatusReadOptions,
+  ) => Promise<T>,
+): EscrowViewReader<T> => {
+  return async (contractOptions, signer, _params, options = {}) => {
+    // Escrow resolution uses contractOptions.tokenId (API parity with _params).
+    const contract = await getEscrowContract(contractOptions, signer);
+    return read(contract, options);
+  };
 };
 
-const isObligationRegistryRegistered = async (
-  contractOptions: ObligationContractOptions,
-  signer: Signer | SignerV6,
-  // Unused; escrow resolution uses contractOptions.tokenId (API parity).
-  _params: ObligationTokenIdParams,
-  options: ObligationStatusReadOptions = {},
-): Promise<boolean> => {
-  if (!signer.provider) throw new Error('Provider is required');
+const getObligationRegistryStatus = createEscrowViewReader(
+  async (contract, options) =>
+    Number(await contract.status({ blockTag: options.blockTag })) as ObligationDocumentStatus,
+);
 
-  const obligationEscrowAddress = await resolveObligationEscrowAddress(contractOptions, signer);
-  const obligationEscrowContract = getObligationEscrowContract(obligationEscrowAddress, signer);
+const isObligationRegistryRegistered = createEscrowViewReader((contract, options) =>
+  contract.isRegistered({ blockTag: options.blockTag }),
+);
 
-  return obligationEscrowContract.isRegistered({ blockTag: options.blockTag });
-};
-
-const getObligationEscrowTerminationReason = async (
-  contractOptions: ObligationContractOptions,
-  signer: Signer | SignerV6,
-  // Unused; escrow resolution uses contractOptions.tokenId (API parity).
-  _params: ObligationTokenIdParams,
-  options: ObligationStatusReadOptions = {},
-): Promise<ObligationEscrowTerminationReason> => {
-  if (!signer.provider) throw new Error('Provider is required');
-
-  const obligationEscrowAddress = await resolveObligationEscrowAddress(contractOptions, signer);
-  const obligationEscrowContract = getObligationEscrowContract(obligationEscrowAddress, signer);
-  const reason = await obligationEscrowContract.terminationReason({ blockTag: options.blockTag });
-
-  return Number(reason) as ObligationEscrowTerminationReason;
-};
+const getObligationEscrowTerminationReason = createEscrowViewReader(
+  async (contract, options) =>
+    Number(
+      await contract.terminationReason({ blockTag: options.blockTag }),
+    ) as ObligationEscrowTerminationReason,
+);
 
 export {
   getObligationRegistryStatus,

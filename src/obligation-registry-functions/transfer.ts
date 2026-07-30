@@ -1,12 +1,6 @@
 import { Signer as SignerV6 } from 'ethersV6';
 import { ContractTransaction, Signer } from 'ethers';
-import {
-  getEncryptedRemarks,
-  getObligationEscrowContract,
-  resolveObligationEscrowAddress,
-  runStaticCall,
-  sendTransaction,
-} from './utils';
+import { executeEscrowMethod, getEncryptedRemarks } from './utils';
 import {
   NominateObligationParams,
   ObligationContractOptions,
@@ -22,15 +16,14 @@ const transferHolderObligationRegistry = async (
   params: TransferObligationHolderParams,
   options: TransactionOptions,
 ): Promise<ContractTransaction> => {
-  if (!signer.provider) throw new Error('Provider is required');
-
-  const obligationEscrowAddress = await resolveObligationEscrowAddress(contractOptions, signer);
-  const obligationEscrowContract = getObligationEscrowContract(obligationEscrowAddress, signer);
   const encryptedRemarks = getEncryptedRemarks(params.remarks, options.id);
-  const args = [params.holderAddress, encryptedRemarks];
-
-  await runStaticCall(obligationEscrowContract, 'transferHolder', args, signer.provider);
-  return sendTransaction(obligationEscrowContract, 'transferHolder', args, signer, options);
+  return executeEscrowMethod(
+    contractOptions,
+    signer,
+    'transferHolder',
+    [params.holderAddress, encryptedRemarks],
+    options,
+  );
 };
 
 const transferBeneficiaryObligationRegistry = async (
@@ -39,15 +32,14 @@ const transferBeneficiaryObligationRegistry = async (
   params: TransferObligationBeneficiaryParams,
   options: TransactionOptions,
 ): Promise<ContractTransaction> => {
-  if (!signer.provider) throw new Error('Provider is required');
-
-  const obligationEscrowAddress = await resolveObligationEscrowAddress(contractOptions, signer);
-  const obligationEscrowContract = getObligationEscrowContract(obligationEscrowAddress, signer);
   const encryptedRemarks = getEncryptedRemarks(params.remarks, options.id);
-  const args = [params.newBeneficiaryAddress, encryptedRemarks];
-
-  await runStaticCall(obligationEscrowContract, 'transferBeneficiary', args, signer.provider);
-  return sendTransaction(obligationEscrowContract, 'transferBeneficiary', args, signer, options);
+  return executeEscrowMethod(
+    contractOptions,
+    signer,
+    'transferBeneficiary',
+    [params.newBeneficiaryAddress, encryptedRemarks],
+    options,
+  );
 };
 
 const nominateObligationRegistry = async (
@@ -56,15 +48,14 @@ const nominateObligationRegistry = async (
   params: NominateObligationParams,
   options: TransactionOptions,
 ): Promise<ContractTransaction> => {
-  if (!signer.provider) throw new Error('Provider is required');
-
-  const obligationEscrowAddress = await resolveObligationEscrowAddress(contractOptions, signer);
-  const obligationEscrowContract = getObligationEscrowContract(obligationEscrowAddress, signer);
   const encryptedRemarks = getEncryptedRemarks(params.remarks, options.id);
-  const args = [params.newBeneficiaryAddress, encryptedRemarks];
-
-  await runStaticCall(obligationEscrowContract, 'nominate', args, signer.provider);
-  return sendTransaction(obligationEscrowContract, 'nominate', args, signer, options);
+  return executeEscrowMethod(
+    contractOptions,
+    signer,
+    'nominate',
+    [params.newBeneficiaryAddress, encryptedRemarks],
+    options,
+  );
 };
 
 const transferOwnersObligationRegistry = async (
@@ -73,15 +64,14 @@ const transferOwnersObligationRegistry = async (
   params: TransferObligationOwnersParams,
   options: TransactionOptions,
 ): Promise<ContractTransaction> => {
-  if (!signer.provider) throw new Error('Provider is required');
-
-  const obligationEscrowAddress = await resolveObligationEscrowAddress(contractOptions, signer);
-  const obligationEscrowContract = getObligationEscrowContract(obligationEscrowAddress, signer);
   const encryptedRemarks = getEncryptedRemarks(params.remarks, options.id);
-  const args = [params.newHolderAddress, params.newBeneficiaryAddress, encryptedRemarks];
-
-  await runStaticCall(obligationEscrowContract, 'transferOwners', args, signer.provider);
-  return sendTransaction(obligationEscrowContract, 'transferOwners', args, signer, options);
+  return executeEscrowMethod(
+    contractOptions,
+    signer,
+    'transferOwners',
+    [params.newHolderAddress, params.newBeneficiaryAddress, encryptedRemarks],
+    options,
+  );
 };
 
 export {
