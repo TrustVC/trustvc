@@ -143,7 +143,7 @@
     "@tradetrust-tt/dnsprove": "^2.18.0",
     "@tradetrust-tt/ethers-aws-kms-signer": "^2.1.4",
     "@tradetrust-tt/token-registry-v4": "npm:@tradetrust-tt/token-registry@^4.16.0",
-    "@tradetrust-tt/token-registry-v5": "git+ssh://git@github.com/TradeTrust/token-registry.git#feature/boe-v2",
+    "@tradetrust-tt/token-registry-v5": "npm:@tradetrust-tt/token-registry@^5.6.0-beta.1",
     "@tradetrust-tt/tradetrust": "^6.10.3",
     "@tradetrust-tt/tt-verify": "^9.7.5",
     "@trustvc/document-store": "^1.0.3",
