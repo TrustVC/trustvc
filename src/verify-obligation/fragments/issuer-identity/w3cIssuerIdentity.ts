@@ -3,27 +3,38 @@ import { DocumentLoader } from '@trustvc/w3c-context';
 import { isDidKey, parseDidKey, queryDidDocument } from '@trustvc/w3c-issuer';
 import { SignedVerifiableCredential } from '@trustvc/w3c-vc';
 
+const isInvalidDidKeyError = (error: unknown): boolean => {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+  const { message } = error;
+  return (
+    message.startsWith('Not a did:key:') ||
+    message.startsWith('did:key must use base58btc') ||
+    message.startsWith('Unsupported did:key multicodec:') ||
+    message.startsWith('Invalid ')
+  );
+};
+
 const checkDidResolve = async (did: string, documentLoader?: DocumentLoader): Promise<boolean> => {
   try {
     if (isDidKey(did)) {
-      // did:key is self-certifying: the public key is encoded in the identifier.
       parseDidKey(did);
       return true;
     }
 
     if (documentLoader) {
-      return !!(await documentLoader(did)).document;
+      const { document } = await documentLoader(did);
+      return Boolean(document);
     }
 
     const { wellKnownDid } = await queryDidDocument({ did });
-
-    if (!wellKnownDid) {
-      throw new Error(`Failed to resolve DID: ${did}`);
+    return Boolean(wellKnownDid);
+  } catch (error) {
+    if (isInvalidDidKeyError(error)) {
+      return false;
     }
-
-    return true;
-  } catch {
-    return false;
+    throw error;
   }
 };
 
@@ -60,16 +71,18 @@ export const w3cIssuerIdentity: Verifier<VerificationFragment> = {
         status: 'INVALID',
       };
     }
-    const resolutionResult = await checkDidResolve(issuerId, verifierOptions?.documentLoader);
+    try {
+      const resolutionResult = await checkDidResolve(issuerId, verifierOptions?.documentLoader);
 
-    if (resolutionResult) {
-      return {
-        type: 'ISSUER_IDENTITY',
-        name: 'W3CIssuerIdentity',
-        data: true,
-        status: 'VALID',
-      };
-    } else {
+      if (resolutionResult) {
+        return {
+          type: 'ISSUER_IDENTITY',
+          name: 'W3CIssuerIdentity',
+          data: true,
+          status: 'VALID',
+        };
+      }
+
       return {
         type: 'ISSUER_IDENTITY',
         name: 'W3CIssuerIdentity',
@@ -78,6 +91,15 @@ export const w3cIssuerIdentity: Verifier<VerificationFragment> = {
           message: `The DID cannot be resolved.`,
         },
         status: 'INVALID',
+      };
+    } catch (error) {
+      return {
+        type: 'ISSUER_IDENTITY',
+        name: 'W3CIssuerIdentity',
+        status: 'ERROR',
+        reason: {
+          message: error instanceof Error ? error.message : 'Failed to resolve issuer DID.',
+        },
       };
     }
   },

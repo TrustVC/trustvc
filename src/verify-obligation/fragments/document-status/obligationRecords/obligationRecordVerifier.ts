@@ -81,6 +81,7 @@ const verify: ObligationRecordsVerifierType['verify'] = async (
         obligationRegistry,
         tokenId,
         provider,
+        chainId: credentialStatus.tokenNetwork.chainId,
       });
       if (!isValidObligationRegistryStatus(mintStatus)) {
         return {

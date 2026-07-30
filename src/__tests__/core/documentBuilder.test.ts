@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { DocumentBuilder } from '../../core/documentBuilder';
 import {
   Bbs2023PrivateKeyPair,
@@ -162,6 +162,12 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
   });
 
   describe('Sign, Derive and Verify', () => {
+    beforeEach(() => {
+      vi.spyOn(DocumentBuilder.prototype as never, 'verifyTokenRegistry').mockResolvedValue(
+        undefined,
+      );
+    });
+
     it('should sign, derive and verify the document successfully for transferableRecords using ECDSA', async () => {
       documentBuilder.credentialStatus({
         chain: 'amoy',
@@ -235,6 +241,12 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
   });
 
   describe('Error Handling', () => {
+    beforeEach(() => {
+      vi.spyOn(DocumentBuilder.prototype as never, 'verifyTokenRegistry').mockResolvedValue(
+        undefined,
+      );
+    });
+
     it('Should throw error if document builder initialized with data model v1.1 context', () => {
       expect(
         () => new DocumentBuilder({ '@context': ['https://www.w3.org/2018/credentials/v1'] }),
@@ -282,6 +294,7 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
     });
 
     it('should throw an error when unable to verify token registry', async () => {
+      vi.restoreAllMocks();
       documentBuilder.credentialStatus({
         chain: 'amoy',
         chainId: 80002,

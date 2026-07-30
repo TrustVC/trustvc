@@ -20,7 +20,6 @@ import { v5Contracts } from '../token-registry-v5';
 import { SUPPORTED_CHAINS } from '../utils';
 import {
   DATA_INTEGRITY_V2_URL,
-  OBLIGATION_RECORDS_CONTEXT_URL,
   QRCODE_CONTEXT_URL,
   RENDER_CONTEXT_V2_URL,
   TR_CONTEXT_URL,
@@ -162,7 +161,7 @@ export class DocumentBuilder {
         obligationRegistry: config.obligationRegistry,
       };
       this.rpcProviderUrl = config.rpcProviderUrl;
-      this.addContext(OBLIGATION_RECORDS_CONTEXT_URL);
+      this.addContext(TR_CONTEXT_URL);
     } else if (isVerifiable) {
       this.selectedStatusType = 'verifiableDocument';
       this.statusConfig = {

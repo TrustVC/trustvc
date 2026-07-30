@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { TR_CONTEXT_URL } from '@trustvc/w3c-context';
 import { DocumentBuilder } from '../../core/documentBuilder';
 
 describe('DocumentBuilder (obligation records)', () => {
@@ -18,8 +19,6 @@ describe('DocumentBuilder (obligation records)', () => {
       rpcProviderUrl: 'https://rpc-amoy.polygon.technology',
     });
     expect(documentBuilder).toBeDefined();
-    expect(documentBuilder.toString()).toContain(
-      'https://trustvc.io/context/obligation-records-context.json',
-    );
+    expect(documentBuilder.toString()).toContain(TR_CONTEXT_URL);
   });
 });

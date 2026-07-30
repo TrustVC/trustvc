@@ -87,6 +87,36 @@ describe('credentialStatusObligationRecordVerifier', () => {
     });
   });
 
+  it('skips escrow enrichment when provider chain ID mismatches credential chain ID', async () => {
+    vi.spyOn(obligationUtils, 'isTokenMintedOnObligationRegistry').mockResolvedValue({
+      minted: false,
+      address: obligationRegistry,
+      reason: {
+        code: ObligationRecordsStatusCode.UNRECOGNIZED_DOCUMENT,
+        codeString: 'UNRECOGNIZED_DOCUMENT',
+        message:
+          "Provider network chain ID (137) does not match credential's declared chain ID (80002)",
+      },
+    });
+    const enrichmentSpy = vi.spyOn(obligationUtils, 'getObligationEscrowEnrichment');
+
+    await expect(
+      credentialStatusObligationRecordVerifier.verify(baseDocument, { provider }),
+    ).resolves.toEqual({
+      name: 'ObligationRecords',
+      type: 'DOCUMENT_STATUS',
+      status: 'INVALID',
+      data: { obligationRegistry },
+      reason: {
+        code: ObligationRecordsStatusCode.UNRECOGNIZED_DOCUMENT,
+        codeString: 'UNRECOGNIZED_DOCUMENT',
+        message:
+          "Provider network chain ID (137) does not match credential's declared chain ID (80002)",
+      },
+    });
+    expect(enrichmentSpy).not.toHaveBeenCalled();
+  });
+
   it('returns INVALID when token is not minted', async () => {
     vi.spyOn(obligationUtils, 'isTokenMintedOnObligationRegistry').mockResolvedValue({
       minted: false,

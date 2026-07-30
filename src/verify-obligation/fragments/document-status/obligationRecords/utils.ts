@@ -3,6 +3,7 @@ import { errors, constants, Contract, providers } from 'ethers';
 import { Provider as ProviderV6 } from 'ethersV6';
 import { obligationRegistryContracts } from '../../../../obligation-registry';
 import { getTitleEscrowAddress } from '../../../../core/endorsement-chain';
+import { isV6EthersProvider } from '../../../../utils/ethers';
 import {
   ObligationRecordsCodedError,
   ObligationRecordsStatusCode,
@@ -56,16 +57,45 @@ export const decodeObligationRegistryError = (error: any): string => {
   }
 };
 
+const normalizeChainId = (chainId: number | string): number =>
+  typeof chainId === 'string' ? Number.parseInt(chainId, 10) : chainId;
+
+const getProviderChainId = async (provider: providers.Provider | ProviderV6): Promise<number> => {
+  if (isV6EthersProvider(provider)) {
+    const network = await (provider as ProviderV6).getNetwork();
+    return Number(network.chainId);
+  }
+  const network = await (provider as providers.Provider).getNetwork();
+  return network.chainId;
+};
+
 export const isTokenMintedOnObligationRegistry = async ({
   obligationRegistry,
   tokenId,
   provider,
+  chainId,
 }: {
   obligationRegistry: string;
   tokenId: string;
   provider: providers.Provider | ProviderV6;
+  chainId: number | string;
 }): Promise<ObligationRegistryMintStatus> => {
   try {
+    const providerChainId = await getProviderChainId(provider);
+    const declaredChainId = normalizeChainId(chainId);
+    if (providerChainId !== declaredChainId) {
+      return {
+        minted: false,
+        address: obligationRegistry,
+        reason: {
+          code: ObligationRecordsStatusCode.UNRECOGNIZED_DOCUMENT,
+          codeString:
+            ObligationRecordsStatusCode[ObligationRecordsStatusCode.UNRECOGNIZED_DOCUMENT],
+          message: `Provider network chain ID (${providerChainId}) does not match credential's declared chain ID (${declaredChainId})`,
+        },
+      };
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const registryContract = TradeTrustToken__factory.connect(obligationRegistry, provider as any);
     const minted = await registryContract
