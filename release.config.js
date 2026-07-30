@@ -9,6 +9,11 @@ module.exports = {
       name: 'v1',
       prerelease: 'alpha',
     },
+    {
+      name: 'beta-boe',
+      prerelease: 'beta',
+      channel: 'beta',
+    },
   ],
   github: true,
   changelog: true,
