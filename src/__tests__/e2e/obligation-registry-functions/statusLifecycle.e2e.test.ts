@@ -1,8 +1,6 @@
-import { expect } from 'chai';
+import assert from 'node:assert/strict';
 import { network } from 'hardhat';
 import '@nomiclabs/hardhat-ethers';
-import '@nomicfoundation/hardhat-chai-matchers';
-import 'chai-as-promised';
 import {
   acceptObligationRegistry,
   rejectObligationRegistry,
@@ -24,6 +22,27 @@ import {
   obligationE2EProviders,
   type ObligationE2ESetup,
 } from './fixtures';
+
+async function expectRejection(
+  promise: Promise<unknown>,
+  messageIncludes?: string | RegExp,
+): Promise<void> {
+  try {
+    await promise;
+    assert.fail('Expected promise to reject');
+  } catch (error: unknown) {
+    if (error instanceof assert.AssertionError && error.message === 'Expected promise to reject') {
+      throw error;
+    }
+    if (messageIncludes === undefined) return;
+    const message = error instanceof Error ? error.message : String(error);
+    if (typeof messageIncludes === 'string') {
+      assert.match(message, new RegExp(messageIncludes));
+    } else {
+      assert.match(message, messageIncludes);
+    }
+  }
+}
 
 obligationE2EProviders.forEach(({ ethersVersion }) => {
   describe(`Obligation status lifecycle E2E (ethers ${ethersVersion})`, function () {
@@ -70,9 +89,9 @@ obligationE2EProviders.forEach(({ ethersVersion }) => {
         { tokenId },
       );
 
-      expect(status).to.equal(ObligationDocumentStatus.Issued);
-      expect(registered).to.equal(true);
-      expect(reason).to.equal(ObligationEscrowTerminationReason.None);
+      assert.equal(status, ObligationDocumentStatus.Issued);
+      assert.equal(registered, true);
+      assert.equal(reason, ObligationEscrowTerminationReason.None);
     });
 
     it('E2: duplicate mint fails', async function () {
@@ -80,7 +99,7 @@ obligationE2EProviders.forEach(({ ethersVersion }) => {
 
       await mintObligationE2EToken(setup, tokenId, setup.holder.address, setup.beneficiary.address);
 
-      await expect(
+      await expectRejection(
         mintObligationRegistry(
           { obligationRegistryAddress: setup.obligationRegistry },
           setup.deployer,
@@ -91,7 +110,7 @@ obligationE2EProviders.forEach(({ ethersVersion }) => {
           },
           setup.txOptions,
         ),
-      ).to.be.rejected;
+      );
     });
 
     it('E3: accept fails when beneficiary == holder', async function () {
@@ -99,14 +118,15 @@ obligationE2EProviders.forEach(({ ethersVersion }) => {
 
       await mintObligationE2EToken(setup, tokenId, setup.holder.address, setup.holder.address);
 
-      await expect(
+      await expectRejection(
         acceptObligationRegistry(
           { obligationRegistryAddress: setup.obligationRegistry, tokenId },
           setup.holder,
           {},
           setup.txOptions,
         ),
-      ).to.be.rejectedWith(/accept failed/);
+        /accept failed/,
+      );
     });
 
     it('E4: holder accept transitions Issued → Accepted', async function () {
@@ -129,7 +149,7 @@ obligationE2EProviders.forEach(({ ethersVersion }) => {
         { tokenId },
       );
 
-      expect(status).to.equal(ObligationDocumentStatus.Accepted);
+      assert.equal(status, ObligationDocumentStatus.Accepted);
     });
 
     it('E5: non-holder cannot accept', async function () {
@@ -137,14 +157,15 @@ obligationE2EProviders.forEach(({ ethersVersion }) => {
 
       await mintObligationE2EToken(setup, tokenId, setup.holder.address, setup.beneficiary.address);
 
-      await expect(
+      await expectRejection(
         acceptObligationRegistry(
           { obligationRegistryAddress: setup.obligationRegistry, tokenId },
           setup.beneficiary,
           {},
           setup.txOptions,
         ),
-      ).to.be.rejectedWith(/accept failed/);
+        /accept failed/,
+      );
     });
 
     it('E6: holder reject → Rejected + terminationReason Rejected + inactive', async function () {
@@ -179,9 +200,9 @@ obligationE2EProviders.forEach(({ ethersVersion }) => {
         setup.deployer,
       );
 
-      expect(status).to.equal(ObligationDocumentStatus.Rejected);
-      expect(reason).to.equal(ObligationEscrowTerminationReason.Rejected);
-      expect(await escrow.active()).to.equal(false);
+      assert.equal(status, ObligationDocumentStatus.Rejected);
+      assert.equal(reason, ObligationEscrowTerminationReason.Rejected);
+      assert.equal(await escrow.active(), false);
     });
 
     it('E7: beneficiary discharge → Discharged + terminationReason Discharged', async function () {
@@ -217,8 +238,8 @@ obligationE2EProviders.forEach(({ ethersVersion }) => {
         { tokenId },
       );
 
-      expect(status).to.equal(ObligationDocumentStatus.Discharged);
-      expect(reason).to.equal(ObligationEscrowTerminationReason.Discharged);
+      assert.equal(status, ObligationDocumentStatus.Discharged);
+      assert.equal(reason, ObligationEscrowTerminationReason.Discharged);
     });
 
     it('E8: discharge while Issued fails', async function () {
@@ -226,14 +247,15 @@ obligationE2EProviders.forEach(({ ethersVersion }) => {
 
       await mintObligationE2EToken(setup, tokenId, setup.holder.address, setup.beneficiary.address);
 
-      await expect(
+      await expectRejection(
         dischargeObligationRegistry(
           { obligationRegistryAddress: setup.obligationRegistry, tokenId },
           setup.beneficiary,
           {},
           setup.txOptions,
         ),
-      ).to.be.rejectedWith(/discharge failed/);
+        /discharge failed/,
+      );
     });
 
     it('E9: mint with empty remarks / no encryption id', async function () {
@@ -258,7 +280,7 @@ obligationE2EProviders.forEach(({ ethersVersion }) => {
         { tokenId },
       );
 
-      expect(status).to.equal(ObligationDocumentStatus.Issued);
+      assert.equal(status, ObligationDocumentStatus.Issued);
     });
   });
 });

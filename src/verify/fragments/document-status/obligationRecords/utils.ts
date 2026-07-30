@@ -3,7 +3,6 @@ import {
   TrustVCToken__factory,
 } from '@tradetrust-tt/token-registry-v5/contracts';
 import {
-  CodedError,
   InvalidTokenRegistryStatus,
   OpenAttestationEthereumTokenRegistryStatusCode,
   ValidTokenRegistryStatus,
@@ -76,41 +75,31 @@ export const isTokenMintedOnObligationRegistry = async ({
     if (!minted) {
       return notMintedReason(obligationRegistryAddress, tokenId);
     }
+  } catch (error: unknown) {
+    // Only ownerOf absence / registry miss maps to DOCUMENT_NOT_MINTED.
+    // CodedError (e.g. SERVER_ERROR) and unexpected reverts from decodeError propagate.
+    return notMintedReason(obligationRegistryAddress, tokenId, decodeError(error));
+  }
 
-    const obligationEscrowAddress = await getObligationEscrowAddress(
+  const obligationEscrowAddress = await getObligationEscrowAddress(
+    obligationRegistryAddress,
+    tokenId,
+    provider,
+    { titleEscrowVersion: 'v5' },
+  );
+  const obligationEscrow = ObligationEscrow__factory.connect(obligationEscrowAddress, provider);
+  const [active, isHoldingToken] = await Promise.all([
+    obligationEscrow.active(),
+    obligationEscrow.isHoldingToken(),
+  ]);
+
+  if (!active || !isHoldingToken) {
+    return notMintedReason(
       obligationRegistryAddress,
       tokenId,
-      provider,
-      { titleEscrowVersion: 'v5' },
+      `Document ${tokenId} title is not active under contract ${obligationRegistryAddress}`,
     );
-    const obligationEscrow = ObligationEscrow__factory.connect(obligationEscrowAddress, provider);
-    const [active, isHoldingToken] = await Promise.all([
-      obligationEscrow.active(),
-      obligationEscrow.isHoldingToken(),
-    ]);
-
-    if (!active || !isHoldingToken) {
-      return notMintedReason(
-        obligationRegistryAddress,
-        tokenId,
-        `Document ${tokenId} title is not active under contract ${obligationRegistryAddress}`,
-      );
-    }
-
-    return { minted: true, address: obligationRegistryAddress };
-  } catch (error: unknown) {
-    // Same shape as transferableRecords: map ownerOf failures to DOCUMENT_NOT_MINTED via decodeError.
-    // If decodeError rethrows (e.g. ethers v6 BAD_DATA with hex-only revert data), still treat as not minted.
-    let message: string;
-    try {
-      message = decodeError(error);
-    } catch (decodedError) {
-      if (decodedError instanceof CodedError) {
-        throw decodedError;
-      }
-      message = `Document ${tokenId} has not been issued under contract ${obligationRegistryAddress}`;
-    }
-
-    return notMintedReason(obligationRegistryAddress, tokenId, message);
   }
+
+  return { minted: true, address: obligationRegistryAddress };
 };
