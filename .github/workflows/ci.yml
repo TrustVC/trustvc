@@ -5,6 +5,7 @@ on:
     types: ['opened', 'edited', 'reopened', 'synchronize']
     branches:
       - main
+      - beta-boe
       - dev
       - feat/*
       - feature/*
