@@ -148,7 +148,7 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
           index: 10,
         }),
       ).toThrow(
-        'Configuration Error: Do not mix transferable records and verifiable document properties.',
+        'Configuration Error: Do not mix transferable records, obligation records, and verifiable document properties.',
       );
     });
 
