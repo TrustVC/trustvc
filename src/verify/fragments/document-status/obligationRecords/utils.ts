@@ -29,7 +29,8 @@ export const isTokenMintedOnObligationRegistry = async ({
 }): Promise<ValidTokenRegistryStatus | InvalidTokenRegistryStatus> => {
   if (chainId !== undefined) {
     const network = await provider.getNetwork();
-    const expectedChainId = typeof chainId === 'string' ? parseInt(chainId, 10) : Number(chainId);
+    const expectedChainId =
+      typeof chainId === 'string' ? Number.parseInt(chainId, 10) : Number(chainId);
 
     if (!Number.isFinite(expectedChainId) || network.chainId !== expectedChainId) {
       return {

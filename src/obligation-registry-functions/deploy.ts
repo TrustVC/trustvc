@@ -1,6 +1,5 @@
 import { v5Contracts } from '../token-registry-v5';
-import { getTxOptions } from '../token-registry-functions/utils';
-import { getChainIdSafe } from '../token-registry-functions/utils';
+import { getChainIdSafe, getTxOptions } from '../token-registry-functions/utils';
 import { CHAIN_ID } from '../utils';
 import { getEthersContractFactoryFromProvider, isV6EthersProvider } from '../utils/ethers';
 import {
@@ -44,7 +43,7 @@ const getDeployedAddress = (
   }
 
   const contractAddress =
-    'contractAddress' in receipt && receipt.contractAddress ? receipt.contractAddress : undefined;
+    'contractAddress' in receipt ? receipt.contractAddress || undefined : undefined;
 
   if (!contractAddress) {
     throw new Error('Unable to resolve deployed contract address from receipt');

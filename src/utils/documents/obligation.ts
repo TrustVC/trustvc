@@ -6,7 +6,7 @@ import { WrappedOrSignedOpenAttestationDocument } from './index';
 export const isObligationRecordCredentialStatus = (
   credentialStatus: CredentialStatus | undefined,
 ): credentialStatus is ObligationRecordsCredentialStatus => {
-  if (!credentialStatus || credentialStatus.type !== TRANSFERABLE_RECORDS_TYPE) {
+  if (credentialStatus?.type !== TRANSFERABLE_RECORDS_TYPE) {
     return false;
   }
 

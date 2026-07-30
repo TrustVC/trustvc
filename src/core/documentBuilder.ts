@@ -322,11 +322,10 @@ export class DocumentBuilder {
     config: Partial<CredentialStatus>,
   ): config is W3CObligationRecordsConfig {
     return (
-      config &&
-      typeof config.obligationRegistry === 'string' &&
-      typeof config.chain === 'string' &&
-      typeof config.chainId === 'number' &&
-      typeof config.rpcProviderUrl === 'string'
+      typeof config?.obligationRegistry === 'string' &&
+      typeof config?.chain === 'string' &&
+      typeof config?.chainId === 'number' &&
+      typeof config?.rpcProviderUrl === 'string'
     );
   }
 

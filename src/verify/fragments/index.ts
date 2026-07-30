@@ -12,19 +12,13 @@ import {
   credentialStatusTransferableRecordVerifier,
   TRANSFERABLE_RECORDS_TYPE,
 } from './document-status/transferableRecords/transferableRecordVerifier';
-import {
-  credentialStatusObligationRecordVerifier,
-  OBLIGATION_RECORDS_TYPE,
-} from './document-status/obligationRecords/obligationRecordVerifier';
 import { w3cCredentialStatus } from './document-status/w3cCredentialStatus';
 import { w3cIssuerIdentity } from './issuer-identity/w3cIssuerIdentity';
 import { w3cEmptyCredentialStatus } from './document-status/w3cEmptyCredentialStatus';
 
 export {
   TRANSFERABLE_RECORDS_TYPE,
-  OBLIGATION_RECORDS_TYPE,
   credentialStatusTransferableRecordVerifier,
-  credentialStatusObligationRecordVerifier,
   openAttestationDidSignedDocumentStatus,
   openAttestationDnsDidIdentityProof,
   openAttestationDnsTxtIdentityProof,
@@ -37,3 +31,8 @@ export {
   w3cSignatureIntegrity,
   ecdsaW3CSignatureIntegrity,
 };
+
+export {
+  credentialStatusObligationRecordVerifier,
+  OBLIGATION_RECORDS_TYPE,
+} from './document-status/obligationRecords/obligationRecordVerifier';

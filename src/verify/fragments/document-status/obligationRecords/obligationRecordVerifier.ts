@@ -51,10 +51,8 @@ const verify: VerifierType['verify'] = async (
         );
       }
 
-      if (
-        !credentialStatus?.tokenNetwork ||
-        credentialStatus?.tokenNetwork?.chainId === undefined
-      ) {
+      const chainId = credentialStatus.tokenNetwork?.chainId;
+      if (chainId === undefined) {
         throw new CodedError(
           "Document's credentialStatus does not have tokenNetwork.chainId",
           OpenAttestationEthereumTokenRegistryStatusCode.UNRECOGNIZED_DOCUMENT,
@@ -68,7 +66,7 @@ const verify: VerifierType['verify'] = async (
         obligationRegistryAddress: credentialStatus.obligationRegistry,
         tokenId,
         provider,
-        chainId: credentialStatus.tokenNetwork.chainId,
+        chainId,
       });
     }),
   );
