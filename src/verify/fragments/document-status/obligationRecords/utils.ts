@@ -71,10 +71,13 @@ export const isTokenMintedOnObligationRegistry = async ({
           },
         };
   } catch (error: unknown) {
-    const decodedMessage = decodeError(error as EthersError);
     if (error instanceof CodedError) {
       throw error;
     }
+    if ((error as EthersError).code !== errors.CALL_EXCEPTION) {
+      throw error;
+    }
+    const decodedMessage = decodeError(error as EthersError);
 
     return {
       minted: false,
