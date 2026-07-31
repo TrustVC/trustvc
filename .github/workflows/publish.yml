@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - beta
       - v[0-9]*
 
 jobs:
@@ -14,7 +15,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
       - run: npm run test
 
   publish-npm:
@@ -44,7 +45,7 @@ jobs:
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org/
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
       - run: npm run build
       - run: npm run release
         env:

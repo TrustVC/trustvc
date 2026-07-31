@@ -30,6 +30,15 @@ TrustVC is a comprehensive wrapper library designed to simplify the signing and 
     - [8. **Document Builder**](#8-document-builder)
     - [9. **Document Store**](#9-document-store)
     - [10. **Transaction Cancel**](#10-transaction-cancel)
+    - [11. **Gasless Operations (EIP-7702)**](#11-gasless-operations-eip-7702)
+      - [Overview](#overview-1)
+      - [deployPlatformPaymaster](#deployplatformpaymaster)
+      - [deployTokenRegistryGasless](#deploytokenregistrygasless)
+      - [mintGasless](#mintgasless)
+      - [Transfer Functions](#transfer-functions)
+      - [Reject Transfer Functions](#reject-transfer-functions)
+      - [Return to Issuer Functions](#return-to-issuer-functions)
+      - [Admin Functions](#admin-functions)
 
 ## Installation
 
@@ -1342,4 +1351,298 @@ const replacementHash2 = await cancelTransaction(signer, {
   nonce: '5',
   gasPrice: '25000000000', // 25 gwei in wei
 });
+```
+
+---
+
+## 11. **Gasless Operations (EIP-7702)**
+
+> **Beta:** Gasless transactions are currently in beta. APIs and contract addresses may change before the stable release. Use on testnet only.
+
+### Overview
+
+TrustVC supports gasless trade document operations via **EIP-7702** (smart account delegation) and **ERC-4337** (account abstraction). Users can deploy token registries, mint documents, and perform all title escrow operations without holding ETH — gas is sponsored by a **PlatformPaymaster** deployed per platform.
+
+**How it works:**
+
+1. An EOA signs an EIP-7702 authorization, delegating to the `EIP7702Implementation` contract. Its bytecode becomes `0xef0100 || impl_address` while keeping the same address and private key.
+2. The platform deploys a `PlatformPaymaster` clone via `PlatformAccountFactory`.
+3. Users submit `UserOperation`s through a bundler (Pimlico). The paymaster validates and sponsors gas for authorized operations.
+
+All gasless functions accept a `smartAccountClient` built with [permissionless](https://docs.pimlico.io/permissionless) and return `Promise<string>` (transaction hash).
+
+```ts
+import { buildSmartAccountClient } from './your-pimlico-setup';
+
+const { smartAccountClient } = await buildSmartAccountClient(
+  ownerAddress,     // delegated EOA
+  paymasterAddress, // platform's PlatformPaymaster
+);
+```
+
+---
+
+### deployPlatformPaymaster
+
+Deploys a new `PlatformPaymaster` clone for your platform via `PlatformAccountFactory`. Accepts a viem `WalletClient` or ethers v5/v6 signer.
+
+```ts
+import { deployPlatformPaymaster } from '@trustvc/trustvc';
+import { createWalletClient, createPublicClient, http } from 'viem';
+import { sepolia } from 'viem/chains';
+
+const { txHash, paymasterAddress } = await deployPlatformPaymaster(
+  walletClient,
+  {
+    platformAddress: '0xYourPlatformOwner...',
+    dailyLimit: 0n,                    // 0n = unlimited; set in wei to cap per-user daily spend
+    salt: `0x${'ab'.repeat(32)}`,      // bytes32 CREATE2 salt — must be unique per platform
+  },
+  publicClient,
+);
+
+console.log('Paymaster deployed at:', paymasterAddress);
+```
+
+---
+
+### deployTokenRegistryGasless
+
+Deploys a new `TradeTrustToken` registry clone through the paymaster. The caller must have at least 1 deployment credit (`setUserWhitelist`). Emits `RegistryDeployed(user, deployed, creditsLeft)`.
+
+```ts
+import { deployTokenRegistryGasless } from '@trustvc/trustvc';
+
+const txHash = await deployTokenRegistryGasless(
+  'My Shipping Line',  // registry name
+  'MSL',               // registry symbol
+  smartAccountClient,
+  {
+    paymasterAddress:         '0xYourPaymaster...',
+    tokenRegistryImplAddress: '0x64bc665056DC8bE4092e569ED13a7F273Be28cD2', // TDocDeployer on Sepolia
+  },
+);
+```
+
+---
+
+### mintGasless
+
+Mints a new trade document on an authorized registry. Automatically authorizes the beneficiary, holder, and the new `TitleEscrow` on the paymaster. Emits `TitleEscrowLinked(titleEscrow, registry)`.
+
+```ts
+import { mintGasless } from '@trustvc/trustvc';
+
+const txHash = await mintGasless(
+  {
+    paymasterAddress:     '0xYourPaymaster...',
+    tokenRegistryAddress: '0xYourRegistry...',
+  },
+  smartAccountClient,
+  {
+    beneficiaryAddress: '0xBeneficiary...',
+    holderAddress:      '0xHolder...',
+    tokenId:            '0xdeadbeef',
+    remarks:            'Initial issuance',  // optional — encrypted on-chain with options.id
+  },
+  { id: 'document-uuid' },
+);
+```
+
+---
+
+### Transfer Functions
+
+All transfer functions target the `TitleEscrow` contract. Remarks are automatically encrypted with `options.id` before being sent on-chain.
+
+#### transferHolderGasless
+
+Transfers the **holder** role. Caller must be the current holder.
+
+```ts
+import { transferHolderGasless } from '@trustvc/trustvc';
+
+const txHash = await transferHolderGasless(
+  { titleEscrowAddress: '0xTitleEscrow...' },
+  smartAccountClient,
+  { holderAddress: '0xNewHolder...', remarks: 'Transferring to forwarder' },
+  { id: 'document-uuid' },
+);
+```
+
+#### transferBeneficiaryGasless
+
+Transfers the **beneficiary** role. Caller must be the current beneficiary.
+
+```ts
+import { transferBeneficiaryGasless } from '@trustvc/trustvc';
+
+const txHash = await transferBeneficiaryGasless(
+  { titleEscrowAddress: '0xTitleEscrow...' },
+  smartAccountClient,
+  { newBeneficiaryAddress: '0xNewBeneficiary...', remarks: 'Endorsing to buyer' },
+  { id: 'document-uuid' },
+);
+```
+
+#### transferOwnersGasless
+
+Transfers both holder and beneficiary in one transaction. Caller must be both.
+
+```ts
+import { transferOwnersGasless } from '@trustvc/trustvc';
+
+const txHash = await transferOwnersGasless(
+  { titleEscrowAddress: '0xTitleEscrow...' },
+  smartAccountClient,
+  {
+    newBeneficiaryAddress: '0xNewBeneficiary...',
+    newHolderAddress:      '0xNewHolder...',
+    remarks:               'Full transfer',
+  },
+  { id: 'document-uuid' },
+);
+```
+
+#### nominateGasless
+
+Nominates a new beneficiary without immediately completing the transfer.
+
+```ts
+import { nominateGasless } from '@trustvc/trustvc';
+
+const txHash = await nominateGasless(
+  { titleEscrowAddress: '0xTitleEscrow...' },
+  smartAccountClient,
+  { newBeneficiaryAddress: '0xNominated...', remarks: 'Nomination' },
+  { id: 'document-uuid' },
+);
+```
+
+---
+
+### Reject Transfer Functions
+
+Mirror of Token Registry v5's rejection methods — see [section 7](#b-token-registry-v5) for the on-chain rules.
+
+```ts
+import {
+  rejectTransferHolderGasless,
+  rejectTransferBeneficiaryGasless,
+  rejectTransferOwnersGasless,
+} from '@trustvc/trustvc';
+
+// Reject a pending holder transfer (caller = current holder)
+await rejectTransferHolderGasless(
+  { titleEscrowAddress: '0xTitleEscrow...' },
+  smartAccountClient,
+  { remarks: 'Rejecting transfer' },
+  { id: 'document-uuid' },
+);
+
+// Reject a pending beneficiary nomination (caller = current beneficiary)
+await rejectTransferBeneficiaryGasless(
+  { titleEscrowAddress: '0xTitleEscrow...' },
+  smartAccountClient,
+  { remarks: 'Rejecting nomination' },
+  { id: 'document-uuid' },
+);
+
+// Reject a combined transfer (caller = both holder and beneficiary)
+await rejectTransferOwnersGasless(
+  { titleEscrowAddress: '0xTitleEscrow...' },
+  smartAccountClient,
+  { remarks: 'Rejecting combined transfer' },
+  { id: 'document-uuid' },
+);
+```
+
+---
+
+### Return to Issuer Functions
+
+#### returnToIssuerGasless
+
+Returns the document to the issuer. Caller must be both holder and beneficiary.
+
+```ts
+import { returnToIssuerGasless } from '@trustvc/trustvc';
+
+await returnToIssuerGasless(
+  { titleEscrowAddress: '0xTitleEscrow...' },
+  smartAccountClient,
+  { remarks: 'Surrendering document' },
+  { id: 'document-uuid' },
+);
+```
+
+#### rejectReturnedGasless
+
+Restores the document back to the title escrow (registry admin rejects the return).
+
+```ts
+import { rejectReturnedGasless } from '@trustvc/trustvc';
+
+await rejectReturnedGasless(
+  { tokenRegistryAddress: '0xYourRegistry...' },
+  smartAccountClient,
+  { tokenId: '0xdeadbeef', remarks: 'Return rejected' },
+  { id: 'document-uuid' },
+);
+```
+
+#### acceptReturnedGasless
+
+Burns the document (registry admin accepts the return).
+
+```ts
+import { acceptReturnedGasless } from '@trustvc/trustvc';
+
+await acceptReturnedGasless(
+  { tokenRegistryAddress: '0xYourRegistry...' },
+  smartAccountClient,
+  { tokenId: '0xdeadbeef', remarks: 'Document accepted and destroyed' },
+  { id: 'document-uuid' },
+);
+```
+
+---
+
+### Admin Functions
+
+`onlyOwner` functions for managing the `PlatformPaymaster`. All accept a viem `WalletClient` or ethers v5/v6 signer and return `Promise<string>` (tx hash).
+
+```ts
+import {
+  setUserWhitelist,
+  removeUserFromWhitelist,
+  addRegistry,
+  removeRegistry,
+  addTitleEscrow,
+  removeTitleEscrow,
+  addAuthorizedCaller,
+  removeAuthorizedCaller,
+  setDailyLimit,
+} from '@trustvc/trustvc';
+
+// Grant a user 2 registry deployment credits (max 3)
+await setUserWhitelist(ownerSigner, paymasterAddress, '0xUser...', 2n);
+
+// Remove a user from the whitelist
+await removeUserFromWhitelist(ownerSigner, paymasterAddress, '0xUser...');
+
+// Authorize a registry so the paymaster will sponsor its calls
+await addRegistry(ownerSigner, paymasterAddress, '0xRegistry...');
+await removeRegistry(ownerSigner, paymasterAddress, '0xRegistry...');
+
+// Authorize a title escrow
+await addTitleEscrow(ownerSigner, paymasterAddress, '0xTitleEscrow...');
+await removeTitleEscrow(ownerSigner, paymasterAddress, '0xTitleEscrow...');
+
+// Manage authorized callers (beneficiary / holder addresses for Path A)
+await addAuthorizedCaller(ownerSigner, paymasterAddress, '0xCaller...');
+await removeAuthorizedCaller(ownerSigner, paymasterAddress, '0xCaller...');
+
+// Update the per-user daily gas spend cap (0n = unlimited)
+await setDailyLimit(ownerSigner, paymasterAddress, 0n);
 ```

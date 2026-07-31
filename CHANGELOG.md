@@ -1,3 +1,27 @@
+## [2.15.0-beta.2](https://github.com/TrustVC/trustvc/compare/v2.15.0-beta.1...v2.15.0-beta.2) (2026-07-16)
+
+
+### Features
+
+* **eip7702:** export contract ABIs via eip7702Abis from @trustvc/trustvc ([59531e8](https://github.com/TrustVC/trustvc/commit/59531e883d18f9973498957a7c3a2112a05803ee))
+
+## [2.15.0-beta.1](https://github.com/TrustVC/trustvc/compare/v2.14.1...v2.15.0-beta.1) (2026-07-01)
+
+
+### Features
+
+* add EIP-7702 gasless functions with full test coverage ([e8d8b21](https://github.com/TrustVC/trustvc/commit/e8d8b214b96107dce44a0e1499cb8d05f0365c3b))
+
+
+### Bug Fixes
+
+* add --legacy-peer-deps to npm ci in all workflows ([44fa8ef](https://github.com/TrustVC/trustvc/commit/44fa8ef5be219d7f1522f3eaa9f259b7352e4022))
+
+
+### Miscellaneous Chores
+
+* replace local eip7702 file ref with npm package @trustvc/eip7702@^1.0.0-beta.1 ([bc81fb5](https://github.com/TrustVC/trustvc/commit/bc81fb5fae6c52b3e0fe16ca5e7e7d6f1023c857))
+
 ## [2.14.1](https://github.com/TrustVC/trustvc/compare/v2.14.0...v2.14.1) (2026-06-10)
 
 
