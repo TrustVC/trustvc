@@ -3,6 +3,7 @@ import {
   getChainId,
   getTokenId,
   getTokenRegistryAddress,
+  isObligationRecord,
   isTransferableRecord,
 } from '../../../utils';
 import {
@@ -44,6 +45,40 @@ describe.concurrent('documents', () => {
     it('isTransferableRecord - INVALID OA V3 Transferable Record Document', () => {
       const transferableRecord = isTransferableRecord(WRAPPED_DOCUMENT_DNS_DID_V3);
       expect(transferableRecord).toBe(false);
+    });
+
+    it('isTransferableRecord - mixed transferable + obligation statuses is false', () => {
+      const mixed = {
+        ...W3C_TRANSFERABLE_RECORD,
+        credentialStatus: [
+          W3C_TRANSFERABLE_RECORD.credentialStatus,
+          {
+            type: 'TransferableRecords',
+            tokenNetwork: { chain: 'MATIC', chainId: 80002 },
+            obligationRegistry: '0x71D28767662cB233F887aD2Bb65d048d760bA694',
+            tokenId: '23f719b016c88ba1ef2e10c0718d7d0f0026b1dc6e219629f81e2f0f811c4e3e',
+          },
+        ],
+      };
+      expect(isTransferableRecord(mixed as typeof W3C_TRANSFERABLE_RECORD)).toBe(false);
+    });
+  });
+
+  describe.concurrent('isObligationRecord', () => {
+    it('isObligationRecord - true when any status is obligation', () => {
+      const mixed = {
+        ...W3C_TRANSFERABLE_RECORD,
+        credentialStatus: [
+          W3C_TRANSFERABLE_RECORD.credentialStatus,
+          {
+            type: 'TransferableRecords',
+            tokenNetwork: { chain: 'MATIC', chainId: 80002 },
+            obligationRegistry: '0x71D28767662cB233F887aD2Bb65d048d760bA694',
+            tokenId: '23f719b016c88ba1ef2e10c0718d7d0f0026b1dc6e219629f81e2f0f811c4e3e',
+          },
+        ],
+      };
+      expect(isObligationRecord(mixed as typeof W3C_TRANSFERABLE_RECORD)).toBe(true);
     });
   });
 
