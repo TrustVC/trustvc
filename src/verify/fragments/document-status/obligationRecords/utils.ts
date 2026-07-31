@@ -1,14 +1,10 @@
-import {
-  ObligationEscrow__factory,
-  TrustVCToken__factory,
-} from '@tradetrust-tt/token-registry-v5/contracts';
+import { TrustVCToken__factory } from '@tradetrust-tt/token-registry-v5/contracts';
 import {
   InvalidTokenRegistryStatus,
   OpenAttestationEthereumTokenRegistryStatusCode,
   ValidTokenRegistryStatus,
 } from '@tradetrust-tt/tt-verify';
 import { constants, providers } from 'ethers';
-import { getObligationEscrowAddress } from '../../../../core/endorsement-chain/obligation';
 import { decodeError, type EthersError } from '../transferableRecords/utils';
 
 const notMintedReason = (
@@ -30,6 +26,7 @@ const notMintedReason = (
   },
 });
 
+// Same minted semantics as classic ETR: ownerOf !== AddressZero (includes burn 0xdEaD).
 export const isTokenMintedOnObligationRegistry = async ({
   obligationRegistryAddress,
   tokenId,
@@ -75,32 +72,12 @@ export const isTokenMintedOnObligationRegistry = async ({
     if (!minted) {
       return notMintedReason(obligationRegistryAddress, tokenId);
     }
+
+    return { minted: true, address: obligationRegistryAddress };
   } catch (error: unknown) {
     // Only ownerOf absence / registry miss maps to DOCUMENT_NOT_MINTED.
     // CodedError (e.g. SERVER_ERROR) and unexpected reverts from decodeError propagate.
     const ethersError = error as EthersError;
     return notMintedReason(obligationRegistryAddress, tokenId, decodeError(ethersError));
   }
-
-  const obligationEscrowAddress = await getObligationEscrowAddress(
-    obligationRegistryAddress,
-    tokenId,
-    provider,
-    { titleEscrowVersion: 'v5' },
-  );
-  const obligationEscrow = ObligationEscrow__factory.connect(obligationEscrowAddress, provider);
-  const [active, isHoldingToken] = await Promise.all([
-    obligationEscrow.active(),
-    obligationEscrow.isHoldingToken(),
-  ]);
-
-  if (!active || !isHoldingToken) {
-    return notMintedReason(
-      obligationRegistryAddress,
-      tokenId,
-      `Document ${tokenId} title is not active under contract ${obligationRegistryAddress}`,
-    );
-  }
-
-  return { minted: true, address: obligationRegistryAddress };
 };

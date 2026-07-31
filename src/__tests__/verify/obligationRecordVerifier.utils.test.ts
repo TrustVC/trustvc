@@ -4,9 +4,6 @@ import { OpenAttestationEthereumTokenRegistryStatusCode } from '@tradetrust-tt/t
 import { isTokenMintedOnObligationRegistry } from '../../verify/fragments/document-status/obligationRecords/utils';
 
 const mockOwnerOf = vi.fn();
-const mockActive = vi.fn();
-const mockIsHoldingToken = vi.fn();
-const mockGetObligationEscrowAddress = vi.fn();
 
 vi.mock('@tradetrust-tt/token-registry-v5/contracts', () => ({
   TrustVCToken__factory: {
@@ -14,16 +11,6 @@ vi.mock('@tradetrust-tt/token-registry-v5/contracts', () => ({
       ownerOf: mockOwnerOf,
     })),
   },
-  ObligationEscrow__factory: {
-    connect: vi.fn(() => ({
-      active: mockActive,
-      isHoldingToken: mockIsHoldingToken,
-    })),
-  },
-}));
-
-vi.mock('../../core/endorsement-chain/obligation', () => ({
-  getObligationEscrowAddress: (...args: unknown[]) => mockGetObligationEscrowAddress(...args),
 }));
 
 describe('isTokenMintedOnObligationRegistry', () => {
@@ -35,13 +22,10 @@ describe('isTokenMintedOnObligationRegistry', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetObligationEscrowAddress.mockResolvedValue('0xEscrow');
     mockOwnerOf.mockResolvedValue('0xEscrow');
-    mockActive.mockResolvedValue(true);
-    mockIsHoldingToken.mockResolvedValue(true);
   });
 
-  it('returns minted when owner is set and title is live', async () => {
+  it('returns minted when owner is set (active title)', async () => {
     const result = await isTokenMintedOnObligationRegistry({
       obligationRegistryAddress,
       tokenId,
@@ -52,8 +36,8 @@ describe('isTokenMintedOnObligationRegistry', () => {
     expect(result).toEqual({ minted: true, address: obligationRegistryAddress });
   });
 
-  it('returns not minted when title is inactive or not holding', async () => {
-    mockIsHoldingToken.mockResolvedValue(false);
+  it('returns minted when owner is burn address (shredded, same as classic ETR)', async () => {
+    mockOwnerOf.mockResolvedValue('0x000000000000000000000000000000000000dEaD');
 
     const result = await isTokenMintedOnObligationRegistry({
       obligationRegistryAddress,
@@ -62,13 +46,7 @@ describe('isTokenMintedOnObligationRegistry', () => {
       chainId: 80002,
     });
 
-    expect(result.minted).toBe(false);
-    expect(result).toMatchObject({
-      reason: {
-        code: OpenAttestationEthereumTokenRegistryStatusCode.DOCUMENT_NOT_MINTED,
-        message: expect.stringContaining('title is not active'),
-      },
-    });
+    expect(result).toEqual({ minted: true, address: obligationRegistryAddress });
   });
 
   it('returns not minted when owner is zero address', async () => {
@@ -104,19 +82,5 @@ describe('isTokenMintedOnObligationRegistry', () => {
         message: 'Document has not been issued under token registry',
       },
     });
-    expect(mockGetObligationEscrowAddress).not.toHaveBeenCalled();
-  });
-
-  it('rethrows failures from escrow address / active / isHoldingToken calls', async () => {
-    mockGetObligationEscrowAddress.mockRejectedValue(new Error('RPC failed resolving escrow'));
-
-    await expect(
-      isTokenMintedOnObligationRegistry({
-        obligationRegistryAddress,
-        tokenId,
-        provider,
-        chainId: 80002,
-      }),
-    ).rejects.toThrow('RPC failed resolving escrow');
   });
 });
