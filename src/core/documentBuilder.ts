@@ -173,6 +173,11 @@ export class DocumentBuilder {
   // Configures the credential status for obligation records (Bill of Exchange).
   obligationCredentialStatus(config: W3CObligationRecordsConfig) {
     if (this.isSigned) throw new Error('Configuration Error: Document is already signed.');
+    if (this.selectedStatusType && this.selectedStatusType !== 'obligationRecords') {
+      throw new Error(
+        'Configuration Error: Do not mix obligation records with other credential status types.',
+      );
+    }
 
     if (!this.isObligationRecordsConfig(config)) {
       throw new Error(
@@ -191,7 +196,6 @@ export class DocumentBuilder {
 
     return this;
   }
-
   // Sets the expiration date of the document.
   expirationDate(date: string | Date) {
     if (this.isSigned) throw new Error('Configuration Error: Document is already signed.');
