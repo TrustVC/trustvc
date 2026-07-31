@@ -191,7 +191,8 @@
   },
   "overrides": {
     "ethers": "^5.8.0",
-    "@digitalbazaar/bls12-381-multikey": "~2.1.0"
+    "@digitalbazaar/bls12-381-multikey": "~2.1.0",
+    "ox": "0.14.29"
   },
   "peerDependencies": {
     "ethers": "^5.8.0"
