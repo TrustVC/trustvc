@@ -1,3 +1,10 @@
+## [2.15.0](https://github.com/TrustVC/trustvc/compare/v2.14.1...v2.15.0) (2026-07-31)
+
+
+### Features
+
+* add Verifiable Presentation sign/verify + fragments ([#154](https://github.com/TrustVC/trustvc/issues/154)) ([d8d51f1](https://github.com/TrustVC/trustvc/commit/d8d51f19c671c5fa4233c0c05923361674f2cd55))
+
 ## [2.14.1](https://github.com/TrustVC/trustvc/compare/v2.14.0...v2.14.1) (2026-06-10)
 
 
