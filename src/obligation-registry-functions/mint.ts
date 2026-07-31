@@ -1,15 +1,20 @@
 import { v5SupportInterfaceIds } from '../token-registry-v5';
 import { Signer as SignerV6 } from 'ethersV6';
-import { ContractTransaction, Signer } from 'ethers';
+import { Signer } from 'ethers';
 import { executeRegistryMethod, getEncryptedRemarks } from './utils';
-import { MintObligationTokenOptions, MintObligationTokenParams, TransactionOptions } from './types';
+import {
+  MintObligationTokenOptions,
+  MintObligationTokenParams,
+  ObligationTransactionResponse,
+  TransactionOptions,
+} from './types';
 
 const mintObligationRegistry = async (
   contractOptions: MintObligationTokenOptions,
   signer: Signer | SignerV6,
   params: MintObligationTokenParams,
   options: TransactionOptions,
-): Promise<ContractTransaction> => {
+): Promise<ObligationTransactionResponse> => {
   const encryptedRemarks = getEncryptedRemarks(params.remarks, options.id);
   return executeRegistryMethod(
     contractOptions.obligationRegistryAddress,

@@ -31,17 +31,17 @@ export const getTransferableRecordsCredentialStatus = (
 export const isTransferableRecord = (
   document: WrappedOrSignedOpenAttestationDocument | SignedVerifiableCredential,
 ): boolean => {
-  let isTransferableAssetVal: boolean = false;
   if (isSignedDocument(document)) {
-    const credentialStatus = getTransferableRecordsCredentialStatus(document);
-    isTransferableAssetVal =
-      credentialStatus?.type === TRANSFERABLE_RECORDS_TYPE &&
-      !isObligationRecordCredentialStatus(credentialStatus);
-  } else {
-    isTransferableAssetVal = isTransferableAsset(document);
+    const credentialStatuses = Array.isArray(document.credentialStatus)
+      ? document.credentialStatus
+      : [document.credentialStatus];
+
+    return credentialStatuses.every(
+      (cs) => cs?.type === TRANSFERABLE_RECORDS_TYPE && !isObligationRecordCredentialStatus(cs),
+    );
   }
 
-  return isTransferableAssetVal;
+  return isTransferableAsset(document);
 };
 
 export const getTokenRegistryAddress = (

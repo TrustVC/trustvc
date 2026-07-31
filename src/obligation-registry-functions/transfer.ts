@@ -1,9 +1,10 @@
 import { Signer as SignerV6 } from 'ethersV6';
-import { ContractTransaction, Signer } from 'ethers';
+import { Signer } from 'ethers';
 import { executeEscrowMethod, getEncryptedRemarks } from './utils';
 import {
   NominateObligationParams,
   ObligationContractOptions,
+  ObligationTransactionResponse,
   TransactionOptions,
   TransferObligationBeneficiaryParams,
   TransferObligationHolderParams,
@@ -15,7 +16,7 @@ const transferHolderObligationRegistry = async (
   signer: Signer | SignerV6,
   params: TransferObligationHolderParams,
   options: TransactionOptions,
-): Promise<ContractTransaction> => {
+): Promise<ObligationTransactionResponse> => {
   const encryptedRemarks = getEncryptedRemarks(params.remarks, options.id);
   return executeEscrowMethod(
     contractOptions,
@@ -31,7 +32,7 @@ const transferBeneficiaryObligationRegistry = async (
   signer: Signer | SignerV6,
   params: TransferObligationBeneficiaryParams,
   options: TransactionOptions,
-): Promise<ContractTransaction> => {
+): Promise<ObligationTransactionResponse> => {
   const encryptedRemarks = getEncryptedRemarks(params.remarks, options.id);
   return executeEscrowMethod(
     contractOptions,
@@ -47,7 +48,7 @@ const nominateObligationRegistry = async (
   signer: Signer | SignerV6,
   params: NominateObligationParams,
   options: TransactionOptions,
-): Promise<ContractTransaction> => {
+): Promise<ObligationTransactionResponse> => {
   const encryptedRemarks = getEncryptedRemarks(params.remarks, options.id);
   return executeEscrowMethod(
     contractOptions,
@@ -63,7 +64,7 @@ const transferOwnersObligationRegistry = async (
   signer: Signer | SignerV6,
   params: TransferObligationOwnersParams,
   options: TransactionOptions,
-): Promise<ContractTransaction> => {
+): Promise<ObligationTransactionResponse> => {
   const encryptedRemarks = getEncryptedRemarks(params.remarks, options.id);
   return executeEscrowMethod(
     contractOptions,

@@ -1,9 +1,10 @@
 import { v5SupportInterfaceIds } from '../token-registry-v5';
 import { Signer as SignerV6 } from 'ethersV6';
-import { ContractTransaction, Signer } from 'ethers';
+import { Signer } from 'ethers';
 import {
   AcceptReturnedObligationOptions,
   AcceptReturnedObligationParams,
+  ObligationTransactionResponse,
   RejectReturnedObligationOptions,
   RejectReturnedObligationParams,
   TransactionOptions,
@@ -17,7 +18,7 @@ const acceptReturnedObligationRegistry = async (
   signer: Signer | SignerV6,
   params: AcceptReturnedObligationParams,
   options: TransactionOptions,
-): Promise<ContractTransaction> => {
+): Promise<ObligationTransactionResponse> => {
   const encryptedRemarks = getEncryptedRemarks(params.remarks, options.id);
   return executeRegistryMethod(
     contractOptions.obligationRegistryAddress,
@@ -34,7 +35,7 @@ const rejectReturnedObligationRegistry = async (
   signer: Signer | SignerV6,
   params: RejectReturnedObligationParams,
   options: TransactionOptions,
-): Promise<ContractTransaction> => {
+): Promise<ObligationTransactionResponse> => {
   const encryptedRemarks = getEncryptedRemarks(params.remarks, options.id);
   return executeRegistryMethod(
     contractOptions.obligationRegistryAddress,

@@ -364,68 +364,75 @@ export class DocumentBuilder {
     }
   }
 
-  // Private helper method to verify that the token registry supports the required interface for transferable records.
-  private async verifyTokenRegistry() {
+  private assertSupportedChain(): void {
     const chainId = this.document.credentialStatus.tokenNetwork
       .chainId as keyof typeof SUPPORTED_CHAINS;
     if (!(chainId in SUPPORTED_CHAINS)) {
       throw new Error(`Unsupported Chain: Chain ID ${chainId} is not supported.`);
-    }
-
-    try {
-      const provider = new ethers.providers.JsonRpcProvider(this.rpcProviderUrl);
-      const isV4Supported = await this.supportsInterface(
-        v4Contracts.TradeTrustToken__factory,
-        constantsV4.contractInterfaceId.TradeTrustTokenMintable,
-        provider,
-      );
-      const isV5Supported = await this.supportsInterface(
-        v5Contracts.TradeTrustToken__factory,
-        constantsV5.contractInterfaceId.TradeTrustTokenMintable,
-        provider,
-      );
-      if (!isV4Supported && !isV5Supported)
-        throw new Error('Token registry version is not supported.');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-      if (error.message === 'Token registry version is not supported.') {
-        throw error;
-      } else {
-        throw new Error(
-          `Network Error: Unable to verify token registry. Please check the RPC URL or token registry address.`,
-        );
-      }
     }
   }
 
-  private async verifyObligationRegistry() {
-    const chainId = this.document.credentialStatus.tokenNetwork
-      .chainId as keyof typeof SUPPORTED_CHAINS;
-    if (!(chainId in SUPPORTED_CHAINS)) {
-      throw new Error(`Unsupported Chain: Chain ID ${chainId} is not supported.`);
-    }
-
+  private async withRegistryNetworkError(
+    unsupportedRegistryError: string,
+    networkError: string,
+    verify: () => Promise<void>,
+  ): Promise<void> {
     try {
-      const provider = new ethers.providers.JsonRpcProvider(this.rpcProviderUrl);
-      const isSupported = await this.supportsInterface(
-        v5Contracts.TrustVCToken__factory,
-        constantsV5.contractInterfaceId.TradeTrustTokenMintable,
-        provider,
-        this.statusConfig.obligationRegistry,
-      );
-      if (!isSupported) {
-        throw new Error('Obligation registry version is not supported.');
-      }
+      await verify();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
-      if (error.message === 'Obligation registry version is not supported.') {
+      if (error.message === unsupportedRegistryError) {
         throw error;
-      } else {
-        throw new Error(
-          `Network Error: Unable to verify obligation registry. Please check the RPC URL or obligation registry address.`,
-        );
       }
+      throw new Error(networkError);
     }
+  }
+
+  // Private helper method to verify that the token registry supports the required interface for transferable records.
+  private async verifyTokenRegistry() {
+    this.assertSupportedChain();
+
+    const unsupportedRegistryError = 'Token registry version is not supported.';
+    await this.withRegistryNetworkError(
+      unsupportedRegistryError,
+      'Network Error: Unable to verify token registry. Please check the RPC URL or token registry address.',
+      async () => {
+        const provider = new ethers.providers.JsonRpcProvider(this.rpcProviderUrl);
+        const isV4Supported = await this.supportsInterface(
+          v4Contracts.TradeTrustToken__factory,
+          constantsV4.contractInterfaceId.TradeTrustTokenMintable,
+          provider,
+        );
+        const isV5Supported = await this.supportsInterface(
+          v5Contracts.TradeTrustToken__factory,
+          constantsV5.contractInterfaceId.TradeTrustTokenMintable,
+          provider,
+        );
+        if (!isV4Supported && !isV5Supported) throw new Error(unsupportedRegistryError);
+      },
+    );
+  }
+
+  private async verifyObligationRegistry() {
+    this.assertSupportedChain();
+
+    const unsupportedRegistryError = 'Obligation registry version is not supported.';
+    await this.withRegistryNetworkError(
+      unsupportedRegistryError,
+      'Network Error: Unable to verify obligation registry. Please check the RPC URL or obligation registry address.',
+      async () => {
+        const provider = new ethers.providers.JsonRpcProvider(this.rpcProviderUrl);
+        const isSupported = await this.supportsInterface(
+          v5Contracts.TrustVCToken__factory,
+          constantsV5.contractInterfaceId.TradeTrustTokenMintable,
+          provider,
+          this.statusConfig.obligationRegistry,
+        );
+        if (!isSupported) {
+          throw new Error(unsupportedRegistryError);
+        }
+      },
+    );
   }
 
   // Private helper method to check if a contract supports a specific interface ID.

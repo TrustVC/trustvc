@@ -2,9 +2,13 @@ import { encrypt, getObligationEscrowAddress, checkSupportsInterface } from '../
 import { v5Contracts } from '../token-registry-v5';
 import { getTxOptions } from '../token-registry-functions/utils';
 import { Signer as SignerV6, Contract as ContractV6 } from 'ethersV6';
-import { Contract as ContractV5, ContractTransaction, Signer } from 'ethers';
+import { Contract as ContractV5, Signer } from 'ethers';
 import { getEthersContractFromProvider, isV6EthersProvider } from '../utils/ethers';
-import { ObligationContractOptions, TransactionOptions } from './types';
+import {
+  ObligationContractOptions,
+  ObligationTransactionResponse,
+  TransactionOptions,
+} from './types';
 
 export const getObligationRegistryContract = (
   obligationRegistryAddress: string,
@@ -108,13 +112,16 @@ export const sendTransaction = async (
     maxFeePerGas?: Parameters<typeof getTxOptions>[2];
     maxPriorityFeePerGas?: Parameters<typeof getTxOptions>[3];
   },
-) => {
+): Promise<ObligationTransactionResponse> => {
   const txOptions = await getTxOptions(
     signer,
     options.chainId,
     options.maxFeePerGas,
     options.maxPriorityFeePerGas,
   );
+  if (isV6EthersProvider(signer.provider)) {
+    return (contract as ContractV6)[method](...args, txOptions);
+  }
   return (contract as ContractV5)[method](...args, txOptions);
 };
 
@@ -133,7 +140,7 @@ export const executeEscrowMethod = async (
   method: string,
   args: unknown[],
   options: TransactionOptions,
-): Promise<ContractTransaction> => {
+): Promise<ObligationTransactionResponse> => {
   const obligationEscrowContract = await getEscrowContract(contractOptions, signer);
   await runStaticCall(obligationEscrowContract, method, args, signer.provider);
   return sendTransaction(obligationEscrowContract, method, args, signer, options);
@@ -146,7 +153,7 @@ export const createRemarkEscrowMethod =
     signer: Signer | SignerV6,
     params: { remarks?: string },
     options: TransactionOptions,
-  ): Promise<ContractTransaction> =>
+  ): Promise<ObligationTransactionResponse> =>
     executeEscrowMethod(
       contractOptions,
       signer,
@@ -162,7 +169,7 @@ export const executeRegistryMethod = async (
   method: string,
   args: unknown[],
   options: TransactionOptions,
-): Promise<ContractTransaction> => {
+): Promise<ObligationTransactionResponse> => {
   if (!obligationRegistryAddress) throw new Error('Obligation registry address is required');
   if (!signer.provider) throw new Error('Provider is required');
 

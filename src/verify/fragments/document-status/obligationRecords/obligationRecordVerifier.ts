@@ -30,11 +30,10 @@ const verify: VerifierType['verify'] = async (
   options: VerifierOptions,
 ) => {
   const signedDocument = document as SignedVerifiableCredential;
-  const credentialStatuses = (
-    Array.isArray(signedDocument?.credentialStatus)
-      ? signedDocument?.credentialStatus
-      : [signedDocument?.credentialStatus]
-  ) as ObligationRecordsCredentialStatus[];
+  const rawCredentialStatuses = Array.isArray(signedDocument?.credentialStatus)
+    ? signedDocument?.credentialStatus
+    : [signedDocument?.credentialStatus];
+  const credentialStatuses = rawCredentialStatuses.filter(isObligationRecordCredentialStatus);
   const { provider } = options;
 
   const verificationResult = await Promise.all(
@@ -80,10 +79,13 @@ const verify: VerifierType['verify'] = async (
     },
   };
 
-  if (verificationResult.every(ValidTokenRegistryStatus.guard)) {
+  if (verificationResult.length > 0 && verificationResult.every(ValidTokenRegistryStatus.guard)) {
     result.status = 'VALID' as const;
   } else {
-    result.reason = (verificationResult as InvalidTokenRegistryStatus[])?.[0]?.reason;
+    const invalidStatus = verificationResult.find(
+      (status): status is InvalidTokenRegistryStatus => !ValidTokenRegistryStatus.guard(status),
+    );
+    result.reason = invalidStatus?.reason;
   }
 
   return result;
@@ -102,7 +104,7 @@ const test: VerifierType['test'] = (
 
   return Boolean(
     w3cVC.isSignedDocument(document) &&
-      credentialStatuses.every((cs: w3cVC.CredentialStatus) =>
+      credentialStatuses.some((cs: w3cVC.CredentialStatus) =>
         isObligationRecordCredentialStatus(cs),
       ),
   );

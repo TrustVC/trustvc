@@ -1,6 +1,9 @@
 import { CHAIN_ID } from '../utils';
-import { BigNumber, providers as providersV5 } from 'ethers';
-import { BigNumberish, Provider as ProviderV6 } from 'ethersV6';
+import { BigNumber, providers as providersV5, ContractTransaction } from 'ethers';
+import { BigNumberish, Provider as ProviderV6, ContractTransactionResponse } from 'ethersV6';
+
+/** Transaction response from obligation write helpers — ethers v5 or v6 depending on the signer. */
+export type ObligationTransactionResponse = ContractTransaction | ContractTransactionResponse;
 
 export interface GasPriceScale {
   maxPriorityFeePerGasScale: number;

@@ -17,10 +17,10 @@ export const isObligationRecordCredentialStatus = (
 
 export const getObligationRecordsCredentialStatus = (
   document: unknown,
-): ObligationRecordsCredentialStatus => {
-  return [
-    (document as SignedVerifiableCredential)?.credentialStatus,
-  ].flat()?.[0] as ObligationRecordsCredentialStatus;
+): ObligationRecordsCredentialStatus | undefined => {
+  const credentialStatuses = [(document as SignedVerifiableCredential)?.credentialStatus].flat();
+
+  return credentialStatuses.find(isObligationRecordCredentialStatus);
 };
 
 export const isObligationRecord = (
@@ -34,7 +34,7 @@ export const isObligationRecord = (
     ? document.credentialStatus
     : [document.credentialStatus];
 
-  return credentialStatuses.every((cs) => isObligationRecordCredentialStatus(cs));
+  return credentialStatuses.some((cs) => isObligationRecordCredentialStatus(cs));
 };
 
 export const getObligationRegistryAddress = (
