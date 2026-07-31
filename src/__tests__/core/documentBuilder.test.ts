@@ -112,7 +112,7 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
           chain: 'amoy',
           chainId: 80002,
           tokenRegistry: '0x71D28767662cB233F887aD2Bb65d048d760bA694',
-          rpcProviderUrl: 'https://rpc-amoy.polygon.technology',
+          rpcProviderUrl: 'https://polygon-amoy-bor-rpc.publicnode.com',
         }),
       ).toThrow('Configuration Error: Document is already signed.');
     });
@@ -124,7 +124,7 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
         chain: 'amoy',
         chainId: 80002,
         tokenRegistry: '0x71D28767662cB233F887aD2Bb65d048d760bA694',
-        rpcProviderUrl: 'https://rpc-amoy.polygon.technology',
+        rpcProviderUrl: 'https://polygon-amoy-bor-rpc.publicnode.com',
       });
       expect(documentBuilder).toBeDefined();
     });
@@ -143,7 +143,7 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
           chain: 'amoy',
           chainId: 80002,
           tokenRegistry: '0x71D28767662cB233F887aD2Bb65d048d760bA694',
-          rpcProviderUrl: 'https://rpc-amoy.polygon.technology',
+          rpcProviderUrl: 'https://polygon-amoy-bor-rpc.publicnode.com',
           url: 'https://trustvc.github.io/did/credentials/statuslist/1',
           index: 10,
         }),
@@ -167,7 +167,7 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
         chain: 'amoy',
         chainId: 80002,
         tokenRegistry: '0x71D28767662cB233F887aD2Bb65d048d760bA694',
-        rpcProviderUrl: 'https://rpc-amoy.polygon.technology',
+        rpcProviderUrl: 'https://polygon-amoy-bor-rpc.publicnode.com',
       });
       const signedDocument = await documentBuilder.sign(ECDSAtestPrivateKey);
       expect(signedDocument).toBeDefined();
@@ -195,7 +195,7 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
         chain: 'amoy',
         chainId: 80002,
         tokenRegistry: '0x71D28767662cB233F887aD2Bb65d048d760bA694',
-        rpcProviderUrl: 'https://rpc-amoy.polygon.technology',
+        rpcProviderUrl: 'https://polygon-amoy-bor-rpc.publicnode.com',
       });
       const signedDocument = await documentBuilder.sign(bbs2023KeyPair, CryptoSuite.Bbs2023);
       expect(signedDocument).toBeDefined();
@@ -246,7 +246,7 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
         chain: 'amoy',
         chainId: 80002,
         tokenRegistry: '0x71D28767662cB233F887aD2Bb65d048d760bA694',
-        rpcProviderUrl: 'https://rpc-amoy.polygon.technology',
+        rpcProviderUrl: 'https://polygon-amoy-bor-rpc.publicnode.com',
       });
       const signedDocument = await documentBuilder.sign(ECDSAtestPrivateKey);
       expect(signedDocument).toBeDefined();
@@ -260,7 +260,7 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
         chain: 'amoy',
         chainId: 80002,
         tokenRegistry: '0x71D28767662cB233F887aD2Bb65d048d760bA694',
-        rpcProviderUrl: 'https://rpc-amoy.polygon.technology',
+        rpcProviderUrl: 'https://polygon-amoy-bor-rpc.publicnode.com',
       });
       const signedDocument = await documentBuilder.sign(bbs2023KeyPair, CryptoSuite.Bbs2023);
       expect(signedDocument).toBeDefined();
@@ -274,7 +274,7 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
         chain: 'unknown-chain',
         chainId: 999999, // Invalid chainId
         tokenRegistry: '0x71D28767662cB233F887aD2Bb65d048d760bA694',
-        rpcProviderUrl: 'https://rpc-amoy.polygon.technology',
+        rpcProviderUrl: 'https://polygon-amoy-bor-rpc.publicnode.com',
       });
       await expect(documentBuilder.sign(ECDSAtestPrivateKey)).rejects.toThrow(
         'Unsupported Chain: Chain ID 999999 is not supported.',

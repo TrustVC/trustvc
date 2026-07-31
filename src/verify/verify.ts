@@ -36,6 +36,11 @@ import { w3cCredentialStatus } from './fragments/document-status/w3cCredentialSt
 import { w3cIssuerIdentity } from './fragments/issuer-identity/w3cIssuerIdentity';
 import { w3cEmptyCredentialStatus } from './fragments';
 import { bbs2023W3CSignatureIntegrity } from './fragments/document-integrity/bbs2023W3CSignatureIntegrity';
+import {
+  w3cVpCredentialStatus,
+  w3cVpIssuerIdentity,
+  w3cVpSignatureIntegrity,
+} from './fragments/presentation/w3cVpVerifier';
 import { registryVerifier } from '../open-cert';
 
 const verifiers = {
@@ -68,6 +73,10 @@ const w3cVerifiers: Verifier<VerificationFragment>[] = [
   credentialStatusTransferableRecordVerifier,
   w3cEmptyCredentialStatus,
   w3cIssuerIdentity,
+  // Verifiable Presentation (aggregate) fragments
+  w3cVpSignatureIntegrity,
+  w3cVpCredentialStatus,
+  w3cVpIssuerIdentity,
 ];
 
 export {
