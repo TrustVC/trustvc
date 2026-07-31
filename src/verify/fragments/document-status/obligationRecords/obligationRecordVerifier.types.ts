@@ -25,6 +25,7 @@ export type ObligationRecordsErrorFragment = Omit<ErrorVerificationFragment<neve
 };
 
 export type ObligationRecordsVerificationFragment =
-  ObligationRecordsResultFragment | ObligationRecordsErrorFragment;
+  | ObligationRecordsResultFragment
+  | ObligationRecordsErrorFragment;
 
 export type VerifierType = Verifier<ObligationRecordsVerificationFragment>;
