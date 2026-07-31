@@ -44,4 +44,3 @@ jobs:
       - uses: reviewdog/action-eslint@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          eslint_flags: '.'
