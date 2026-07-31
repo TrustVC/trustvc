@@ -1,3 +1,15 @@
+## [2.15.0-beta.3](https://github.com/TrustVC/trustvc/compare/v2.15.0-beta.2...v2.15.0-beta.3) (2026-07-31)
+
+
+### Features
+
+* implement obligation registry functions and enhance document bu… ([#155](https://github.com/TrustVC/trustvc/issues/155)) ([2a3cf11](https://github.com/TrustVC/trustvc/commit/2a3cf11da14f5767f837c8489174fb565ee4a588))
+
+
+### Bug Fixes
+
+* boe heap issue ([#156](https://github.com/TrustVC/trustvc/issues/156)) ([b997db7](https://github.com/TrustVC/trustvc/commit/b997db778d14de061f6e773ef31988a52ccebda0))
+
 ## [2.15.0-beta.2](https://github.com/TrustVC/trustvc/compare/v2.15.0-beta.1...v2.15.0-beta.2) (2026-07-16)
 
 
