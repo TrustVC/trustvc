@@ -418,7 +418,7 @@ const fragments = await verifyDocument(signedBoeVc, {
 isObligationRecord(signedBoeVc); // true when obligationRegistry is present
 ```
 
-After on-chain reject, discharge, or `acceptReturnedObligationRegistry`, verify returns **INVALID** (token burned). See [§7c](#c-obligation-registry-boe) for the on-chain SDK.
+After on-chain **reject**, **discharge**, or **`acceptReturnedObligationRegistry`**, the token is burned (`0xdEaD`). Verify still treats the title as minted (same as classic ETR shredded titles); the website surfaces “Taken Out of Circulation”. See [§7c](#c-obligation-registry-boe) for the on-chain SDK.
 
 ---
 
@@ -780,11 +780,23 @@ For more information on Token Registry and Title Escrow contracts **version v5**
 
 **Lifecycle**
 
-Deploy factory + registry → Mint (Issued) → Accept (Accepted) / Reject (Rejected, auto-burn)
-  → Discharge (Discharged, auto-burn) | Transfers | Return to issuer → restore / burn
-```
+1. Deploy factory + obligation registry  
+2. Mint → status **Issued**  
+3. Holder **accept** → **Accepted**, or holder **reject** → **Rejected** (burns / takes out of circulation)  
+4. Optional transfers / nominate / endorse (same pattern as Title Escrow)  
+5. Beneficiary **discharge** (from **Accepted**) → **Discharged** (burns)  
 
-**Role rules:** accept / reject / discharge require `beneficiary != holder`; `returnToIssuerObligationRegistry` requires dual role (`beneficiary == holder`).
+> [!NOTE]
+> **Return to issuer** uses the same rules as classic ETR: the caller must be both beneficiary and holder; then the issuer runs **accept-return** (burn) or **reject-return** (restore). Status does **not** need to be Rejected or Discharged first.
+
+**Role rules**
+
+| Action | Who |
+|--------|-----|
+| `accept` / `reject` | Holder, with `beneficiary != holder` |
+| `discharge` | Beneficiary, with `beneficiary != holder` |
+| `returnToIssuerObligationRegistry` | Dual role (`beneficiary == holder`) — same as classic ETR `returnToIssuer` |
+| `acceptReturnedObligationRegistry` / `rejectReturnedObligationRegistry` | Issuer (registry accepter / restorer roles) |
 
 **Status enums** (from `@trustvc/trustvc`):
 
