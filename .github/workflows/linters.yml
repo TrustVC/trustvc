@@ -41,5 +41,5 @@ jobs:
           fetch-depth: 0
 
       - name: Install Commit Lint Dependencies
-        run: npm install --ignore-scripts --force @commitlint/config-conventional@v17
+        run: npm install --ignore-scripts --force @commitlint/config-conventional@21.2.0
       - uses: JulienKode/pull-request-name-linter-action@v0.5.0
