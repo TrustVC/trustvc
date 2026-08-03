@@ -98,6 +98,36 @@ describe.concurrent('W3C verify', () => {
             "status": "VALID",
             "type": "ISSUER_IDENTITY",
           },
+          {
+            "name": "W3CVpSignatureIntegrity",
+            "reason": {
+              "code": 0,
+              "codeString": "SKIPPED",
+              "message": "Document is not a Verifiable Presentation.",
+            },
+            "status": "SKIPPED",
+            "type": "DOCUMENT_INTEGRITY",
+          },
+          {
+            "name": "W3CVpCredentialStatus",
+            "reason": {
+              "code": 0,
+              "codeString": "SKIPPED",
+              "message": "Document is not a Verifiable Presentation.",
+            },
+            "status": "SKIPPED",
+            "type": "DOCUMENT_STATUS",
+          },
+          {
+            "name": "W3CVpIssuerIdentity",
+            "reason": {
+              "code": 0,
+              "codeString": "SKIPPED",
+              "message": "Document is not a Verifiable Presentation.",
+            },
+            "status": "SKIPPED",
+            "type": "ISSUER_IDENTITY",
+          },
         ]
       `);
     });
@@ -375,6 +405,36 @@ describe.concurrent('W3C verify', () => {
               "data": true,
               "name": "W3CIssuerIdentity",
               "status": "VALID",
+              "type": "ISSUER_IDENTITY",
+            },
+            {
+              "name": "W3CVpSignatureIntegrity",
+              "reason": {
+                "code": 0,
+                "codeString": "SKIPPED",
+                "message": "Document is not a Verifiable Presentation.",
+              },
+              "status": "SKIPPED",
+              "type": "DOCUMENT_INTEGRITY",
+            },
+            {
+              "name": "W3CVpCredentialStatus",
+              "reason": {
+                "code": 0,
+                "codeString": "SKIPPED",
+                "message": "Document is not a Verifiable Presentation.",
+              },
+              "status": "SKIPPED",
+              "type": "DOCUMENT_STATUS",
+            },
+            {
+              "name": "W3CVpIssuerIdentity",
+              "reason": {
+                "code": 0,
+                "codeString": "SKIPPED",
+                "message": "Document is not a Verifiable Presentation.",
+              },
+              "status": "SKIPPED",
               "type": "ISSUER_IDENTITY",
             },
           ]

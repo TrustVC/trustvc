@@ -36,8 +36,13 @@ describe('Polygon (POL) network support', () => {
 
   describe('W3C_TRANSFERABLE_RECORD_POL fixture structure', () => {
     it('should have chain POL and chainId 137 in credentialStatus', () => {
-      expect(W3C_TRANSFERABLE_RECORD_POL.credentialStatus.tokenNetwork.chain).toBe('POL');
-      expect(W3C_TRANSFERABLE_RECORD_POL.credentialStatus.tokenNetwork.chainId).toBe(137);
+      // credentialStatus is typed as the CredentialStatus | CredentialStatus[] union;
+      // this fixture uses a single TransferableRecords status object.
+      const credentialStatus = W3C_TRANSFERABLE_RECORD_POL.credentialStatus as unknown as {
+        tokenNetwork: { chain: string; chainId: number };
+      };
+      expect(credentialStatus.tokenNetwork.chain).toBe('POL');
+      expect(credentialStatus.tokenNetwork.chainId).toBe(137);
     });
 
     it('should have a DataIntegrityProof with ecdsa-sd-2023 cryptosuite', () => {

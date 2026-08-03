@@ -17,20 +17,21 @@ TrustVC is a comprehensive wrapper library designed to simplify the signing and 
       - [a) OpenAttestation Signing (signOA) v2](#a-openattestation-signing-signoa-v2)
       - [b) TrustVC W3C Signing (signW3C)](#b-trustvc-w3c-signing-signw3c)
     - [3. **Deriving (Selective Disclosure)**](#3-deriving-selective-disclosure)
-    - [4. **Verifying**](#4-verifying)
+    - [4. **Verifiable Presentations (VP)**](#4-verifiable-presentations-vp)
+    - [5. **Verifying**](#5-verifying)
       - [Obligation / BoE (`verifyDocument`)](#obligation--boe-verifydocument)
-    - [5. **Encryption**](#5-encryption)
-    - [6. **Decryption**](#6-decryption)
-    - [7. **TradeTrust Token Registry**](#7-tradetrust-token-registry)
+    - [6. **Encryption**](#6-encryption)
+    - [7. **Decryption**](#7-decryption)
+    - [8. **TradeTrust Token Registry**](#8-tradetrust-token-registry)
       - [Usage](#usage-2)
       - [TradeTrustToken](#tradetrusttoken)
       - [a) Token Registry v4](#a-token-registry-v4)
       - [b) Token Registry V5](#b-token-registry-v5)
       - [c) Obligation Registry (BoE)](#c-obligation-registry-boe)
-    - [8. **Document Builder**](#8-document-builder)
-    - [9. **Document Store**](#9-document-store)
-    - [10. **Transaction Cancel**](#10-transaction-cancel)
-    - [11. **Gasless Operations (EIP-7702)**](#11-gasless-operations-eip-7702)
+    - [9. **Document Builder**](#9-document-builder)
+    - [10. **Document Store**](#10-document-store)
+    - [11. **Transaction Cancel**](#11-transaction-cancel)
+    - [12. **Gasless Operations (EIP-7702)**](#12-gasless-operations-eip-7702)
       - [Overview](#overview-1)
       - [deployPlatformPaymaster](#deployplatformpaymaster)
       - [deployTokenRegistryGasless](#deploytokenregistrygasless)
@@ -353,7 +354,53 @@ const derivationResult = await deriveW3C(signedDocument, {
 
 ---
 
-### 4. **Verifying**
+### 4. **Verifiable Presentations (VP)**
+
+> A Verifiable Presentation lets a **holder** bundle one or more of their credentials and cryptographically prove they own them. TrustVC exposes an opinionated, single-call API. `signW3CPresentation` **creates and signs** a VP in one step, with these policies **ENFORCED** (callers cannot disable them):
+>
+> - **Full disclosure** — an underived selective-disclosure credential is auto-derived; you can pass credentials as-is.
+> - **Holder binding** — the signing key's DID must equal the presentation `holder` and every `credentialSubject.id`. (The **issuer is independent** — a credential issued by a different party is fine.)
+> - **Mandatory lifetime** — you must pass `expiresInSeconds` or an explicit `validUntil`.
+> - **v2 envelope** — the presentation envelope is always VC Data Model v2.0 (embedded credentials keep their own version).
+>
+> Credentials carrying a `TransferableRecords` status cannot be presented (they are controlled on-chain). The holder proof uses the `ecdsa-rdfc-2019` cryptosuite and reuses the holder's ECDSA (P-256) Multikey. A `challenge` produces an `authentication` proof (anti-replay); omitting it produces an `assertionMethod` proof.
+
+Only the **lifetime** is required. `challenge` and `domain` are **optional**: pass a `challenge` for anti-replay (authentication proof); omit it for a plain `assertionMethod` proof. `domain` may only be used together with a `challenge`.
+
+```ts
+import { signW3CPresentation, verifyW3CPresentation } from '@trustvc/trustvc';
+
+// `derivedCredential` is a signed (and, for SD suites, derived) W3C VC whose
+// credentialSubject.id is the holder. `holderKeyPair` is the holder's ECDSA Multikey.
+
+// Minimal — no challenge/domain → an assertionMethod proof (only lifetime is required):
+const { signed } = await signW3CPresentation(derivedCredential, holderKeyPair, {
+  holder: 'did:key:zDnae...',
+  expiresInSeconds: 600, // REQUIRED (or `validUntil`)
+});
+const result = await verifyW3CPresentation(signed); // no challenge needed to verify it
+
+// With anti-replay — pass a challenge (→ authentication proof); domain is optional:
+const { signed: authVp } = await signW3CPresentation(derivedCredential, holderKeyPair, {
+  holder: 'did:key:zDnae...',
+  expiresInSeconds: 600,
+  challenge: 'nonce-issued-by-the-verifier', // optional → authentication proof (anti-replay)
+  domain: 'verifier.example.com',            // optional; only valid with a challenge
+});
+// Verify: holder proof + holder binding + VP expiry + every embedded credential.
+// For an authentication proof, pass the SAME challenge the verifier issued.
+const authResult = await verifyW3CPresentation(authVp, {
+  challenge: 'nonce-issued-by-the-verifier',
+  domain: 'verifier.example.com',
+});
+// result.verified, result.presentationResult, result.credentialResults
+```
+
+> A presentation can also flow through the unified [`verifyDocument`](#5-verifying) pipeline, which emits VP fragments: `W3CVpSignatureIntegrity` (holder proof + holder binding — an unsigned VP is INVALID), `W3CVpCredentialStatus` (VP expiry + embedded revocation) and `W3CVpIssuerIdentity` (embedded issuers resolve).
+
+---
+
+### 5. **Verifying**
 
 > TrustVC simplifies the verification process with a single function that supports W3C Verifiable Credentials (VCs) and OpenAttestation Verifiable Documents (VDs), including OpenCert Verifiable Documents. Whether you're working with W3C standards or OpenAttestation standards, TrustVC handles the verification seamlessly. For ECDSA-SD-2023 and BBS-2023 signed documents, which normally require derivation before verification, TrustVC automatically handles this process internally - if a document is not derived, the `verifyDocument` function will automatically derive and verify the document in a single step.
 
@@ -422,7 +469,7 @@ After on-chain **reject**, **discharge**, or **`acceptReturnedObligationRegistry
 
 ---
 
-### 5. **Encryption**
+### 6. **Encryption**
 
 > The `encrypt` function encrypts plaintext messages using the **ChaCha20** encryption algorithm, ensuring the security and integrity of the input data. It supports custom keys and nonces, returning the encrypted message in hexadecimal format.
 
@@ -499,7 +546,7 @@ It also relies on the `ts-chacha20` library for encryption operations.
 
 ---
 
-### 6. **Decryption**
+### 7. **Decryption**
 
 > The `decrypt` function decrypts messages encrypted with the **ChaCha20** algorithm. It converts the input from a hexadecimal format back into plaintext using the provided key and nonce.
 
@@ -582,7 +629,7 @@ It also relies on the `ts-chacha20` library for decryption operations.
 
 ---
 
-### 7. **TradeTrust Token Registry**
+### 8. **TradeTrust Token Registry**
 
 > The Electronic Bill of Lading (eBL) is a digital document that can be used to prove the ownership of goods. It is a standardized document that is accepted by all major shipping lines and customs authorities. The [Token Registry](https://github.com/TradeTrust/token-registry) repository contains both the smart contract (v4 and v5) code for token registry (in `/contracts`) as well as the node package for using this library (in `/src`).
 > The TrustVC library not only simplifies signing and verification but also imports and integrates existing TradeTrust libraries and smart contracts for token registry (V4 and V5), making it a versatile tool for decentralized identity and trust solutions.
@@ -875,7 +922,7 @@ const escrow = v5Contracts.ObligationEscrow__factory.connect(escrowAddress, sign
 
 Unit tests: `src/__tests__/obligation-registry-functions/`. E2E: `npm run test:e2e` (see `src/__tests__/e2e/README.md`).
 
-### 8. **Document Builder**
+### 9. **Document Builder**
 > The `DocumentBuilder` class helps build and manage W3C Verifiable Credentials (VCs) with credential status features, implementing the **W3C VC Data Model 2.0** specification. It supports creating documents with credential statuses for classic transferable records (`tokenRegistry`), obligation records (`obligationRegistry`), and revocable verifiable documents. It can sign the document using modern cryptographic signature schemes including **ECDSA-SD-2023** (default) and **BBS-2023**, verify its signature, and serialize the document to a JSON format. Additionally, it allows for configuration of document rendering methods and expiration dates.
 
 #### Usage
@@ -1096,7 +1143,7 @@ const documentJson = builder.toString();
 console.log(documentJson);
 ```
 
-## 9. Document Store
+## 10. Document Store
 
 > TrustVC provides comprehensive Document Store functionality for managing blockchain-based document storage and verification. The Document Store module supports both standard DocumentStore and TransferableDocumentStore contracts, enabling secure document issuance, revocation, and role management on various blockchain networks.
 
@@ -1314,7 +1361,7 @@ for (const hash of documentHashes) {
 
 ---
 
-## 10. Transaction Cancel
+## 11. Transaction Cancel
 
 TrustVC provides a utility to cancel a pending Ethereum transaction by replacing it with a 0-value transaction to the same address, using the same nonce and a higher gas price (replace-by-fee). This works with both ethers v5 and v6 signers.
 
@@ -1367,7 +1414,7 @@ const replacementHash2 = await cancelTransaction(signer, {
 
 ---
 
-## 11. **Gasless Operations (EIP-7702)**
+## 12. **Gasless Operations (EIP-7702)**
 
 > **Beta:** Gasless transactions are currently in beta. APIs and contract addresses may change before the stable release. Use on testnet only.
 

@@ -19,7 +19,22 @@ export const w3cEmptyCredentialStatus: Verifier<VerificationFragment> = {
   },
 
   test: (document: unknown) => {
-    const doc = document as SignedVerifiableCredential;
+    // Guard non-object input before any property/`in` access.
+    if (!document || typeof document !== 'object') {
+      return false;
+    }
+    const doc = document as SignedVerifiableCredential & {
+      type?: string | string[];
+      verifiableCredential?: unknown;
+    };
+    // Verifiable Presentations have no top-level credentialStatus but are NOT signed
+    // credentials — they are handled by the VP verifiers, so this VC-only check must skip
+    // them (otherwise it would report every VP as INVALID). Match isVpDocument(): require
+    // BOTH a VerifiablePresentation type AND a verifiableCredential (not just either).
+    const types = Array.isArray(doc.type) ? doc.type : [doc.type];
+    if (types.includes('VerifiablePresentation') && 'verifiableCredential' in doc) {
+      return false;
+    }
     return (
       !!doc.credentialStatus === false ||
       (Array.isArray(doc.credentialStatus) && doc.credentialStatus.length === 0) ||
