@@ -1,3 +1,10 @@
+## [2.15.0-beta.4](https://github.com/TrustVC/trustvc/compare/v2.15.0-beta.3...v2.15.0-beta.4) (2026-08-03)
+
+
+### Bug Fixes
+
+* boe fix on shred ([#157](https://github.com/TrustVC/trustvc/issues/157)) ([a635cfc](https://github.com/TrustVC/trustvc/commit/a635cfc980d6346f44c55e908ec3fdaaae866d4d))
+
 ## [2.15.0-beta.3](https://github.com/TrustVC/trustvc/compare/v2.15.0-beta.2...v2.15.0-beta.3) (2026-07-31)
 
 
