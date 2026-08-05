@@ -2,7 +2,7 @@
 
 ## About
 
-TrustVC is a comprehensive wrapper library designed to simplify the signing and verification processes for TrustVC W3C [Verifiable Credentials (VC)](https://github.com/TrustVC/w3c) and OpenAttestation Verifiable Documents (VD), including OpenCert Verifiable Documents, adhering to the W3C [VC](https://www.w3.org/TR/vc-data-model/) Data Model v2.0 (W3C Standard). It ensures compatibility and interoperability for Verifiable Credentials while supporting OpenAttestation [Verifiable Documents (VD)](https://github.com/Open-Attestation/open-attestation) v6.9.5. TrustVC seamlessly integrates functionalities for handling W3C Verifiable Credentials and OpenAttestation Verifiable Documents, leveraging existing TradeTrust libraries and smart contracts for [Token Registry](https://github.com/TradeTrust/token-registry) (V4 and V5). For W3C credentials it supports both [`did:web`](https://w3c-ccg.github.io/did-method-web/) (**recommended for production**; host a DID document on a domain you control, which acts as the trust anchor) and [`did:key`](https://w3c-ccg.github.io/did-key-spec/) (self-certifying, no hosting required; best for ad-hoc or ephemeral issuers, but requires an out-of-band trust binding) issuers across the `ecdsa-sd-2023` and `bbs-2023` cryptosuites. Additionally, it includes essential utility functions for strings, networks, and chains, making it a versatile tool for developers working with decentralized identity and verifiable data solutions.
+TrustVC is a comprehensive wrapper library designed to simplify the signing and verification processes for TrustVC W3C [Verifiable Credentials (VC)](https://github.com/TrustVC/w3c) and OpenAttestation Verifiable Documents (VD), including OpenCert Verifiable Documents, adhering to the W3C [VC](https://www.w3.org/TR/vc-data-model/) Data Model v2.0 (W3C Standard). It ensures compatibility and interoperability for Verifiable Credentials while supporting OpenAttestation [Verifiable Documents (VD)](https://github.com/Open-Attestation/open-attestation) v6.9.5. TrustVC seamlessly integrates functionalities for handling W3C Verifiable Credentials and OpenAttestation Verifiable Documents, leveraging existing TradeTrust libraries and smart contracts for [Token Registry](https://github.com/TradeTrust/token-registry) (V4 and V5) and for **Obligation Registry** (electronic Bill of Exchange / BoE via `TrustVCToken` + `ObligationEscrow`). For W3C credentials it supports both [`did:web`](https://w3c-ccg.github.io/did-method-web/) (**recommended for production**; host a DID document on a domain you control, which acts as the trust anchor) and [`did:key`](https://w3c-ccg.github.io/did-key-spec/) (self-certifying, no hosting required; best for ad-hoc or ephemeral issuers, but requires an out-of-band trust binding) issuers across the `ecdsa-sd-2023` and `bbs-2023` cryptosuites. Additionally, it includes essential utility functions for strings, networks, and chains, making it a versatile tool for developers working with decentralized identity and verifiable data solutions.
 
 ## Table of Contents
 
@@ -17,18 +17,21 @@ TrustVC is a comprehensive wrapper library designed to simplify the signing and 
       - [a) OpenAttestation Signing (signOA) v2](#a-openattestation-signing-signoa-v2)
       - [b) TrustVC W3C Signing (signW3C)](#b-trustvc-w3c-signing-signw3c)
     - [3. **Deriving (Selective Disclosure)**](#3-deriving-selective-disclosure)
-    - [4. **Verifying**](#4-verifying)
-    - [5. **Encryption**](#5-encryption)
-    - [6. **Decryption**](#6-decryption)
-    - [7. **TradeTrust Token Registry**](#7-tradetrust-token-registry)
+    - [4. **Verifiable Presentations (VP)**](#4-verifiable-presentations-vp)
+    - [5. **Verifying**](#5-verifying)
+      - [Obligation / BoE (`verifyDocument`)](#obligation--boe-verifydocument)
+    - [6. **Encryption**](#6-encryption)
+    - [7. **Decryption**](#7-decryption)
+    - [8. **TradeTrust Token Registry**](#8-tradetrust-token-registry)
       - [Usage](#usage-2)
       - [TradeTrustToken](#tradetrusttoken)
       - [a) Token Registry v4](#a-token-registry-v4)
       - [b) Token Registry V5](#b-token-registry-v5)
-    - [8. **Document Builder**](#8-document-builder)
-    - [9. **Document Store**](#9-document-store)
-    - [10. **Transaction Cancel**](#10-transaction-cancel)
-    - [11. **Gasless Operations (EIP-7702)**](#11-gasless-operations-eip-7702)
+      - [c) Obligation Registry (BoE)](#c-obligation-registry-boe)
+    - [9. **Document Builder**](#9-document-builder)
+    - [10. **Document Store**](#10-document-store)
+    - [11. **Transaction Cancel**](#11-transaction-cancel)
+    - [12. **Gasless Operations (EIP-7702)**](#12-gasless-operations-eip-7702)
       - [Overview](#overview-1)
       - [deployPlatformPaymaster](#deployplatformpaymaster)
       - [deployTokenRegistryGasless](#deploytokenregistrygasless)
@@ -351,7 +354,53 @@ const derivationResult = await deriveW3C(signedDocument, {
 
 ---
 
-### 4. **Verifying**
+### 4. **Verifiable Presentations (VP)**
+
+> A Verifiable Presentation lets a **holder** bundle one or more of their credentials and cryptographically prove they own them. TrustVC exposes an opinionated, single-call API. `signW3CPresentation` **creates and signs** a VP in one step, with these policies **ENFORCED** (callers cannot disable them):
+>
+> - **Full disclosure** — an underived selective-disclosure credential is auto-derived; you can pass credentials as-is.
+> - **Holder binding** — the signing key's DID must equal the presentation `holder` and every `credentialSubject.id`. (The **issuer is independent** — a credential issued by a different party is fine.)
+> - **Mandatory lifetime** — you must pass `expiresInSeconds` or an explicit `validUntil`.
+> - **v2 envelope** — the presentation envelope is always VC Data Model v2.0 (embedded credentials keep their own version).
+>
+> Credentials carrying a `TransferableRecords` status cannot be presented (they are controlled on-chain). The holder proof uses the `ecdsa-rdfc-2019` cryptosuite and reuses the holder's ECDSA (P-256) Multikey. A `challenge` produces an `authentication` proof (anti-replay); omitting it produces an `assertionMethod` proof.
+
+Only the **lifetime** is required. `challenge` and `domain` are **optional**: pass a `challenge` for anti-replay (authentication proof); omit it for a plain `assertionMethod` proof. `domain` may only be used together with a `challenge`.
+
+```ts
+import { signW3CPresentation, verifyW3CPresentation } from '@trustvc/trustvc';
+
+// `derivedCredential` is a signed (and, for SD suites, derived) W3C VC whose
+// credentialSubject.id is the holder. `holderKeyPair` is the holder's ECDSA Multikey.
+
+// Minimal — no challenge/domain → an assertionMethod proof (only lifetime is required):
+const { signed } = await signW3CPresentation(derivedCredential, holderKeyPair, {
+  holder: 'did:key:zDnae...',
+  expiresInSeconds: 600, // REQUIRED (or `validUntil`)
+});
+const result = await verifyW3CPresentation(signed); // no challenge needed to verify it
+
+// With anti-replay — pass a challenge (→ authentication proof); domain is optional:
+const { signed: authVp } = await signW3CPresentation(derivedCredential, holderKeyPair, {
+  holder: 'did:key:zDnae...',
+  expiresInSeconds: 600,
+  challenge: 'nonce-issued-by-the-verifier', // optional → authentication proof (anti-replay)
+  domain: 'verifier.example.com',            // optional; only valid with a challenge
+});
+// Verify: holder proof + holder binding + VP expiry + every embedded credential.
+// For an authentication proof, pass the SAME challenge the verifier issued.
+const authResult = await verifyW3CPresentation(authVp, {
+  challenge: 'nonce-issued-by-the-verifier',
+  domain: 'verifier.example.com',
+});
+// result.verified, result.presentationResult, result.credentialResults
+```
+
+> A presentation can also flow through the unified [`verifyDocument`](#5-verifying) pipeline, which emits VP fragments: `W3CVpSignatureIntegrity` (holder proof + holder binding — an unsigned VP is INVALID), `W3CVpCredentialStatus` (VP expiry + embedded revocation) and `W3CVpIssuerIdentity` (embedded issuers resolve).
+
+---
+
+### 5. **Verifying**
 
 > TrustVC simplifies the verification process with a single function that supports W3C Verifiable Credentials (VCs) and OpenAttestation Verifiable Documents (VDs), including OpenCert Verifiable Documents. Whether you're working with W3C standards or OpenAttestation standards, TrustVC handles the verification seamlessly. For ECDSA-SD-2023 and BBS-2023 signed documents, which normally require derivation before verification, TrustVC automatically handles this process internally - if a document is not derived, the `verifyDocument` function will automatically derive and verify the document in a single step.
 
@@ -394,9 +443,33 @@ const signedDocument = {
 const resultFragments = await verifyDocument(signedDocument);
 ```
 
+#### Obligation / BoE (`verifyDocument`)
+
+Use the same `verifyDocument` entry point for Bill of Exchange credentials. The pipeline routes by `credentialStatus`:
+
+| Fragment | When it runs |
+|----------|----------------|
+| `TransferableRecords` | Classic ETR (`credentialStatus.tokenRegistry`) |
+| `ObligationRecords` | BoE (`credentialStatus.obligationRegistry`) |
+
+Classic ETR documents get `ObligationRecords` **SKIPPED**; BoE documents get `TransferableRecords` **SKIPPED**. Pass `rpcProviderUrl` or `provider` for on-chain checks.
+
+```ts
+import { verifyDocument, isObligationRecord } from '@trustvc/trustvc';
+
+const fragments = await verifyDocument(signedBoeVc, {
+  rpcProviderUrl: 'https://rpc-amoy.polygon.technology',
+});
+
+// ObligationRecords fragment: VALID | INVALID | SKIPPED
+isObligationRecord(signedBoeVc); // true when obligationRegistry is present
+```
+
+After on-chain **reject**, **discharge**, or **`acceptReturnedObligationRegistry`**, the token is burned (`0xdEaD`). Verify still treats the title as minted (same as classic ETR shredded titles); the website surfaces “Taken Out of Circulation”. See [§7c](#c-obligation-registry-boe) for the on-chain SDK.
+
 ---
 
-### 5. **Encryption**
+### 6. **Encryption**
 
 > The `encrypt` function encrypts plaintext messages using the **ChaCha20** encryption algorithm, ensuring the security and integrity of the input data. It supports custom keys and nonces, returning the encrypted message in hexadecimal format.
 
@@ -473,7 +546,7 @@ It also relies on the `ts-chacha20` library for encryption operations.
 
 ---
 
-### 6. **Decryption**
+### 7. **Decryption**
 
 > The `decrypt` function decrypts messages encrypted with the **ChaCha20** algorithm. It converts the input from a hexadecimal format back into plaintext using the provided key and nonce.
 
@@ -556,7 +629,7 @@ It also relies on the `ts-chacha20` library for decryption operations.
 
 ---
 
-### 7. **TradeTrust Token Registry**
+### 8. **TradeTrust Token Registry**
 
 > The Electronic Bill of Lading (eBL) is a digital document that can be used to prove the ownership of goods. It is a standardized document that is accepted by all major shipping lines and customs authorities. The [Token Registry](https://github.com/TradeTrust/token-registry) repository contains both the smart contract (v4 and v5) code for token registry (in `/contracts`) as well as the node package for using this library (in `/src`).
 > The TrustVC library not only simplifies signing and verification but also imports and integrates existing TradeTrust libraries and smart contracts for token registry (V4 and V5), making it a versatile tool for decentralized identity and trust solutions.
@@ -746,8 +819,111 @@ function rejectTransferOwners(bytes calldata _remark) external;
 
 For more information on Token Registry and Title Escrow contracts **version v5**, please visit the readme of [TradeTrust Token Registry V5](https://github.com/TradeTrust/token-registry/blob/master/README.md)
 
-### 8. **Document Builder**
-> The `DocumentBuilder` class helps build and manage W3C Verifiable Credentials (VCs) with credential status features, implementing the **W3C VC Data Model 2.0** specification. It supports creating documents with two types of credential statuses: `transferableRecords` and `verifiableDocument`. It can sign the document using modern cryptographic signature schemes including **ECDSA-SD-2023** (default) and **BBS-2023**, verify its signature, and serialize the document to a JSON format. Additionally, it allows for configuration of document rendering methods and expiration dates.
+#### c) Obligation Registry (BoE)
+
+> **New:** Obligation Registry supports electronic Bill of Exchange (BoE). It mirrors the classic Transferable Records pattern using **`TrustVCToken`** + **`ObligationEscrow`** (v5 only — no Obligation v4 path).
+>
+> Import on-chain helpers from `@trustvc/trustvc` (same as Token Registry helpers). Functions use the `*ObligationRegistry` suffix (e.g. `mintObligationRegistry`) so they never clash with classic ETR exports (`mint`, `transferHolder`, …).
+
+**Lifecycle**
+
+1. Deploy factory + obligation registry  
+2. Mint → status **Issued**  
+3. Holder **accept** → **Accepted**, or holder **reject** → **Rejected** (burns / takes out of circulation)  
+4. Optional transfers / nominate / endorse (same pattern as Title Escrow)  
+5. Beneficiary **discharge** (from **Accepted**) → **Discharged** (burns)  
+
+> [!NOTE]
+> **Return to issuer** uses the same rules as classic ETR: the caller must be both beneficiary and holder; then the issuer runs **accept-return** (burn) or **reject-return** (restore). Status does **not** need to be Rejected or Discharged first.
+
+**Role rules**
+
+| Action | Who |
+|--------|-----|
+| `accept` / `reject` | Holder, with `beneficiary != holder` |
+| `discharge` | Beneficiary, with `beneficiary != holder` |
+| `returnToIssuerObligationRegistry` | Dual role (`beneficiary == holder`) — same as classic ETR `returnToIssuer` |
+| `acceptReturnedObligationRegistry` / `rejectReturnedObligationRegistry` | Issuer (registry accepter / restorer roles) |
+
+**Status enums** (from `@trustvc/trustvc`):
+
+| Enum | Values |
+|------|--------|
+| `ObligationDocumentStatus` | `Issued=0`, `Accepted=1`, `Rejected=2`, `Discharged=3` |
+| `ObligationEscrowTerminationReason` | `None=0`, `ReturnToIssuer=1`, `Rejected=2`, `Discharged=3` |
+
+```ts
+import {
+  deployObligationEscrowFactory,
+  deployObligationRegistry,
+  mintObligationRegistry,
+  acceptObligationRegistry,
+  rejectObligationRegistry,
+  dischargeObligationRegistry,
+  nominateObligationRegistry,
+  transferHolderObligationRegistry,
+  transferBeneficiaryObligationRegistry,
+  transferOwnersObligationRegistry,
+  rejectTransferHolderObligationRegistry,
+  rejectTransferBeneficiaryObligationRegistry,
+  rejectTransferOwnersObligationRegistry,
+  returnToIssuerObligationRegistry,
+  acceptReturnedObligationRegistry,
+  rejectReturnedObligationRegistry,
+  getObligationRegistryStatus,
+  getObligationEscrowTerminationReason,
+  ownerOfObligationRegistry,
+} from '@trustvc/trustvc';
+
+// Deploy
+const { obligationRegistry, obligationEscrowFactoryAddress } =
+  await deployObligationRegistry('My BoE Registry', 'BOE', signer, { chainId });
+
+// Mint (separate from W3C DocumentBuilder sign)
+await (
+  await mintObligationRegistry(
+    { obligationRegistryAddress: obligationRegistry },
+    issuerSigner,
+    { beneficiaryAddress, holderAddress, tokenId: '1', remarks: 'issued' },
+    { chainId, id: encryptionKeyId },
+  )
+).wait();
+
+// Holder accepts
+await (
+  await acceptObligationRegistry(
+    { obligationRegistryAddress: obligationRegistry, tokenId: '1' },
+    holderSigner,
+    { remarks: 'accepted' },
+    { chainId, id: encryptionKeyId },
+  )
+).wait();
+```
+
+Escrow calls accept `{ obligationRegistryAddress, tokenId }` or `{ obligationEscrowAddress }`. Remarks are encrypted when `options.id` is set (same as Token Registry v5).
+
+**Endorsement chain** — pass the `TrustVCToken` address to existing helpers:
+
+```ts
+import { fetchEndorsementChain, fetchObligationEndorsementChain } from '@trustvc/trustvc';
+
+const chain = await fetchEndorsementChain(obligationRegistry, tokenId, provider);
+// or: fetchObligationEndorsementChain(obligationRegistry, tokenId, provider, { encryptionId })
+```
+
+**Low-level contracts** (`@trustvc/trustvc/token-registry-v5/contracts`):
+
+```ts
+import { v5Contracts } from '@trustvc/trustvc';
+
+const token = v5Contracts.TrustVCToken__factory.connect(obligationRegistry, signer);
+const escrow = v5Contracts.ObligationEscrow__factory.connect(escrowAddress, signer);
+```
+
+Unit tests: `src/__tests__/obligation-registry-functions/`. E2E: `npm run test:e2e` (see `src/__tests__/e2e/README.md`).
+
+### 9. **Document Builder**
+> The `DocumentBuilder` class helps build and manage W3C Verifiable Credentials (VCs) with credential status features, implementing the **W3C VC Data Model 2.0** specification. It supports creating documents with credential statuses for classic transferable records (`tokenRegistry`), obligation records (`obligationRegistry`), and revocable verifiable documents. It can sign the document using modern cryptographic signature schemes including **ECDSA-SD-2023** (default) and **BBS-2023**, verify its signature, and serialize the document to a JSON format. Additionally, it allows for configuration of document rendering methods and expiration dates.
 
 #### Usage
 
@@ -775,9 +951,9 @@ builder.credentialSubject({
 ```
 
 ##### Configure Credential Status
-You can configure the credential status as either `transferableRecords` or `verifiableDocument`.
+You can configure the credential status as `transferableRecords`, `obligationRecords`, or `verifiableDocument`.
 
-**Transferable Records**
+**Transferable Records (classic Token Registry)**
 ```ts
 builder.credentialStatus({
   // Refers to the supported network.
@@ -789,9 +965,32 @@ builder.credentialStatus({
 });
 ```
 
+Verify with `verifyDocument` (TransferableRecords fragment).
+
+**Obligation Records (BoE / Obligation Registry)**
+
+```ts
+import { DocumentBuilder } from '@trustvc/trustvc';
+
+const boeBuilder = new DocumentBuilder({
+  '@context': 'https://trustvc.io/context/bill-of-exchange.json',
+}).credentialSubject({
+  electronicDocumentIdentifier: 'urn:uuid:e6f4b2a1-9c3d-4e8f-a7b0-1d2e3f4a5b6c',
+});
+
+boeBuilder.obligationCredentialStatus({
+  chain: 'amoy',
+  chainId: 80002,
+  obligationRegistry: '0x1234567890abcdef...',
+  rpcProviderUrl: 'https://rpc-amoy.polygon.technology',
+});
+```
+
+This sets `credentialStatus.type` to `TransferableRecords` with an `obligationRegistry` field (not `tokenRegistry`). On-chain minting is separate — use `mintObligationRegistry` from `@trustvc/trustvc` (see [§7c](#c-obligation-registry-boe)). Verify with `verifyDocument` (ObligationRecords fragment) — see [§4](#obligation--boe-verifydocument).
+
 > ⚠️ **Disclaimer:**  
-> This builder **does not mint** documents on-chain. If you're using `transferableRecords`, you'll need to mint the document.  
-> [See the minting guide here](https://docs.tradetrust.io/docs/how-tos/credential-status#2-minting-the-credential)
+> These builders **do not mint** on-chain. Mint separately via `mint` (ETR) or `mintObligationRegistry` (BoE).  
+> Classic ETR: [TradeTrust minting guide](https://docs.tradetrust.io/docs/how-tos/credential-status#2-minting-the-credential).
 
 
 **Verifiable Document**
@@ -944,7 +1143,7 @@ const documentJson = builder.toString();
 console.log(documentJson);
 ```
 
-## 9. Document Store
+## 10. Document Store
 
 > TrustVC provides comprehensive Document Store functionality for managing blockchain-based document storage and verification. The Document Store module supports both standard DocumentStore and TransferableDocumentStore contracts, enabling secure document issuance, revocation, and role management on various blockchain networks.
 
@@ -1162,7 +1361,7 @@ for (const hash of documentHashes) {
 
 ---
 
-## 10. Transaction Cancel
+## 11. Transaction Cancel
 
 TrustVC provides a utility to cancel a pending Ethereum transaction by replacing it with a 0-value transaction to the same address, using the same nonce and a higher gas price (replace-by-fee). This works with both ethers v5 and v6 signers.
 
@@ -1215,7 +1414,7 @@ const replacementHash2 = await cancelTransaction(signer, {
 
 ---
 
-## 11. **Gasless Operations (EIP-7702)**
+## 12. **Gasless Operations (EIP-7702)**
 
 > **Beta:** Gasless transactions are currently in beta. APIs and contract addresses may change before the stable release. Use on testnet only.
 

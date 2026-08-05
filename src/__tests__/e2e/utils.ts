@@ -36,3 +36,33 @@ export const createContract = (
     ? new ethers.Contract(address, abi, signer as Signer)
     : new ethersV6.Contract(address, abi, signer as ContractRunner);
 };
+
+export function getObligationContractFactory(
+  contractName: 'TrustVCToken' | 'ObligationEscrowFactory',
+  ethersVersion: 'v5' | 'v6',
+  owner: Signer | ContractRunner,
+) {
+  const Factory = ethersVersion === 'v5' ? ethers.ContractFactory : ethersV6.ContractFactory;
+  const signer = ethersVersion === 'v5' ? (owner as Signer) : (owner as ContractRunner);
+
+  return new Factory(
+    v5Contracts[`${contractName}__factory`].abi,
+    v5Contracts[`${contractName}__factory`].bytecode,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    signer as any,
+  );
+}
+
+export const createObligationContract = (
+  address: string,
+  contractName: 'ObligationEscrow' | 'TrustVCToken',
+  ethersVersion: 'v5' | 'v6',
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  signer: any,
+) => {
+  const abi = v5Contracts[`${contractName}__factory`].abi;
+
+  return ethersVersion === 'v5'
+    ? new ethers.Contract(address, abi, signer as Signer)
+    : new ethersV6.Contract(address, abi, signer as ContractRunner);
+};

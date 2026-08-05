@@ -7,6 +7,7 @@ import {
 import {
   TitleEscrow__factory as TitleEscrowFactoryV5,
   TitleEscrow as TitleEscrowV5,
+  ObligationEscrow__factory,
 } from '../../token-registry-v5/contracts';
 import { getEthersContractFromProvider } from '../../utils/ethers';
 import {
@@ -51,12 +52,34 @@ export const fetchEscrowTransfersV5 = async (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     provider as any,
   );
-  const holderChangeLogsDeferred = await fetchAllTransfers(
-    titleEscrowContract,
-    titleEscrowAddress,
-    tokenRegistryAddress,
+  return fetchAllTransfers(titleEscrowContract, titleEscrowAddress, tokenRegistryAddress);
+};
+
+/**
+ * ObligationEscrow shares Title Escrow V5 transfer events and adds status lifecycle events.
+ * @param {Provider | ethersV6.Provider} provider - Ethers provider
+ * @param {string} obligationEscrowAddress - ObligationEscrow contract address
+ * @param {string} [obligationRegistryAddress] - Obligation registry (TrustVCToken) address
+ * @returns {Promise<TransferBaseEvent[]>} - Transfer and status events
+ */
+export const fetchEscrowTransfersObligation = async (
+  provider: Provider | ethersV6.Provider,
+  obligationEscrowAddress: string,
+  obligationRegistryAddress?: string,
+): Promise<TransferBaseEvent[]> => {
+  const Contract = getEthersContractFromProvider(provider);
+  const obligationEscrowContract = new Contract(
+    obligationEscrowAddress,
+    ObligationEscrow__factory.abi,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    provider as any,
   );
-  return holderChangeLogsDeferred;
+  return fetchAllTransfers(
+    obligationEscrowContract,
+    obligationEscrowAddress,
+    obligationRegistryAddress,
+    true,
+  );
 };
 
 const getParsedLogs = (
@@ -111,16 +134,18 @@ const fetchHolderTransfers = async (
 };
 
 /**
- * Retrieve all V5 events
- * @param {TitleEscrowV5} titleEscrowContract - Contract; Updated type to Contract to make it competible with ethers v5
- * @param {string} titleEscrowAddress - Title escrow address
- * @param {string} tokenRegistryAddress - Token registry address
+ * Retrieve all V5 / ObligationEscrow events
+ * @param {ethers.Contract | ethersV6.Contract} titleEscrowContract - Escrow contract
+ * @param {string} titleEscrowAddress - Escrow address
+ * @param {string} tokenRegistryAddress - Registry address
+ * @param {boolean} includeObligationStatus - When true, also collect ObligationEscrow status events
  * @returns {Promise<(TitleEscrowTransferEvent | TokenTransferEvent)[]>} - Array of events
  */
 const fetchAllTransfers = async (
   titleEscrowContract: ethers.Contract | ethersV6.Contract,
   titleEscrowAddress?: string,
   tokenRegistryAddress?: string,
+  includeObligationStatus = false,
 ): Promise<(TitleEscrowTransferEvent | TokenTransferEvent)[]> => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const allFilters: any[] = [
@@ -134,6 +159,15 @@ const fetchAllTransfers = async (
     titleEscrowContract.filters.RejectTransferHolder,
     titleEscrowContract.filters.Shred,
   ];
+
+  if (includeObligationStatus) {
+    allFilters.push(
+      titleEscrowContract.filters.StatusInitialized,
+      titleEscrowContract.filters.StatusAccepted,
+      titleEscrowContract.filters.StatusRejected,
+      titleEscrowContract.filters.StatusDischarged,
+    );
+  }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const allLogs: any = await Promise.all(
     allFilters.map(async (filter) => {
@@ -237,6 +271,38 @@ const fetchAllTransfers = async (
           transactionIndex: event.transactionIndex,
           remark: event.args?.remark,
         } as TokenTransferEvent;
+      } else if (event?.name === 'StatusInitialized') {
+        return {
+          type: 'STATUS_INITIALIZED',
+          blockNumber: event.blockNumber,
+          transactionHash: event.transactionHash,
+          transactionIndex: event.transactionIndex,
+          remark: event.args?.remark,
+        } as TitleEscrowTransferEvent;
+      } else if (event?.name === 'StatusAccepted') {
+        return {
+          type: 'STATUS_ACCEPTED',
+          blockNumber: event.blockNumber,
+          transactionHash: event.transactionHash,
+          transactionIndex: event.transactionIndex,
+          remark: event.args?.remark,
+        } as TitleEscrowTransferEvent;
+      } else if (event?.name === 'StatusRejected') {
+        return {
+          type: 'STATUS_REJECTED',
+          blockNumber: event.blockNumber,
+          transactionHash: event.transactionHash,
+          transactionIndex: event.transactionIndex,
+          remark: event.args?.remark,
+        } as TitleEscrowTransferEvent;
+      } else if (event?.name === 'StatusDischarged') {
+        return {
+          type: 'STATUS_DISCHARGED',
+          blockNumber: event.blockNumber,
+          transactionHash: event.transactionHash,
+          transactionIndex: event.transactionIndex,
+          remark: event.args?.remark,
+        } as TitleEscrowTransferEvent;
       }
 
       return undefined;

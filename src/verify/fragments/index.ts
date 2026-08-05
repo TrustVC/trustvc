@@ -17,6 +17,12 @@ import { w3cIssuerIdentity } from './issuer-identity/w3cIssuerIdentity';
 import { w3cEmptyCredentialStatus } from './document-status/w3cEmptyCredentialStatus';
 
 export {
+  w3cVpCredentialStatus,
+  w3cVpIssuerIdentity,
+  w3cVpSignatureIntegrity,
+} from './presentation/w3cVpVerifier';
+
+export {
   TRANSFERABLE_RECORDS_TYPE,
   credentialStatusTransferableRecordVerifier,
   openAttestationDidSignedDocumentStatus,
@@ -31,3 +37,8 @@ export {
   w3cSignatureIntegrity,
   ecdsaW3CSignatureIntegrity,
 };
+
+export {
+  credentialStatusObligationRecordVerifier,
+  OBLIGATION_RECORDS_TYPE,
+} from './document-status/obligationRecords/obligationRecordVerifier';

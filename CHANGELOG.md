@@ -1,3 +1,54 @@
+## [2.16.0-beta.1](https://github.com/TrustVC/trustvc/compare/v2.15.0...v2.16.0-beta.1) (2026-08-03)
+
+
+### Features
+
+* add EIP-7702 gasless functions with full test coverage ([e8d8b21](https://github.com/TrustVC/trustvc/commit/e8d8b214b96107dce44a0e1499cb8d05f0365c3b))
+* **eip7702:** export contract ABIs via eip7702Abis from @trustvc/trustvc ([59531e8](https://github.com/TrustVC/trustvc/commit/59531e883d18f9973498957a7c3a2112a05803ee))
+* implement obligation registry functions and enhance document bu… ([#155](https://github.com/TrustVC/trustvc/issues/155)) ([2a3cf11](https://github.com/TrustVC/trustvc/commit/2a3cf11da14f5767f837c8489174fb565ee4a588))
+
+
+### Bug Fixes
+
+* add --legacy-peer-deps to npm ci in all workflows ([44fa8ef](https://github.com/TrustVC/trustvc/commit/44fa8ef5be219d7f1522f3eaa9f259b7352e4022))
+* boe fix on shred ([#157](https://github.com/TrustVC/trustvc/issues/157)) ([a635cfc](https://github.com/TrustVC/trustvc/commit/a635cfc980d6346f44c55e908ec3fdaaae866d4d))
+* boe heap issue ([#156](https://github.com/TrustVC/trustvc/issues/156)) ([b997db7](https://github.com/TrustVC/trustvc/commit/b997db778d14de061f6e773ef31988a52ccebda0))
+
+
+### Miscellaneous Chores
+
+* **release:** 2.15.0-beta.1 [skip ci] ([726e6a0](https://github.com/TrustVC/trustvc/commit/726e6a0da28fe80a1fe1077d31588e0b8e4060a3))
+* **release:** 2.15.0-beta.2 [skip ci] ([bc3eba0](https://github.com/TrustVC/trustvc/commit/bc3eba05e4373d9d61bac5c5c598c4f362ab0e94))
+* **release:** 2.15.0-beta.3 [skip ci] ([0f56031](https://github.com/TrustVC/trustvc/commit/0f56031de0cf2923c881eff86351dd5d543869b5)), closes [#155](https://github.com/TrustVC/trustvc/issues/155) [#156](https://github.com/TrustVC/trustvc/issues/156)
+* **release:** 2.15.0-beta.4 [skip ci] ([6c3668f](https://github.com/TrustVC/trustvc/commit/6c3668f230a247bc05786c3b89d90b5aa6776e83)), closes [#157](https://github.com/TrustVC/trustvc/issues/157)
+* replace local eip7702 file ref with npm package @trustvc/eip7702@^1.0.0-beta.1 ([bc81fb5](https://github.com/TrustVC/trustvc/commit/bc81fb5fae6c52b3e0fe16ca5e7e7d6f1023c857))
+
+## [2.15.0-beta.4](https://github.com/TrustVC/trustvc/compare/v2.15.0-beta.3...v2.15.0-beta.4) (2026-08-03)
+
+
+### Bug Fixes
+
+* boe fix on shred ([#157](https://github.com/TrustVC/trustvc/issues/157)) ([a635cfc](https://github.com/TrustVC/trustvc/commit/a635cfc980d6346f44c55e908ec3fdaaae866d4d))
+
+## [2.15.0-beta.3](https://github.com/TrustVC/trustvc/compare/v2.15.0-beta.2...v2.15.0-beta.3) (2026-07-31)
+
+
+### Features
+
+* implement obligation registry functions and enhance document bu… ([#155](https://github.com/TrustVC/trustvc/issues/155)) ([2a3cf11](https://github.com/TrustVC/trustvc/commit/2a3cf11da14f5767f837c8489174fb565ee4a588))
+
+
+### Bug Fixes
+
+* boe heap issue ([#156](https://github.com/TrustVC/trustvc/issues/156)) ([b997db7](https://github.com/TrustVC/trustvc/commit/b997db778d14de061f6e773ef31988a52ccebda0))
+
+## [2.15.0-beta.2](https://github.com/TrustVC/trustvc/compare/v2.15.0-beta.1...v2.15.0-beta.2) (2026-07-16)
+
+
+### Features
+
+* **eip7702:** export contract ABIs via eip7702Abis from @trustvc/trustvc ([59531e8](https://github.com/TrustVC/trustvc/commit/59531e883d18f9973498957a7c3a2112a05803ee))
+
 ## [2.15.0-beta.1](https://github.com/TrustVC/trustvc/compare/v2.14.1...v2.15.0-beta.1) (2026-07-01)
 
 
@@ -14,6 +65,13 @@
 ### Miscellaneous Chores
 
 * replace local eip7702 file ref with npm package @trustvc/eip7702@^1.0.0-beta.1 ([bc81fb5](https://github.com/TrustVC/trustvc/commit/bc81fb5fae6c52b3e0fe16ca5e7e7d6f1023c857))
+
+## [2.15.0](https://github.com/TrustVC/trustvc/compare/v2.14.1...v2.15.0) (2026-07-31)
+
+
+### Features
+
+* add Verifiable Presentation sign/verify + fragments ([#154](https://github.com/TrustVC/trustvc/issues/154)) ([d8d51f1](https://github.com/TrustVC/trustvc/commit/d8d51f19c671c5fa4233c0c05923361674f2cd55))
 
 ## [2.14.1](https://github.com/TrustVC/trustvc/compare/v2.14.0...v2.14.1) (2026-06-10)
 

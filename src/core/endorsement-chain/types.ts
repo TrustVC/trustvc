@@ -46,7 +46,11 @@ export type TitleEscrowTransferEventType =
   | 'TRANSFER_OWNERS'
   | 'REJECT_TRANSFER_BENEFICIARY' // V5
   | 'REJECT_TRANSFER_HOLDER' // V5
-  | 'REJECT_TRANSFER_OWNERS'; // V5
+  | 'REJECT_TRANSFER_OWNERS' // V5
+  | 'STATUS_INITIALIZED' // ObligationEscrow
+  | 'STATUS_ACCEPTED' // ObligationEscrow
+  | 'STATUS_REJECTED' // ObligationEscrow
+  | 'STATUS_DISCHARGED'; // ObligationEscrow
 
 export interface TokenTransferEvent extends TransferBaseEvent {
   type: TokenTransferEventType;
