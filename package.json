@@ -18,7 +18,7 @@
     "type-check": "tsc --noEmit",
     "lint": "npx eslint . --color --format=table --max-warnings=0",
     "lint:fix": "npx eslint . --fix",
-    "build": "npm run clean && tsup",
+    "build": "npm run clean && NODE_OPTIONS=--max-old-space-size=4096 tsup",
     "clean": "rm -rf dist/",
     "precommit": "lint-staged",
     "prepare": "husky",
