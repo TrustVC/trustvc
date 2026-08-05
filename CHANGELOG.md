@@ -1,3 +1,11 @@
+## [2.16.0-beta.2](https://github.com/TrustVC/trustvc/compare/v2.16.0-beta.1...v2.16.0-beta.2) (2026-08-05)
+
+
+### Bug Fixes
+
+* export gaslessConstants object from eip7702-functions ([#158](https://github.com/TrustVC/trustvc/issues/158)) ([eef14bf](https://github.com/TrustVC/trustvc/commit/eef14bf7f6cdbb77c872f2796ea33ef56abde35a))
+* increase Node heap to 4GB for tsup build to prevent OOM in DTS worker ([c9152db](https://github.com/TrustVC/trustvc/commit/c9152dbfe411b32c6f96422ab8cd80828c6dc825))
+
 ## [2.16.0-beta.1](https://github.com/TrustVC/trustvc/compare/v2.15.0...v2.16.0-beta.1) (2026-08-03)
 
 
