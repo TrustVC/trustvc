@@ -244,6 +244,84 @@ describe('W3C Verifiable Presentation (via @trustvc/trustvc)', () => {
   });
 
   describe('credential policy', () => {
+    // A holder can omit any statement the issuer did not mark mandatory and the credential
+    // still verifies. These two prove the trustvc-level guarantee end-to-end: a revoked or
+    // expired credential cannot be presented even by a holder who deliberately derives the
+    // offending field away. It holds because @trustvc/w3c-vc makes `/credentialStatus` and
+    // the expiry mandatory at issuance — so this ALSO guards the dependency: downgrade or
+    // weaken that and these fail, rather than the hole silently reopening.
+    describe('fields a holder cannot strip to dodge a check', () => {
+      const bol = (extra: Record<string, unknown>) => ({
+        '@context': [
+          'https://www.w3.org/ns/credentials/v2',
+          'https://trustvc.io/context/bill-of-lading.json',
+        ],
+        type: ['VerifiableCredential'],
+        issuer: HOLDER_DID,
+        credentialSubject: { id: HOLDER_DID, type: ['BillOfLading'], blNumber: 'BL-STRIP' },
+        ...extra,
+      });
+
+      /**
+       * Signs, then derives revealing ONLY the subject — asking for nothing else.
+       * @param {object} raw - The raw credential to sign.
+       * @returns {Promise<object>} The derived credential, minus anything not mandatory.
+       */
+      const signAndStrip = async (raw: object) => {
+        const signed = await signW3C(raw as never, holderKey as never, 'ecdsa-sd-2023');
+        if (signed.error) throw new Error(`sign failed: ${signed.error}`);
+        const derived = await deriveW3C(assertDefined(signed.signed, 'signed'), [
+          '/credentialSubject/id',
+          '/credentialSubject/blNumber',
+        ]);
+        if (derived.error) throw new Error(`derive failed: ${derived.error}`);
+        return assertDefined(derived.derived, 'derived');
+      };
+
+      it('cannot present a REVOKED credential by stripping credentialStatus', async () => {
+        // Index 5 on the hosted status list is revoked.
+        const vc = await signAndStrip(
+          bol({
+            '@context': [
+              'https://www.w3.org/ns/credentials/v2',
+              'https://trustvc.io/context/bill-of-lading.json',
+              'https://w3id.org/vc/status-list/2021/v1',
+            ],
+            validFrom: '2024-04-01T12:19:52Z',
+            credentialStatus: {
+              id: 'https://trustvc.github.io/did/credentials/statuslist/1#5',
+              type: 'StatusList2021Entry',
+              statusPurpose: 'revocation',
+              statusListIndex: '5',
+              statusListCredential: 'https://trustvc.github.io/did/credentials/statuslist/1',
+            },
+          }),
+        );
+        expect(vc.credentialStatus).toBeDefined(); // survived the strip attempt
+
+        const result = await signW3CPresentation(vc, holderKey as never, {
+          holder: HOLDER_DID,
+          expiresInSeconds: 600,
+        });
+        expect(result.signed).toBeUndefined();
+        expect(result.error).toMatch(/revocation/);
+      });
+
+      it('cannot present an EXPIRED credential by stripping validUntil', async () => {
+        const vc = await signAndStrip(
+          bol({ validFrom: '2020-01-01T00:00:00Z', validUntil: '2021-01-01T00:00:00Z' }),
+        );
+        expect(vc.validUntil).toBeDefined(); // survived the strip attempt
+
+        const result = await signW3CPresentation(vc, holderKey as never, {
+          holder: HOLDER_DID,
+          expiresInSeconds: 600,
+        });
+        expect(result.signed).toBeUndefined();
+        expect(result.error).toMatch(/has expired/);
+      });
+    });
+
     it('blocks a credential with a TransferableRecords status', async () => {
       const result = await signW3CPresentation(
         W3C_TRANSFERABLE_RECORD as never,
