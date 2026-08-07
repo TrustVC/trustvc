@@ -1,3 +1,10 @@
+## [2.15.1](https://github.com/TrustVC/trustvc/compare/v2.15.0...v2.15.1) (2026-08-07)
+
+
+### Bug Fixes
+
+* bump w3c-vc to 2.4.2 so revoked and expired credentials cannot be presented ([#159](https://github.com/TrustVC/trustvc/issues/159)) ([b9646bc](https://github.com/TrustVC/trustvc/commit/b9646bc361896151cadb7f07652673fa6f14ab0e))
+
 ## [2.15.0](https://github.com/TrustVC/trustvc/compare/v2.14.1...v2.15.0) (2026-07-31)
 
 
