@@ -1,3 +1,15 @@
+## [2.16.0-beta.3](https://github.com/TrustVC/trustvc/compare/v2.16.0-beta.2...v2.16.0-beta.3) (2026-08-07)
+
+
+### Bug Fixes
+
+* bump w3c-vc to 2.4.2 so revoked and expired credentials cannot be presented ([#159](https://github.com/TrustVC/trustvc/issues/159)) ([b9646bc](https://github.com/TrustVC/trustvc/commit/b9646bc361896151cadb7f07652673fa6f14ab0e))
+
+
+### Miscellaneous Chores
+
+* **release:** 2.15.1 [skip ci] ([c03628d](https://github.com/TrustVC/trustvc/commit/c03628d8330a810192668d1b652b3d659421c892)), closes [#159](https://github.com/TrustVC/trustvc/issues/159)
+
 ## [2.16.0-beta.2](https://github.com/TrustVC/trustvc/compare/v2.16.0-beta.1...v2.16.0-beta.2) (2026-08-05)
 
 
