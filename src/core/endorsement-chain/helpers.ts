@@ -84,37 +84,37 @@ export const mergeTransfersV5 = (transferEvents: TransferBaseEvent[]): TransferB
 };
 
 /**
- * Order-independent type precedence when several escrow events share one tx.
- * Mirrors the historical multi-filter queryFilter order in fetchEscrowTransfer
- * (TokenReceived / Shred before Status*), so address-scoped Infura scans — which
- * return logs in on-chain emission order — still pick INITIAL (with the mint
- * remark) over STATUS_INITIALIZED (which has no remark).
+ * Prefer INITIAL over STATUS_* when both share a tx. Address-scoped Infura scans return
+ * logs in emission order, which can put StatusInitialized before TokenReceived.
+ * @param {TransferBaseEvent[]} groupedEvents - Events that share one transaction hash
+ * @returns {TransferEventType} - Canonical event type for the merged transaction
  */
-const TYPE_PRECEDENCE: TransferEventType[] = [
-  'INITIAL',
-  'RETURN_TO_ISSUER_REJECTED',
-  'RETURNED_TO_ISSUER',
-  'REJECT_TRANSFER_OWNERS',
-  'REJECT_TRANSFER_BENEFICIARY',
-  'REJECT_TRANSFER_HOLDER',
-  'RETURN_TO_ISSUER_ACCEPTED',
-  'STATUS_INITIALIZED',
-  'STATUS_ACCEPTED',
-  'STATUS_REJECTED',
-  'STATUS_DISCHARGED',
-];
-
 const identifyEventTypeFromLogs = (groupedEvents: TransferBaseEvent[]): TransferEventType => {
-  const typesPresent = new Set(groupedEvents.map((event) => event.type));
+  if (groupedEvents.some((event) => event.type === 'INITIAL')) {
+    return 'INITIAL';
+  }
 
-  for (const type of TYPE_PRECEDENCE) {
-    if (typesPresent.has(type)) {
-      return type;
+  for (const event of groupedEvents) {
+    if (
+      [
+        'STATUS_INITIALIZED',
+        'STATUS_ACCEPTED',
+        'STATUS_REJECTED',
+        'STATUS_DISCHARGED',
+        'RETURNED_TO_ISSUER',
+        'RETURN_TO_ISSUER_ACCEPTED',
+        'RETURN_TO_ISSUER_REJECTED',
+      ].includes(event.type) ||
+      event.type.startsWith('REJECT_')
+    ) {
+      return event.type;
     }
   }
 
-  const isTransferHolder = typesPresent.has('TRANSFER_HOLDER');
-  const isTransferBeneficiary = typesPresent.has('TRANSFER_BENEFICIARY');
+  const isTransferHolder = groupedEvents.some((event) => event.type === 'TRANSFER_HOLDER');
+  const isTransferBeneficiary = groupedEvents.some(
+    (event) => event.type === 'TRANSFER_BENEFICIARY',
+  );
 
   if (isTransferHolder && isTransferBeneficiary) {
     return 'TRANSFER_OWNERS';

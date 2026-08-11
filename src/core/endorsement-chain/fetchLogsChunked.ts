@@ -18,8 +18,7 @@ const INITIAL_CHUNK_SIZE = 10_000;
 const FREE_TIER_MAX_CHUNK_SIZE = 10;
 const MIN_CHUNK_SIZE = 1;
 const MAX_CHUNK_SIZE = 50_000;
-const GROW_AFTER_EMPTY_CHUNKS = 1;
-// Parallel windows once we know a stable Free-tier size (no adaptive shrink mid-flight).
+// Parallel Free-tier windows once the cap is ≤10 (no adaptive shrink mid-batch).
 const FREE_TIER_CONCURRENCY = 8;
 
 function errorMessage(err: unknown): string {
@@ -72,13 +71,6 @@ function shrinkForRangeLimit(state: AdaptiveScanState, message: string): void {
   state.chunkSize = Math.min(state.chunkSize, state.maxChunkSize);
 }
 
-function maybeGrowAfterEmpty(state: AdaptiveScanState, emptyStreak: number): number {
-  if (emptyStreak < GROW_AFTER_EMPTY_CHUNKS) return emptyStreak;
-  if (state.chunkSize >= state.maxChunkSize) return 0;
-  state.chunkSize = Math.min(state.chunkSize * 2, state.maxChunkSize);
-  return 0;
-}
-
 async function getLogsRange(
   provider: Provider | ethersV6.Provider,
   address: string,
@@ -90,108 +82,91 @@ async function getLogsRange(
   return provider.getLogs({ address, fromBlock, toBlock }) as Promise<any[]>;
 }
 
-/**
- * Fetch logs over a known [fromBlock, toBlock] with Free-tier-sized parallel windows.
- * Used after Infura Free-tier has already capped the window at 10.
- * @param {Provider | ethersV6.Provider} provider - Infura ethers provider
- * @param {string} address - Contract address
- * @param {number} fromBlock - Inclusive start
- * @param {number} toBlock - Inclusive end
- * @param {number} chunkSize - Window size (typically 10)
- * @returns {Promise<ethers.providers.Log[] | ethersV6.Log[]>} - Logs oldest → newest
- */
-const scanLogsParallelFixed = async (
-  provider: Provider | ethersV6.Provider,
-  address: string,
-  fromBlock: number,
-  toBlock: number,
-  chunkSize: number,
-): Promise<ethers.providers.Log[] | ethersV6.Log[]> => {
-  const windows: Array<{ start: number; end: number }> = [];
-  for (let start = fromBlock; start <= toBlock; start += chunkSize) {
-    windows.push({ start, end: Math.min(start + chunkSize - 1, toBlock) });
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function findMintIndex(logs: any[], isMintLog: (log: any) => boolean): number {
+  for (let i = logs.length - 1; i >= 0; i--) {
+    if (isMintLog(logs[i])) return i;
   }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const results: any[][] = new Array(windows.length);
-  let next = 0;
-
-  await Promise.all(
-    Array.from({ length: Math.min(FREE_TIER_CONCURRENCY, windows.length) }, async () => {
-      while (next < windows.length) {
-        const index = next++;
-        const { start, end } = windows[index];
-        results[index] = await getLogsRange(provider, address, start, end);
-      }
-    }),
-  );
-
-  return results.flat();
-};
+  return -1;
+}
 
 /**
- * Forward eth_getLogs over a known block range. Starts near paid Infura caps, shrinks on
- * range/result-size errors (snapping to 10 on Free-tier), and grows through empty stretches.
- * Once Free-tier has capped the window, remaining blocks are fetched in parallel.
+ * Free-tier path: fetch up to FREE_TIER_CONCURRENCY fixed windows in parallel while walking
+ * backward, then process newest→oldest so mint truncation stays correct.
  * @param {Provider | ethersV6.Provider} provider - Infura ethers provider
  * @param {string} address - Contract address to scan
- * @param {number} fromBlock - Inclusive start block
- * @param {number} toBlock - Inclusive end block
+ * @param {number} fromBlock - Latest block to start from
+ * @param {number} toBlockFloor - Earliest block to stop at
+ * @param {number} chunkSize - Window size (typically ≤10)
+ * @param {(log: any) => boolean} [isMintLog] - Optional mint detector to stop early
  * @returns {Promise<ethers.providers.Log[] | ethersV6.Log[]>} - Logs oldest → newest
  */
-export const scanLogsForward = async (
+const scanLogsBackwardParallel = async (
   provider: Provider | ethersV6.Provider,
   address: string,
   fromBlock: number,
-  toBlock: number,
-): Promise<ethers.providers.Log[] | ethersV6.Log[]> => {
-  if (toBlock < fromBlock) return [];
-
-  const state: AdaptiveScanState = {
-    chunkSize: Math.min(INITIAL_CHUNK_SIZE, MAX_CHUNK_SIZE),
-    maxChunkSize: MAX_CHUNK_SIZE,
-  };
+  toBlockFloor: number,
+  chunkSize: number,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const logs: any[] = [];
+  isMintLog?: (log: any) => boolean,
+): Promise<ethers.providers.Log[] | ethersV6.Log[]> => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const chunkGroups: any[][] = [];
   let cursor = fromBlock;
-  let emptyStreak = 0;
+  let windowSize = Math.max(Math.min(chunkSize, FREE_TIER_MAX_CHUNK_SIZE), MIN_CHUNK_SIZE);
 
-  while (cursor <= toBlock) {
-    // Free-tier path: finish the remaining range with parallel fixed windows.
-    if (state.maxChunkSize <= FREE_TIER_MAX_CHUNK_SIZE) {
-      const remaining = await scanLogsParallelFixed(
-        provider,
-        address,
-        cursor,
-        toBlock,
-        state.maxChunkSize,
-      );
-      logs.push(...remaining);
-      break;
+  while (cursor >= toBlockFloor) {
+    const windows: Array<{ start: number; end: number }> = [];
+    let winCursor = cursor;
+    for (let i = 0; i < FREE_TIER_CONCURRENCY && winCursor >= toBlockFloor; i++) {
+      const start = Math.max(winCursor - windowSize + 1, toBlockFloor);
+      windows.push({ start, end: winCursor });
+      if (start <= toBlockFloor) break;
+      winCursor = start - 1;
     }
 
-    const chunkEnd = Math.min(cursor + state.chunkSize - 1, toBlock);
+    let results: Awaited<ReturnType<typeof getLogsRange>>[];
     try {
-      const chunkLogs = await getLogsRange(provider, address, cursor, chunkEnd);
-      logs.push(...chunkLogs);
-      emptyStreak = chunkLogs.length === 0 ? maybeGrowAfterEmpty(state, emptyStreak + 1) : 0;
-      cursor = chunkEnd + 1;
+      results = await Promise.all(
+        windows.map(({ start, end }) => getLogsRange(provider, address, start, end)),
+      );
     } catch (err) {
       const message = errorMessage(err);
-      if (RANGE_TOO_LARGE_ERROR_RE.test(message) && state.chunkSize > MIN_CHUNK_SIZE) {
-        shrinkForRangeLimit(state, message);
+      if (RANGE_TOO_LARGE_ERROR_RE.test(message) && windowSize > MIN_CHUNK_SIZE) {
+        windowSize = Math.max(Math.floor(windowSize / 4), MIN_CHUNK_SIZE);
         continue;
       }
       throw err;
     }
+
+    let foundMint = false;
+    for (let i = 0; i < results.length; i++) {
+      const chunkLogs = results[i];
+      if (isMintLog) {
+        const mintIndex = findMintIndex(chunkLogs, isMintLog);
+        if (mintIndex >= 0) {
+          chunkGroups.push(chunkLogs.slice(mintIndex));
+          foundMint = true;
+          break;
+        }
+      }
+      chunkGroups.push(chunkLogs);
+    }
+
+    if (foundMint) break;
+
+    const oldest = windows[windows.length - 1];
+    if (oldest.start <= toBlockFloor) break;
+    cursor = oldest.start - 1;
   }
 
-  return logs;
+  return chunkGroups.reverse().flat();
 };
 
 /**
- * Infura-only backward eth_getLogs scanner. Starts near paid Infura caps, shrinks toward 1
- * on range/result-size limits (Free-tier snaps max to 10), stops at toBlockFloor or isMintLog.
+ * Infura-only backward eth_getLogs scanner. Starts near paid Infura caps, shrinks on
+ * range/result-size limits (Free-tier snaps max to 10), then finishes with parallel
+ * Free-tier windows. Stops at toBlockFloor or isMintLog.
  * @param {Provider | ethersV6.Provider} provider - Infura ethers provider
  * @param {string} address - Contract address to scan
  * @param {number} fromBlock - Latest block to start from
@@ -207,38 +182,42 @@ export const scanLogsBackward = async (
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   isMintLog?: (log: any) => boolean,
 ): Promise<ethers.providers.Log[] | ethersV6.Log[]> => {
+  // Paid-tier chunks collected newest-first while walking backward.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const chunkGroups: any[][] = [];
+  const newerChunkGroups: any[][] = [];
   const state: AdaptiveScanState = {
     chunkSize: Math.min(INITIAL_CHUNK_SIZE, MAX_CHUNK_SIZE),
     maxChunkSize: MAX_CHUNK_SIZE,
   };
   let cursor = fromBlock;
-  let emptyStreak = 0;
 
   while (cursor >= toBlockFloor) {
+    // Free-tier: finish remaining (older) range with parallel fixed windows.
+    if (state.maxChunkSize <= FREE_TIER_MAX_CHUNK_SIZE) {
+      const olderLogs = await scanLogsBackwardParallel(
+        provider,
+        address,
+        cursor,
+        toBlockFloor,
+        state.chunkSize,
+        isMintLog,
+      );
+      return [...olderLogs, ...newerChunkGroups.reverse().flat()];
+    }
+
     const chunkStart = Math.max(cursor - state.chunkSize + 1, toBlockFloor);
     try {
       const chunkLogs = await getLogsRange(provider, address, chunkStart, cursor);
       if (isMintLog) {
-        // Keep mint and everything after it in this chunk; drop any earlier logs.
-        let mintIndex = -1;
-        for (let i = chunkLogs.length - 1; i >= 0; i--) {
-          if (isMintLog(chunkLogs[i])) {
-            mintIndex = i;
-            break;
-          }
-        }
+        const mintIndex = findMintIndex(chunkLogs, isMintLog);
         if (mintIndex >= 0) {
-          chunkGroups.push(chunkLogs.slice(mintIndex));
-          break;
+          newerChunkGroups.push(chunkLogs.slice(mintIndex));
+          return newerChunkGroups.reverse().flat();
         }
       }
-      chunkGroups.push(chunkLogs);
-      emptyStreak = chunkLogs.length === 0 ? maybeGrowAfterEmpty(state, emptyStreak + 1) : 0;
+      newerChunkGroups.push(chunkLogs);
     } catch (err) {
       const message = errorMessage(err);
-      // Shrink even when already at the Free-tier max (10) so dense windows can retry at 1..9.
       if (RANGE_TOO_LARGE_ERROR_RE.test(message) && state.chunkSize > MIN_CHUNK_SIZE) {
         shrinkForRangeLimit(state, message);
         continue;
@@ -250,6 +229,5 @@ export const scanLogsBackward = async (
     cursor = chunkStart - 1;
   }
 
-  // Collected newest-first; reverse so the result is oldest → newest.
-  return chunkGroups.reverse().flat();
+  return newerChunkGroups.reverse().flat();
 };
