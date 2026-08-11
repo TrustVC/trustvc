@@ -49,7 +49,6 @@ function isRateLimitError(err: unknown): boolean {
   return RATE_LIMIT_ERROR_RE.test(errorMessage(err));
 }
 
-// Best-effort RPC URL from ethers v5 / v6 / wrapped providers.
 function getProviderRpcUrl(provider: Provider | ethersV6.Provider): string {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const anyProvider = provider as any;
@@ -86,12 +85,66 @@ interface AdaptiveScanState {
   maxChunkSize: number;
 }
 
+interface FreeTierBudget {
+  requestsUsed: number;
+  deadlineAt: number;
+}
+
+type BlockWindow = { start: number; end: number };
+
 function shrinkForRangeLimit(state: AdaptiveScanState, message: string): void {
   if (INFURA_FREE_TIER_RANGE_RE.test(message)) {
     state.maxChunkSize = Math.min(state.maxChunkSize, FREE_TIER_MAX_CHUNK_SIZE);
   }
   state.chunkSize = Math.max(Math.floor(state.chunkSize / 4), MIN_CHUNK_SIZE);
   state.chunkSize = Math.min(state.chunkSize, state.maxChunkSize);
+}
+
+function assertBudgets(budget: FreeTierBudget, upcoming = 0): void {
+  if (Date.now() >= budget.deadlineAt) {
+    throw new Error(
+      `Infura Free-tier scan time budget exhausted after ${FREE_TIER_MAX_DURATION_MS}ms`,
+    );
+  }
+  if (budget.requestsUsed + upcoming > FREE_TIER_MAX_REQUESTS) {
+    throw new Error(
+      `Infura Free-tier scan request budget exhausted (${FREE_TIER_MAX_REQUESTS} eth_getLogs calls)`,
+    );
+  }
+}
+
+/**
+ * Race an RPC against the scan deadline so hanging calls cannot outlive the budget.
+ * @param {Promise<T>} promise - In-flight RPC
+ * @param {number} deadlineAt - Absolute deadline timestamp (ms)
+ * @returns {Promise<T>} - RPC result or deadline error
+ */
+function withDeadline<T>(promise: Promise<T>, deadlineAt: number): Promise<T> {
+  const remaining = deadlineAt - Date.now();
+  if (remaining <= 0) {
+    return Promise.reject(
+      new Error(`Infura Free-tier scan time budget exhausted after ${FREE_TIER_MAX_DURATION_MS}ms`),
+    );
+  }
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(
+        new Error(
+          `Infura Free-tier scan time budget exhausted after ${FREE_TIER_MAX_DURATION_MS}ms`,
+        ),
+      );
+    }, remaining);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
 }
 
 async function getLogsRange(
@@ -117,6 +170,43 @@ async function getLogsRange(
   }
 }
 
+/**
+ * Free-tier getLogs: count every attempt before invoke, retry 429s, bound by deadline.
+ * @param {Provider | ethersV6.Provider} provider - Infura provider
+ * @param {string} address - Contract address
+ * @param {number} fromBlock - Inclusive start
+ * @param {number} toBlock - Inclusive end
+ * @param {FreeTierBudget} budget - Shared request/time budget (mutated)
+ * @returns {Promise<any[]>} - Raw logs
+ */
+async function getLogsRangeFreeTier(
+  provider: Provider | ethersV6.Provider,
+  address: string,
+  fromBlock: number,
+  toBlock: number,
+  budget: FreeTierBudget,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<any[]> {
+  for (let attempt = 0; ; attempt++) {
+    assertBudgets(budget);
+    budget.requestsUsed += 1;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const pending = provider.getLogs({ address, fromBlock, toBlock }) as Promise<any[]>;
+      return await withDeadline(pending, budget.deadlineAt);
+    } catch (err) {
+      if (isRateLimitError(err) && attempt < RATE_LIMIT_MAX_RETRIES) {
+        assertBudgets(budget);
+        await sleep(
+          Math.min(RATE_LIMIT_BASE_DELAY_MS * 2 ** attempt, budget.deadlineAt - Date.now()),
+        );
+        continue;
+      }
+      throw err;
+    }
+  }
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function findMintIndex(logs: any[], isMintLog: (log: any) => boolean): number {
   // Prefer the earliest mint marker so logs after mint are kept and nothing before mint is dropped incorrectly when several mint-like logs share a chunk.
@@ -133,8 +223,7 @@ function findMintIndex(logs: any[], isMintLog: (log: any) => boolean): number {
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function flattenOldestFirst(chunkGroups: any[][]): any[] {
-  const oldestFirstGroups = chunkGroups.toReversed();
-  return oldestFirstGroups.flat();
+  return chunkGroups.toReversed().flat();
 }
 
 /**
@@ -157,6 +246,79 @@ function pushMintSliceIfFound(
   if (mintIndex < 0) return false;
   groups.push(chunkLogs.slice(mintIndex));
   return true;
+}
+
+function buildParallelWindows(
+  cursor: number,
+  toBlockFloor: number,
+  windowSize: number,
+): BlockWindow[] {
+  const windows: BlockWindow[] = [];
+  for (let winCursor = cursor, i = 0; i < FREE_TIER_CONCURRENCY && winCursor >= toBlockFloor; i++) {
+    const start = Math.max(winCursor - windowSize + 1, toBlockFloor);
+    windows.push({ start, end: winCursor });
+    if (start <= toBlockFloor) break;
+    winCursor = start - 1;
+  }
+  return windows;
+}
+
+/**
+ * Settle a Free-tier batch: wait for all in-flight calls before shrink/retry/throw.
+ * @param {PromiseSettledResult<any[]>[]} settled - Batch outcomes
+ * @param {number} windowSize - Current window size
+ * @returns {{ results: any[][]; rangeTooLarge: boolean; hardError?: unknown }} - Parsed batch outcome
+ */
+function processSettledBatch(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  settled: PromiseSettledResult<any[]>[],
+  windowSize: number,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): { results: any[][]; rangeTooLarge: boolean; hardError?: unknown } {
+  let rangeTooLarge = false;
+  let hardError: unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const results: any[][] = new Array(settled.length);
+
+  for (let i = 0; i < settled.length; i++) {
+    const outcome = settled[i];
+    if (outcome.status === 'fulfilled') {
+      results[i] = outcome.value;
+      continue;
+    }
+    const message = errorMessage(outcome.reason);
+    if (RANGE_TOO_LARGE_ERROR_RE.test(message) && windowSize > MIN_CHUNK_SIZE) {
+      rangeTooLarge = true;
+    } else if (!hardError) {
+      hardError = outcome.reason;
+    }
+  }
+
+  return { results, rangeTooLarge, hardError };
+}
+
+/**
+ * Append batch chunks newest→oldest; stop early when a mint marker is found.
+ * @param {any[][]} results - Settled chunk logs in newest-first window order
+ * @param {(log: any) => boolean | undefined} isMintLog - Optional mint detector
+ * @param {any[][]} chunkGroups - Output groups (mutated)
+ * @returns {boolean} - Whether a mint was found
+ */
+function collectBatchChunks(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  results: any[][],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  isMintLog: ((log: any) => boolean) | undefined,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  chunkGroups: any[][],
+): boolean {
+  for (const chunkLogs of results) {
+    if (pushMintSliceIfFound(chunkLogs, isMintLog, chunkGroups)) {
+      return true;
+    }
+    chunkGroups.push(chunkLogs);
+  }
+  return false;
 }
 
 /**
@@ -183,57 +345,27 @@ const scanLogsBackwardParallel = async (
   const chunkGroups: any[][] = [];
   let cursor = fromBlock;
   let windowSize = Math.max(Math.min(chunkSize, FREE_TIER_MAX_CHUNK_SIZE), MIN_CHUNK_SIZE);
-  let requestsUsed = 0;
-  const startedAt = Date.now();
-  let foundMint = false;
+  const budget: FreeTierBudget = {
+    requestsUsed: 0,
+    deadlineAt: Date.now() + FREE_TIER_MAX_DURATION_MS,
+  };
 
   while (cursor >= toBlockFloor) {
-    if (Date.now() - startedAt > FREE_TIER_MAX_DURATION_MS) {
-      throw new Error(
-        `Infura Free-tier scan time budget exhausted after ${FREE_TIER_MAX_DURATION_MS}ms`,
-      );
+    const windows = buildParallelWindows(cursor, toBlockFloor, windowSize);
+    assertBudgets(budget, windows.length);
+
+    const settled = await Promise.allSettled(
+      windows.map(({ start, end }) => getLogsRangeFreeTier(provider, address, start, end, budget)),
+    );
+    const { results, rangeTooLarge, hardError } = processSettledBatch(settled, windowSize);
+
+    if (hardError) throw hardError;
+    if (rangeTooLarge) {
+      windowSize = Math.max(Math.floor(windowSize / 4), MIN_CHUNK_SIZE);
+      continue;
     }
 
-    const windows: Array<{ start: number; end: number }> = [];
-    let winCursor = cursor;
-    for (let i = 0; i < FREE_TIER_CONCURRENCY && winCursor >= toBlockFloor; i++) {
-      const start = Math.max(winCursor - windowSize + 1, toBlockFloor);
-      windows.push({ start, end: winCursor });
-      if (start <= toBlockFloor) break;
-      winCursor = start - 1;
-    }
-
-    if (requestsUsed + windows.length > FREE_TIER_MAX_REQUESTS) {
-      throw new Error(
-        `Infura Free-tier scan request budget exhausted (${FREE_TIER_MAX_REQUESTS} eth_getLogs calls)`,
-      );
-    }
-
-    let results: Awaited<ReturnType<typeof getLogsRange>>[];
-    try {
-      results = await Promise.all(
-        windows.map(({ start, end }) => getLogsRange(provider, address, start, end)),
-      );
-      requestsUsed += windows.length;
-    } catch (err) {
-      const message = errorMessage(err);
-      if (RANGE_TOO_LARGE_ERROR_RE.test(message) && windowSize > MIN_CHUNK_SIZE) {
-        // Keep already-collected chunkGroups; only shrink and retry this batch.
-        windowSize = Math.max(Math.floor(windowSize / 4), MIN_CHUNK_SIZE);
-        continue;
-      }
-      throw err;
-    }
-
-    for (const chunkLogs of results) {
-      if (pushMintSliceIfFound(chunkLogs, isMintLog, chunkGroups)) {
-        foundMint = true;
-        break;
-      }
-      chunkGroups.push(chunkLogs);
-    }
-
-    if (foundMint) {
+    if (collectBatchChunks(results, isMintLog, chunkGroups)) {
       return { logs: flattenOldestFirst(chunkGroups), foundMint: true, truncated: false };
     }
 
@@ -248,6 +380,83 @@ const scanLogsBackwardParallel = async (
     truncated: Boolean(isMintLog),
   };
 };
+
+/**
+ * Hand off remaining older range to Free-tier parallel scan and prepend paid-tier chunks.
+ * @param {Provider | ethersV6.Provider} provider - Infura provider
+ * @param {string} address - Contract address
+ * @param {number} cursor - Current (newest unpaid) block
+ * @param {number} effectiveFloor - Scan floor
+ * @param {number} chunkSize - Window size for Free-tier
+ * @param {(log: any) => boolean | undefined} isMintLog - Optional mint detector
+ * @param {any[][]} newerChunkGroups - Already-collected paid-tier chunks (newest-first)
+ * @returns {Promise<ScanLogsBackwardResult>} - Combined scan result
+ */
+async function handoffToFreeTier(
+  provider: Provider | ethersV6.Provider,
+  address: string,
+  cursor: number,
+  effectiveFloor: number,
+  chunkSize: number,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  isMintLog: ((log: any) => boolean) | undefined,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  newerChunkGroups: any[][],
+): Promise<ScanLogsBackwardResult> {
+  const older = await scanLogsBackwardParallel(
+    provider,
+    address,
+    cursor,
+    effectiveFloor,
+    chunkSize,
+    isMintLog,
+  );
+  return {
+    logs: [...older.logs, ...flattenOldestFirst(newerChunkGroups)],
+    foundMint: older.foundMint,
+    truncated: older.foundMint ? false : older.truncated,
+  };
+}
+
+/**
+ * Fetch one paid-tier window; shrink state on range limits.
+ * @param {Provider | ethersV6.Provider} provider - Infura provider
+ * @param {string} address - Contract address
+ * @param {number} cursor - Current newest block of the window
+ * @param {number} effectiveFloor - Scan floor
+ * @param {AdaptiveScanState} state - Adaptive chunk sizing (mutated on range limits)
+ * @param {(log: any) => boolean | undefined} isMintLog - Optional mint detector
+ * @param {any[][]} newerChunkGroups - Paid-tier chunks collected newest-first (mutated)
+ * @returns {Promise<'mint' | 'continue' | 'done'>} - Loop control for the paid-tier walker
+ */
+async function fetchPaidTierChunk(
+  provider: Provider | ethersV6.Provider,
+  address: string,
+  cursor: number,
+  effectiveFloor: number,
+  state: AdaptiveScanState,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  isMintLog: ((log: any) => boolean) | undefined,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  newerChunkGroups: any[][],
+): Promise<'mint' | 'continue' | 'done'> {
+  const chunkStart = Math.max(cursor - state.chunkSize + 1, effectiveFloor);
+  try {
+    const chunkLogs = await getLogsRange(provider, address, chunkStart, cursor);
+    if (pushMintSliceIfFound(chunkLogs, isMintLog, newerChunkGroups)) {
+      return 'mint';
+    }
+    newerChunkGroups.push(chunkLogs);
+  } catch (err) {
+    const message = errorMessage(err);
+    if (RANGE_TOO_LARGE_ERROR_RE.test(message) && state.chunkSize > MIN_CHUNK_SIZE) {
+      shrinkForRangeLimit(state, message);
+      return 'continue';
+    }
+    throw err;
+  }
+  return chunkStart <= effectiveFloor ? 'done' : 'continue';
+}
 
 /**
  * Infura-only backward eth_getLogs scanner. Starts near paid Infura caps, shrinks on
@@ -270,7 +479,6 @@ export const scanLogsBackward = async (
   isMintLog?: (log: any) => boolean,
   maxBlocksToScan: number = DEFAULT_MAX_BLOCKS_TO_SCAN,
 ): Promise<ScanLogsBackwardResult> => {
-  // Paid-tier chunks collected newest-first while walking backward.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const newerChunkGroups: any[][] = [];
   const state: AdaptiveScanState = {
@@ -283,44 +491,40 @@ export const scanLogsBackward = async (
   let cursor = fromBlock;
 
   while (cursor >= effectiveFloor) {
-    // Free-tier: finish remaining (older) range with parallel fixed windows.
     if (state.maxChunkSize <= FREE_TIER_MAX_CHUNK_SIZE) {
-      const older = await scanLogsBackwardParallel(
+      return handoffToFreeTier(
         provider,
         address,
         cursor,
         effectiveFloor,
         state.chunkSize,
         isMintLog,
+        newerChunkGroups,
       );
+    }
+
+    const priorChunkSize = state.chunkSize;
+    const outcome = await fetchPaidTierChunk(
+      provider,
+      address,
+      cursor,
+      effectiveFloor,
+      state,
+      isMintLog,
+      newerChunkGroups,
+    );
+    if (outcome === 'mint') {
       return {
-        logs: [...older.logs, ...flattenOldestFirst(newerChunkGroups)],
-        foundMint: older.foundMint,
-        truncated: older.foundMint ? false : older.truncated,
+        logs: flattenOldestFirst(newerChunkGroups),
+        foundMint: true,
+        truncated: false,
       };
     }
+    // Range-limit shrink: retry same cursor with smaller window.
+    if (state.chunkSize !== priorChunkSize) continue;
 
-    const chunkStart = Math.max(cursor - state.chunkSize + 1, effectiveFloor);
-    try {
-      const chunkLogs = await getLogsRange(provider, address, chunkStart, cursor);
-      if (pushMintSliceIfFound(chunkLogs, isMintLog, newerChunkGroups)) {
-        return {
-          logs: flattenOldestFirst(newerChunkGroups),
-          foundMint: true,
-          truncated: false,
-        };
-      }
-      newerChunkGroups.push(chunkLogs);
-    } catch (err) {
-      const message = errorMessage(err);
-      if (RANGE_TOO_LARGE_ERROR_RE.test(message) && state.chunkSize > MIN_CHUNK_SIZE) {
-        shrinkForRangeLimit(state, message);
-        continue;
-      }
-      throw err;
-    }
-
-    if (chunkStart <= effectiveFloor) break;
+    const chunkStart = Math.max(cursor - priorChunkSize + 1, effectiveFloor);
+    if (outcome === 'done' || chunkStart <= effectiveFloor) break;
     cursor = chunkStart - 1;
   }
 

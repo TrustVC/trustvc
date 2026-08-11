@@ -16,13 +16,20 @@ export const getEndorsementChain = async (
   let previousBeneficiary = '';
   let previousHolder = '';
 
-  // Deduplicate getBlock calls when several events share a block.
+  // Deduplicate getBlock calls when several events share a block, with bounded concurrency.
+  const TIMESTAMP_FETCH_CONCURRENCY = 5;
   const uniqueBlockNumbers = [...new Set(logChain.map((log) => log.blockNumber))];
-  const timestampByBlock = new Map(
-    await Promise.all(
-      uniqueBlockNumbers.map(
-        async (blockNumber) => [blockNumber, await fetchEventTime(blockNumber, provider)] as const,
-      ),
+  const timestampByBlock = new Map<number, number>();
+  let nextBlockIndex = 0;
+  await Promise.all(
+    Array.from(
+      { length: Math.min(TIMESTAMP_FETCH_CONCURRENCY, uniqueBlockNumbers.length) },
+      async () => {
+        while (nextBlockIndex < uniqueBlockNumbers.length) {
+          const blockNumber = uniqueBlockNumbers[nextBlockIndex++];
+          timestampByBlock.set(blockNumber, await fetchEventTime(blockNumber, provider));
+        }
+      },
     ),
   );
   const timestamps = logChain.map((log) => timestampByBlock.get(log.blockNumber)!);
