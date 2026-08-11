@@ -11,9 +11,11 @@ const RANGE_TOO_LARGE_ERROR_RE =
 // ethers v5/v6 tag genuine transport failures with these `.code` values, distinct from 'CALL_EXCEPTION' (the call executed and reverted).
 const TRANSIENT_ERROR_CODES = new Set(['SERVER_ERROR', 'TIMEOUT', 'NETWORK_ERROR']);
 
-const INITIAL_CHUNK_SIZE = 2000;
+// Ankr Public free-tier max block range is 1000; Alchemy free is tighter (10) so we still
+// shrink down to MIN_CHUNK_SIZE when a provider rejects the window.
+const INITIAL_CHUNK_SIZE = 1000;
 const MIN_CHUNK_SIZE = 10;
-const MAX_CHUNK_SIZE = 50_000;
+const MAX_CHUNK_SIZE = 1000;
 const GROW_AFTER_EMPTY_CHUNKS = 3;
 const MAX_RETRIES = 8;
 
