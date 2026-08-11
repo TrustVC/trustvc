@@ -907,7 +907,7 @@ Escrow calls accept `{ obligationRegistryAddress, tokenId }` or `{ obligationEsc
 ```ts
 import { fetchEndorsementChain } from '@trustvc/trustvc';
 
-const chain = await fetchEndorsementChain(obligationRegistry, tokenId, provider);
+const chain = await fetchEndorsementChain(obligationRegistry, tokenId, provider, encryptionKeyId);
 ```
 
 **Low-level contracts** (`@trustvc/trustvc/token-registry-v5/contracts`):
