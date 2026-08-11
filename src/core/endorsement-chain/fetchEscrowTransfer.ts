@@ -9,6 +9,7 @@ import {
   TitleEscrow as TitleEscrowV5,
 } from '../../token-registry-v5/contracts';
 import { getEthersContractFromProvider } from '../../utils/ethers';
+import { scanLogsBackward } from '../endorsement-chain/fetchLogsChunked';
 import {
   ParsedLog,
   TitleEscrowTransferEvent,
@@ -52,6 +53,7 @@ export const fetchEscrowTransfersV5 = async (
     provider as any,
   );
   const holderChangeLogsDeferred = await fetchAllTransfers(
+    provider,
     titleEscrowContract,
     titleEscrowAddress,
     tokenRegistryAddress,
@@ -112,47 +114,44 @@ const fetchHolderTransfers = async (
 
 /**
  * Retrieve all V5 events
+ * @param {Provider | ethersV6.Provider} provider - Ethers provider
  * @param {TitleEscrowV5} titleEscrowContract - Contract; Updated type to Contract to make it competible with ethers v5
  * @param {string} titleEscrowAddress - Title escrow address
  * @param {string} tokenRegistryAddress - Token registry address
  * @returns {Promise<(TitleEscrowTransferEvent | TokenTransferEvent)[]>} - Array of events
  */
 const fetchAllTransfers = async (
+  provider: Provider | ethersV6.Provider,
   titleEscrowContract: ethers.Contract | ethersV6.Contract,
   titleEscrowAddress?: string,
   tokenRegistryAddress?: string,
 ): Promise<(TitleEscrowTransferEvent | TokenTransferEvent)[]> => {
+  if (!titleEscrowAddress) {
+    // Handle ethers v5 and v6 differently
+    titleEscrowAddress = titleEscrowContract?.address ?? (await titleEscrowContract.getAddress());
+  }
+
+  const fromBlock = await provider.getBlockNumber();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const allFilters: any[] = [
-    titleEscrowContract.filters.HolderTransfer,
-    titleEscrowContract.filters.BeneficiaryTransfer,
-    titleEscrowContract.filters.TokenReceived,
-    titleEscrowContract.filters.ReturnToIssuer,
-    // titleEscrowContract.filters.Nomination,
-    titleEscrowContract.filters.RejectTransferOwners,
-    titleEscrowContract.filters.RejectTransferBeneficiary,
-    titleEscrowContract.filters.RejectTransferHolder,
-    titleEscrowContract.filters.Shred,
-  ];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const allLogs: any = await Promise.all(
-    allFilters.map(async (filter) => {
-      const logs = await titleEscrowContract.queryFilter(filter, 0, 'latest');
-      return logs;
-    }),
-  );
+  const isMintLog = (log: any) => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const parsed = (titleEscrowContract.interface as any).parseLog(log);
+      return parsed?.name === 'TokenReceived' && parsed.args.isMinting;
+    } catch {
+      return false;
+    }
+  };
+
+  const rawLogs = await scanLogsBackward(provider, titleEscrowAddress, fromBlock, 0, isMintLog);
 
   const holderChangeLogsParsed = getParsedLogs(
-    allLogs.flat(),
+    rawLogs,
     titleEscrowContract as unknown as TitleEscrowV5,
   );
 
   if (!tokenRegistryAddress) {
     tokenRegistryAddress = await titleEscrowContract.registry();
-  }
-  if (!titleEscrowAddress) {
-    // Handle ethers v5 and v6 differently
-    titleEscrowAddress = titleEscrowContract?.address ?? (await titleEscrowContract.getAddress());
   }
 
   return holderChangeLogsParsed
