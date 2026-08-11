@@ -84,26 +84,22 @@ export const mergeTransfersV5 = (transferEvents: TransferBaseEvent[]): TransferB
 };
 
 const identifyEventTypeFromLogs = (groupedEvents: TransferBaseEvent[]): TransferEventType => {
-  for (const event of groupedEvents) {
-    if (
-      [
-        // INITIAL must beat STATUS_*: ObligationEscrow mint emits StatusInitialized +
-        // TokenReceived(isMinting) in the same tx; collapsing to STATUS would drop mint
-        // and skip owner/holder seeding in getEndorsementChain.
-        'INITIAL',
-        'RETURNED_TO_ISSUER',
-        'RETURN_TO_ISSUER_ACCEPTED',
-        'RETURN_TO_ISSUER_REJECTED',
-        'STATUS_INITIALIZED',
-        'STATUS_ACCEPTED',
-        'STATUS_REJECTED',
-        'STATUS_DISCHARGED',
-      ].includes(event.type) ||
-      event.type.startsWith('REJECT_')
-    ) {
-      return event.type;
-    }
+  // Same list as the V4/V5-only check, extended with the Obligation STATUS_* types — but checked in
+  for (const type of [
+    'INITIAL',
+    'RETURNED_TO_ISSUER',
+    'RETURN_TO_ISSUER_ACCEPTED',
+    'RETURN_TO_ISSUER_REJECTED',
+    'STATUS_INITIALIZED',
+    'STATUS_ACCEPTED',
+    'STATUS_REJECTED',
+    'STATUS_DISCHARGED',
+  ] as TransferEventType[]) {
+    if (groupedEvents.some((event) => event.type === type)) return type;
   }
+
+  const rejectEvent = groupedEvents.find((event) => event.type.startsWith('REJECT_'));
+  if (rejectEvent) return rejectEvent.type;
 
   const isTransferHolder = groupedEvents.some((event) => event.type === 'TRANSFER_HOLDER');
   const isTransferBeneficiary = groupedEvents.some(

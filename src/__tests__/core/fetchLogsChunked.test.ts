@@ -9,7 +9,13 @@ describe('scanLogsBackward', () => {
     let overLimitAttempts = 0;
 
     const getLogs = vi.fn(
-      async ({ fromBlock: from, toBlock: to }: { fromBlock: number; toBlock: number }) => {
+      async ({
+        fromBlock: from,
+        toBlock: to,
+      }: {
+        fromBlock: number;
+        toBlock: number;
+      }): Promise<unknown[]> => {
         const range = to - from + 1;
         if (range > providerLimit) {
           overLimitAttempts++;
