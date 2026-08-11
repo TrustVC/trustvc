@@ -84,7 +84,8 @@ async function getLogsRange(
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function findMintIndex(logs: any[], isMintLog: (log: any) => boolean): number {
-  for (let i = logs.length - 1; i >= 0; i--) {
+  // Prefer the earliest mint marker so logs after mint are kept and nothing before mint is dropped incorrectly when several mint-like logs share a chunk.
+  for (let i = 0; i < logs.length; i++) {
     if (isMintLog(logs[i])) return i;
   }
   return -1;
