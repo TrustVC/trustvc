@@ -4,6 +4,7 @@ import { supportInterfaceIds as supportInterfaceIdsV4 } from '../../token-regist
 import { supportInterfaceIds as supportInterfaceIdsV5 } from '../../token-registry-v5/supportInterfaceIds';
 import { getEthersContractFromProvider } from '../../utils/ethers';
 import { decrypt } from '../decrypt';
+import { isTransientRpcError, sleep } from '../endorsement-chain/fetchLogsChunked';
 import {
   fetchEscrowTransfersV4,
   fetchEscrowTransfersV5,
@@ -159,20 +160,28 @@ export const getDocumentOwner = async (
   return await tokenRegistry.ownerOf(tokenId);
 };
 
+const MAX_INTERFACE_CHECK_RETRIES = 3;
+
 // Check Title Escrow Interface Support
 export const checkSupportsInterface = async (
   contractAddress: string,
   interfaceId: string,
   provider: Provider | ethersV6.Provider,
 ): Promise<boolean> => {
-  try {
-    const Contract = getEthersContractFromProvider(provider);
-    const abi = ['function supportsInterface(bytes4 interfaceId) external view returns (bool)'];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const contract = new Contract(contractAddress, abi, provider as any);
-    return await contract.supportsInterface(interfaceId);
-  } catch {
-    return false;
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const Contract = getEthersContractFromProvider(provider);
+      const abi = ['function supportsInterface(bytes4 interfaceId) external view returns (bool)'];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const contract = new Contract(contractAddress, abi, provider as any);
+      return await contract.supportsInterface(interfaceId);
+    } catch (err) {
+      if (isTransientRpcError(err) && attempt < MAX_INTERFACE_CHECK_RETRIES) {
+        await sleep(Math.min(1000 * 2 ** attempt, 8000));
+        continue;
+      }
+      return false;
+    }
   }
 };
 

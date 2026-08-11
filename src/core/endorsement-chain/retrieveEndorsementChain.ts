@@ -16,8 +16,23 @@ export const getEndorsementChain = async (
   let previousBeneficiary = '';
   let previousHolder = '';
 
-  const timestampPromises = logChain.map((log) => fetchEventTime(log.blockNumber, provider));
-  const timestamps = await Promise.all(timestampPromises);
+  // Fetch each unique block's timestamp once, with bounded concurrency, instead of one getBlock call per event via an unbounded Promise.all.
+  const TIMESTAMP_FETCH_CONCURRENCY = 5;
+  const uniqueBlockNumbers = [...new Set(logChain.map((log) => log.blockNumber))];
+  const timestampByBlock = new Map<number, number>();
+  let nextBlockIndex = 0;
+  await Promise.all(
+    Array.from(
+      { length: Math.min(TIMESTAMP_FETCH_CONCURRENCY, uniqueBlockNumbers.length) },
+      async () => {
+        while (nextBlockIndex < uniqueBlockNumbers.length) {
+          const blockNumber = uniqueBlockNumbers[nextBlockIndex++];
+          timestampByBlock.set(blockNumber, await fetchEventTime(blockNumber, provider));
+        }
+      },
+    ),
+  );
+  const timestamps = logChain.map((log) => timestampByBlock.get(log.blockNumber)!);
 
   logChain.forEach((log, index) => {
     const timestamp = timestamps[index];

@@ -10,6 +10,7 @@ import {
   ObligationEscrow__factory,
 } from '../../token-registry-v5/contracts';
 import { getEthersContractFromProvider } from '../../utils/ethers';
+import { scanLogsBackward } from '../endorsement-chain/fetchLogsChunked';
 import {
   ParsedLog,
   TitleEscrowTransferEvent,
@@ -52,7 +53,7 @@ export const fetchEscrowTransfersV5 = async (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     provider as any,
   );
-  return fetchAllTransfers(titleEscrowContract, titleEscrowAddress, tokenRegistryAddress);
+  return fetchAllTransfers(provider, titleEscrowContract, titleEscrowAddress, tokenRegistryAddress);
 };
 
 /**
@@ -75,10 +76,10 @@ export const fetchEscrowTransfersObligation = async (
     provider as any,
   );
   return fetchAllTransfers(
+    provider,
     obligationEscrowContract,
     obligationEscrowAddress,
     obligationRegistryAddress,
-    true,
   );
 };
 
@@ -134,59 +135,45 @@ const fetchHolderTransfers = async (
 };
 
 /**
- * Retrieve all V5 / ObligationEscrow events
+ * Retrieve all V5 / ObligationEscrow events via backward log scan
+ * @param {Provider | ethersV6.Provider} provider - Ethers provider
  * @param {ethers.Contract | ethersV6.Contract} titleEscrowContract - Escrow contract
  * @param {string} titleEscrowAddress - Escrow address
  * @param {string} tokenRegistryAddress - Registry address
- * @param {boolean} includeObligationStatus - When true, also collect ObligationEscrow status events
  * @returns {Promise<(TitleEscrowTransferEvent | TokenTransferEvent)[]>} - Array of events
  */
 const fetchAllTransfers = async (
+  provider: Provider | ethersV6.Provider,
   titleEscrowContract: ethers.Contract | ethersV6.Contract,
   titleEscrowAddress?: string,
   tokenRegistryAddress?: string,
-  includeObligationStatus = false,
 ): Promise<(TitleEscrowTransferEvent | TokenTransferEvent)[]> => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const allFilters: any[] = [
-    titleEscrowContract.filters.HolderTransfer,
-    titleEscrowContract.filters.BeneficiaryTransfer,
-    titleEscrowContract.filters.TokenReceived,
-    titleEscrowContract.filters.ReturnToIssuer,
-    // titleEscrowContract.filters.Nomination,
-    titleEscrowContract.filters.RejectTransferOwners,
-    titleEscrowContract.filters.RejectTransferBeneficiary,
-    titleEscrowContract.filters.RejectTransferHolder,
-    titleEscrowContract.filters.Shred,
-  ];
-
-  if (includeObligationStatus) {
-    allFilters.push(
-      titleEscrowContract.filters.StatusInitialized,
-      titleEscrowContract.filters.StatusAccepted,
-      titleEscrowContract.filters.StatusRejected,
-      titleEscrowContract.filters.StatusDischarged,
-    );
+  if (!titleEscrowAddress) {
+    // Handle ethers v5 and v6 differently
+    titleEscrowAddress = titleEscrowContract?.address ?? (await titleEscrowContract.getAddress());
   }
+
+  const fromBlock = await provider.getBlockNumber();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const allLogs: any = await Promise.all(
-    allFilters.map(async (filter) => {
-      const logs = await titleEscrowContract.queryFilter(filter, 0, 'latest');
-      return logs;
-    }),
-  );
+  const isMintLog = (log: any) => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const parsed = (titleEscrowContract.interface as any).parseLog(log);
+      return parsed?.name === 'TokenReceived' && parsed.args.isMinting;
+    } catch {
+      return false;
+    }
+  };
+
+  const rawLogs = await scanLogsBackward(provider, titleEscrowAddress, fromBlock, 0, isMintLog);
 
   const holderChangeLogsParsed = getParsedLogs(
-    allLogs.flat(),
+    rawLogs,
     titleEscrowContract as unknown as TitleEscrowV5,
   );
 
   if (!tokenRegistryAddress) {
     tokenRegistryAddress = await titleEscrowContract.registry();
-  }
-  if (!titleEscrowAddress) {
-    // Handle ethers v5 and v6 differently
-    titleEscrowAddress = titleEscrowContract?.address ?? (await titleEscrowContract.getAddress());
   }
 
   return holderChangeLogsParsed
