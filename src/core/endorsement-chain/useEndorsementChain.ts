@@ -20,7 +20,19 @@ export const TitleEscrowInterface = {
   V5: supportInterfaceIdsV5.TitleEscrow,
 };
 
+/** Current ERC165 id from token-registry (includes mintBlock/shredBlock). */
 export const ObligationEscrowInterface = supportInterfaceIdsV5.ObligationEscrow;
+
+/**
+ * Pre-mintBlock/shredBlock ERC165 id. Adding those functions changed
+ * `type(IObligationEscrow).interfaceId`, so older deployments only answer to this id.
+ */
+export const ObligationEscrowInterfaceLegacy = '0xe43144bd';
+
+const OBLIGATION_ESCROW_INTERFACE_IDS = [
+  ObligationEscrowInterface,
+  ObligationEscrowInterfaceLegacy,
+] as const;
 
 // Helper to fetch Title Escrow Factory Address
 const getTitleEscrowFactoryAddress = async (
@@ -196,6 +208,36 @@ export const isTitleEscrowVersion = async ({
   }
 };
 
+/**
+ * Detect ObligationEscrow. Prefer ERC165 (current + legacy ids); fall back to probing
+ * `isRegistered()`, which exists on ObligationEscrow but not TitleEscrow.
+ * @param {string} titleEscrowAddress - Escrow contract address to check
+ * @param {Provider | ethersV6.Provider} provider - Ethers provider
+ * @returns {Promise<boolean>} - true if the address is an ObligationEscrow
+ */
+export const isObligationEscrow = async (
+  titleEscrowAddress: string,
+  provider: Provider | ethersV6.Provider,
+): Promise<boolean> => {
+  const supported = await Promise.all(
+    OBLIGATION_ESCROW_INTERFACE_IDS.map((interfaceId) =>
+      checkSupportsInterface(titleEscrowAddress, interfaceId, provider),
+    ),
+  );
+  if (supported.some(Boolean)) return true;
+
+  try {
+    const Contract = getEthersContractFromProvider(provider);
+    const abi = ['function isRegistered() view returns (bool)'];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const contract = new Contract(titleEscrowAddress, abi, provider as any);
+    await contract.isRegistered();
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 export const fetchEndorsementChain = async (
   tokenRegistryAddress: string,
   tokenId: string,
@@ -220,11 +262,7 @@ export const fetchEndorsementChain = async (
       versionInterface: TitleEscrowInterface.V5,
       provider,
     }),
-    isTitleEscrowVersion({
-      titleEscrowAddress: resolvedTitleEscrowAddress,
-      versionInterface: ObligationEscrowInterface,
-      provider,
-    }),
+    isObligationEscrow(resolvedTitleEscrowAddress, provider),
   ]);
 
   if (!isV4 && !isV5 && !isObligation) {

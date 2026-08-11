@@ -43,7 +43,7 @@ describe.each(providers)(
         } as unknown as Network);
       }
 
-      vi.spyOn(coreModule, 'getObligationEscrowAddress').mockResolvedValue(
+      vi.spyOn(coreModule, 'getTitleEscrowAddress').mockResolvedValue(
         MOCK_OBLIGATION_ESCROW_ADDRESS,
       );
       vi.spyOn(coreModule, 'checkSupportsInterface').mockResolvedValue(true);

@@ -6,7 +6,7 @@ import {
   mintObligationRegistry,
 } from '../../../obligation-registry-functions';
 import type { TransactionOptions } from '../../../obligation-registry-functions/types';
-import { getObligationEscrowAddress } from '../../../core';
+import { getTitleEscrowAddress } from '../../../core';
 import { getSignersV5, getSignersV6, providerV5, providerV6 } from '../fixtures';
 import { createSampleBoeTxOptions } from '../fixtures/sample-boe-credential';
 
@@ -95,7 +95,7 @@ export const getObligationE2EEscrowAddress = async (
   setup: ObligationE2ESetup,
   tokenId: string | number,
 ): Promise<string> => {
-  return getObligationEscrowAddress(setup.obligationRegistry, String(tokenId), setup.provider, {
+  return getTitleEscrowAddress(setup.obligationRegistry, String(tokenId), setup.provider, {
     titleEscrowVersion: 'v5',
   });
 };

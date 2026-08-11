@@ -37,7 +37,7 @@ vi.mock('../../utils/ethers', async (importOriginal) => {
 
 vi.mock('../../core', () => ({
   encrypt: vi.fn(() => 'encrypted_remarks'),
-  getObligationEscrowAddress: vi.fn(),
+  getTitleEscrowAddress: vi.fn(),
   checkSupportsInterface: vi.fn(),
 }));
 
