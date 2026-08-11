@@ -9,7 +9,7 @@ import {
   TitleEscrow as TitleEscrowV5,
 } from '../../token-registry-v5/contracts';
 import { getEthersContractFromProvider } from '../../utils/ethers';
-import { scanLogsBackward } from '../endorsement-chain/fetchLogsChunked';
+import { isInfuraProvider, scanLogsBackward } from '../endorsement-chain/fetchLogsChunked';
 import {
   ParsedLog,
   TitleEscrowTransferEvent,
@@ -111,7 +111,9 @@ const fetchHolderTransfers = async (
 };
 
 /**
- * Retrieve all V5 events via adaptive backward log scan (stops at mint).
+ * Retrieve all V5 events.
+ * Infura Free-tier RPCs use a 10-block backward scan; other providers keep the
+ * original unranged multi-filter queryFilter path.
  * @param {Provider | ethersV6.Provider} provider - Ethers provider
  * @param {ethers.Contract | ethersV6.Contract} titleEscrowContract - Contract; Updated type to Contract to make it competible with ethers v5
  * @param {string} titleEscrowAddress - Title escrow address
@@ -129,6 +131,64 @@ const fetchAllTransfers = async (
     titleEscrowAddress = titleEscrowContract?.address ?? (await titleEscrowContract.getAddress());
   }
 
+  if (!tokenRegistryAddress) {
+    tokenRegistryAddress = await titleEscrowContract.registry();
+  }
+
+  const rawLogs = isInfuraProvider(provider)
+    ? await fetchLogsInfuraChunked(provider, titleEscrowContract, titleEscrowAddress)
+    : await fetchLogsUnranged(titleEscrowContract);
+
+  const holderChangeLogsParsed = getParsedLogs(
+    rawLogs,
+    titleEscrowContract as unknown as TitleEscrowV5,
+  );
+
+  return mapParsedLogsToEvents(holderChangeLogsParsed, titleEscrowAddress, tokenRegistryAddress);
+};
+
+/**
+ * Original path: one queryFilter(0, 'latest') per event filter, in parallel.
+ * @param {ethers.Contract | ethersV6.Contract} titleEscrowContract - Escrow contract
+ * @returns {Promise<ethers.providers.Log[] | ethersV6.Log[]>} - Raw logs
+ */
+const fetchLogsUnranged = async (
+  titleEscrowContract: ethers.Contract | ethersV6.Contract,
+): Promise<ethers.providers.Log[] | ethersV6.Log[]> => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const allFilters: any[] = [
+    titleEscrowContract.filters.HolderTransfer,
+    titleEscrowContract.filters.BeneficiaryTransfer,
+    titleEscrowContract.filters.TokenReceived,
+    titleEscrowContract.filters.ReturnToIssuer,
+    // titleEscrowContract.filters.Nomination,
+    titleEscrowContract.filters.RejectTransferOwners,
+    titleEscrowContract.filters.RejectTransferBeneficiary,
+    titleEscrowContract.filters.RejectTransferHolder,
+    titleEscrowContract.filters.Shred,
+  ];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const allLogs: any = await Promise.all(
+    allFilters.map(async (filter) => {
+      const logs = await titleEscrowContract.queryFilter(filter, 0, 'latest');
+      return logs;
+    }),
+  );
+  return allLogs.flat();
+};
+
+/**
+ * Infura Free-tier path: address-scoped 10-block backward scan until mint.
+ * @param {Provider | ethersV6.Provider} provider - Infura ethers provider
+ * @param {ethers.Contract | ethersV6.Contract} titleEscrowContract - Escrow contract
+ * @param {string} titleEscrowAddress - Escrow address
+ * @returns {Promise<ethers.providers.Log[] | ethersV6.Log[]>} - Raw logs
+ */
+const fetchLogsInfuraChunked = async (
+  provider: Provider | ethersV6.Provider,
+  titleEscrowContract: ethers.Contract | ethersV6.Contract,
+  titleEscrowAddress: string,
+): Promise<ethers.providers.Log[] | ethersV6.Log[]> => {
   const fromBlock = await provider.getBlockNumber();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const isMintLog = (log: any) => {
@@ -140,18 +200,14 @@ const fetchAllTransfers = async (
       return false;
     }
   };
+  return scanLogsBackward(provider, titleEscrowAddress, fromBlock, 0, isMintLog);
+};
 
-  const rawLogs = await scanLogsBackward(provider, titleEscrowAddress, fromBlock, 0, isMintLog);
-
-  const holderChangeLogsParsed = getParsedLogs(
-    rawLogs,
-    titleEscrowContract as unknown as TitleEscrowV5,
-  );
-
-  if (!tokenRegistryAddress) {
-    tokenRegistryAddress = await titleEscrowContract.registry();
-  }
-
+const mapParsedLogsToEvents = (
+  holderChangeLogsParsed: ParsedLog[],
+  titleEscrowAddress: string,
+  tokenRegistryAddress: string,
+): (TitleEscrowTransferEvent | TokenTransferEvent)[] => {
   return holderChangeLogsParsed
     .map((event) => {
       if (event?.name === 'HolderTransfer') {

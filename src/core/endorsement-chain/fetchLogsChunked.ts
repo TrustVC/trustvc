@@ -2,19 +2,15 @@ import { ethers } from 'ethers';
 import { ethers as ethersV6 } from 'ethersV6';
 import { Provider } from '@ethersproject/abstract-provider';
 
-// Match "block range too large" errors (need a smaller window).
-const RANGE_TOO_LARGE_ERROR_RE =
-  /query returned more than|range.*(too large|exceed)|(too large|exceed).*range|block range|10\s*block|block difference|free tier plan|10,?000 results|response size|log response size|-32600|-32012/i;
+// Infura Free-tier eth_getLogs: max 10-block window (-32600).
+// Example: "Under the Free tier plan, you can make eth_getLogs requests with up to a 10 block difference..."
+const INFURA_FREE_TIER_RANGE_RE =
+  /free tier plan|10\s*block difference|block range should work:\s*\[0x0,\s*0x9\]|-32600/i;
 
-// Start with 1000-block windows; shrink to as low as 10 (Alchemy Free eth_getLogs cap).
-const INITIAL_CHUNK_SIZE = 1000;
-const MIN_CHUNK_SIZE = 10;
-const MAX_CHUNK_SIZE = 50_000;
-const GROW_AFTER_EMPTY_CHUNKS = 3;
+const INFURA_HOST_RE = /infura\.io/i;
 
-// Alchemy Free: "up to a 10 block difference" / suggested "[0x0, 0x9]".
-const FREE_TIER_TEN_BLOCK_RE =
-  /10\s*block|free tier plan|block range should work:\s*\[0x0,\s*0x9\]/i;
+// Infura Free allows at most 10 blocks per eth_getLogs.
+const INFURA_CHUNK_SIZE = 10;
 
 function errorMessage(err: unknown): string {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -30,62 +26,38 @@ function errorMessage(err: unknown): string {
     .join(' ');
 }
 
-interface AdaptiveScanState {
-  chunkSize: number;
-  maxChunkSize: number;
-  consecutiveEmpty: number;
-}
-
-function shrinkForRangeLimit(state: AdaptiveScanState, message: string): void {
-  // Snap straight to the Free-tier 10-block cap when the provider says so.
-  if (FREE_TIER_TEN_BLOCK_RE.test(message)) {
-    state.chunkSize = MIN_CHUNK_SIZE;
-    state.maxChunkSize = MIN_CHUNK_SIZE;
-    state.consecutiveEmpty = 0;
-    return;
-  }
-  const reducedChunkSize = Math.max(Math.floor(state.chunkSize / 4), MIN_CHUNK_SIZE);
-  state.maxChunkSize = Math.min(state.maxChunkSize, reducedChunkSize);
-  state.chunkSize = reducedChunkSize;
-}
-
-// Fetch one block window. Returns undefined to retry with a smaller window; rethrows other errors.
-async function requestLogsWindow(
-  provider: Provider | ethersV6.Provider,
-  address: string,
-  fromBlock: number,
-  toBlock: number,
-  state: AdaptiveScanState,
+// Best-effort RPC URL from ethers v5 / v6 / wrapped providers.
+function getProviderRpcUrl(provider: Provider | ethersV6.Provider): string {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): Promise<any[] | undefined> {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (await provider.getLogs({ address, fromBlock, toBlock })) as any[];
-  } catch (err) {
-    const message = errorMessage(err);
-    if (RANGE_TOO_LARGE_ERROR_RE.test(message) && state.chunkSize > MIN_CHUNK_SIZE) {
-      shrinkForRangeLimit(state, message);
-      return undefined;
-    }
-    throw err;
-  }
+  const anyProvider = provider as any;
+  return String(
+    anyProvider?.connection?.url ||
+      anyProvider?._getConnection?.()?.url ||
+      anyProvider?.provider?.connection?.url ||
+      anyProvider?.provider?._getConnection?.()?.url ||
+      '',
+  );
 }
 
-// Grow the window after several empty chunks; reset when logs are found.
-function adaptChunkSizeAfterSuccess(state: AdaptiveScanState, logCount: number): void {
-  if (logCount === 0) {
-    state.consecutiveEmpty++;
-    if (state.consecutiveEmpty >= GROW_AFTER_EMPTY_CHUNKS && state.chunkSize < state.maxChunkSize) {
-      state.chunkSize = Math.min(state.chunkSize * 2, state.maxChunkSize);
-      state.consecutiveEmpty = 0;
-    }
-  } else {
-    state.consecutiveEmpty = 0;
-  }
+/**
+ * True when the provider talks to Infura (JSON-RPC URL host contains infura.io).
+ * @param {Provider | ethersV6.Provider} provider - Ethers provider
+ * @returns {boolean} - Whether the provider RPC URL is Infura
+ */
+export function isInfuraProvider(provider: Provider | ethersV6.Provider): boolean {
+  return INFURA_HOST_RE.test(getProviderRpcUrl(provider));
 }
 
-// Scan eth_getLogs backward from fromBlock to toBlockFloor (or until isMintLog matches).
-// Window size grows on empty ranges and shrinks when the provider says the range is too large.
+/**
+ * Infura-only backward eth_getLogs scanner using a fixed 10-block window (Free-tier max),
+ * walking backward until toBlockFloor or isMintLog matches.
+ * @param {Provider | ethersV6.Provider} provider - Infura ethers provider
+ * @param {string} address - Contract address to scan
+ * @param {number} fromBlock - Latest block to start from
+ * @param {number} toBlockFloor - Earliest block to stop at
+ * @param {(log: any) => boolean} [isMintLog] - Optional mint detector to stop early
+ * @returns {Promise<ethers.providers.Log[] | ethersV6.Log[]>} - Logs oldest → newest
+ */
 export const scanLogsBackward = async (
   provider: Provider | ethersV6.Provider,
   address: string,
@@ -96,22 +68,29 @@ export const scanLogsBackward = async (
 ): Promise<ethers.providers.Log[] | ethersV6.Log[]> => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const chunkGroups: any[][] = [];
-  const state: AdaptiveScanState = {
-    chunkSize: INITIAL_CHUNK_SIZE,
-    maxChunkSize: MAX_CHUNK_SIZE,
-    consecutiveEmpty: 0,
-  };
   let cursor = fromBlock;
+  const chunkSize = INFURA_CHUNK_SIZE;
 
   while (cursor >= toBlockFloor) {
-    const chunkStart = Math.max(cursor - state.chunkSize + 1, toBlockFloor);
-    const chunkLogs = await requestLogsWindow(provider, address, chunkStart, cursor, state);
-    if (chunkLogs === undefined) continue;
-
-    chunkGroups.push(chunkLogs);
-    if (isMintLog && chunkLogs.some(isMintLog)) break;
-
-    adaptChunkSizeAfterSuccess(state, chunkLogs.length);
+    const chunkStart = Math.max(cursor - chunkSize + 1, toBlockFloor);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const chunkLogs: any[] = await provider.getLogs({
+        address,
+        fromBlock: chunkStart,
+        toBlock: cursor,
+      });
+      chunkGroups.push(chunkLogs);
+      if (isMintLog && chunkLogs.some(isMintLog)) break;
+    } catch (err) {
+      const message = errorMessage(err);
+      if (INFURA_FREE_TIER_RANGE_RE.test(message)) {
+        throw new Error(
+          `Infura Free-tier eth_getLogs rejects this block range (max ${INFURA_CHUNK_SIZE} blocks). ${message}`,
+        );
+      }
+      throw err;
+    }
 
     if (chunkStart <= toBlockFloor) break;
     cursor = chunkStart - 1;
