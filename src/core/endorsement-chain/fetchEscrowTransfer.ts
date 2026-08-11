@@ -11,6 +11,11 @@ import {
 } from '../../token-registry-v5/contracts';
 import { getEthersContractFromProvider } from '../../utils/ethers';
 import {
+  isInfuraProvider,
+  scanLogsBackward,
+  scanLogsForward,
+} from '../endorsement-chain/fetchLogsChunked';
+import {
   ParsedLog,
   TitleEscrowTransferEvent,
   TokenTransferEvent,
@@ -40,45 +45,35 @@ export const fetchEscrowTransfersV4 = async (
   return [...holderChangeLogs, ...ownerChangeLogs];
 };
 
+/**
+ * Fetch V5 Title Escrow (or ObligationEscrow) transfer events.
+ * Infura Free-tier RPCs use a 10-block backward scan; other providers keep the
+ * original unranged multi-filter queryFilter path.
+ * @param {Provider | ethersV6.Provider} provider - Ethers provider
+ * @param {string} titleEscrowAddress - Title escrow / ObligationEscrow address
+ * @param {string} [tokenRegistryAddress] - Token / obligation registry address
+ * @param {boolean} [includeObligationStatus=false] - Also collect ObligationEscrow status events
+ * @returns {Promise<TransferBaseEvent[]>} - Transfer (and optional status) events
+ */
 export const fetchEscrowTransfersV5 = async (
   provider: Provider | ethersV6.Provider,
   titleEscrowAddress: string,
   tokenRegistryAddress?: string,
+  includeObligationStatus = false,
 ): Promise<TransferBaseEvent[]> => {
   const Contract = getEthersContractFromProvider(provider);
   const titleEscrowContract = new Contract(
     titleEscrowAddress,
-    TitleEscrowFactoryV5.abi,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    provider as any,
-  );
-  return fetchAllTransfers(titleEscrowContract, titleEscrowAddress, tokenRegistryAddress);
-};
-
-/**
- * ObligationEscrow shares Title Escrow V5 transfer events and adds status lifecycle events.
- * @param {Provider | ethersV6.Provider} provider - Ethers provider
- * @param {string} obligationEscrowAddress - ObligationEscrow contract address
- * @param {string} [obligationRegistryAddress] - Obligation registry (TrustVCToken) address
- * @returns {Promise<TransferBaseEvent[]>} - Transfer and status events
- */
-export const fetchEscrowTransfersObligation = async (
-  provider: Provider | ethersV6.Provider,
-  obligationEscrowAddress: string,
-  obligationRegistryAddress?: string,
-): Promise<TransferBaseEvent[]> => {
-  const Contract = getEthersContractFromProvider(provider);
-  const obligationEscrowContract = new Contract(
-    obligationEscrowAddress,
-    ObligationEscrow__factory.abi,
+    includeObligationStatus ? ObligationEscrow__factory.abi : TitleEscrowFactoryV5.abi,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     provider as any,
   );
   return fetchAllTransfers(
-    obligationEscrowContract,
-    obligationEscrowAddress,
-    obligationRegistryAddress,
-    true,
+    provider,
+    titleEscrowContract,
+    titleEscrowAddress,
+    tokenRegistryAddress,
+    includeObligationStatus,
   );
 };
 
@@ -86,13 +81,17 @@ const getParsedLogs = (
   logs: ethers.providers.Log[] | ethersV6.Log[],
   titleEscrow: TitleEscrowV4 | TitleEscrowV5,
 ): ParsedLog[] => {
-  return logs.map((log) => {
+  // Address-scoped scans can include topics the ABI cannot decode; skip those instead of failing the chain.
+  return logs.flatMap((log) => {
     if (!log.blockNumber) throw new Error('Block number not present');
-    return {
-      ...log,
+    try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ...(titleEscrow.interface as any).parseLog(log),
-    };
+      const parsed = (titleEscrow.interface as any).parseLog(log);
+      if (!parsed) return [];
+      return [{ ...log, ...parsed }];
+    } catch {
+      return [];
+    }
   });
 };
 
@@ -134,7 +133,10 @@ const fetchHolderTransfers = async (
 };
 
 /**
- * Retrieve all V5 / ObligationEscrow events
+ * Retrieve all V5 / ObligationEscrow events.
+ * Infura Free-tier RPCs use a 10-block backward scan; other providers keep the
+ * original unranged multi-filter queryFilter path.
+ * @param {Provider | ethersV6.Provider} provider - Ethers provider
  * @param {ethers.Contract | ethersV6.Contract} titleEscrowContract - Escrow contract
  * @param {string} titleEscrowAddress - Escrow address
  * @param {string} tokenRegistryAddress - Registry address
@@ -142,11 +144,48 @@ const fetchHolderTransfers = async (
  * @returns {Promise<(TitleEscrowTransferEvent | TokenTransferEvent)[]>} - Array of events
  */
 const fetchAllTransfers = async (
+  provider: Provider | ethersV6.Provider,
   titleEscrowContract: ethers.Contract | ethersV6.Contract,
   titleEscrowAddress?: string,
   tokenRegistryAddress?: string,
   includeObligationStatus = false,
 ): Promise<(TitleEscrowTransferEvent | TokenTransferEvent)[]> => {
+  if (!titleEscrowAddress) {
+    // Handle ethers v5 and v6 differently
+    titleEscrowAddress = titleEscrowContract?.address ?? (await titleEscrowContract.getAddress());
+  }
+
+  if (!tokenRegistryAddress) {
+    tokenRegistryAddress = await titleEscrowContract.registry();
+  }
+
+  const rawLogs = isInfuraProvider(provider)
+    ? await fetchLogsInfuraChunked(
+        provider,
+        titleEscrowContract,
+        titleEscrowAddress,
+        includeObligationStatus,
+      )
+    : await fetchLogsUnranged(titleEscrowContract, includeObligationStatus);
+
+  const holderChangeLogsParsed = getParsedLogs(
+    rawLogs,
+    titleEscrowContract as unknown as TitleEscrowV5,
+  );
+
+  return mapParsedLogsToEvents(holderChangeLogsParsed, titleEscrowAddress, tokenRegistryAddress);
+};
+
+/**
+ * Original path: one queryFilter(0, 'latest') per event filter, in parallel.
+ * @param {ethers.Contract | ethersV6.Contract} titleEscrowContract - Escrow contract
+ * @param {boolean} includeObligationStatus - Include ObligationEscrow status filters
+ * @returns {Promise<ethers.providers.Log[] | ethersV6.Log[]>} - Raw logs
+ */
+const fetchLogsUnranged = async (
+  titleEscrowContract: ethers.Contract | ethersV6.Contract,
+  includeObligationStatus = false,
+): Promise<ethers.providers.Log[] | ethersV6.Log[]> => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const allFilters: any[] = [
     titleEscrowContract.filters.HolderTransfer,
@@ -175,20 +214,82 @@ const fetchAllTransfers = async (
       return logs;
     }),
   );
+  return allLogs.flat();
+};
 
-  const holderChangeLogsParsed = getParsedLogs(
-    allLogs.flat(),
-    titleEscrowContract as unknown as TitleEscrowV5,
-  );
-
-  if (!tokenRegistryAddress) {
-    tokenRegistryAddress = await titleEscrowContract.registry();
+/**
+ * Infura path: Obligation uses mintBlock()/shredBlock() then forward-scans that range.
+ * Classic V5 falls back to an adaptive backward scan until the mint log.
+ * @param {Provider | ethersV6.Provider} provider - Infura ethers provider
+ * @param {ethers.Contract | ethersV6.Contract} titleEscrowContract - Escrow contract
+ * @param {string} titleEscrowAddress - Escrow address
+ * @param {boolean} includeObligationStatus - ObligationEscrow (has mintBlock/shredBlock)
+ * @returns {Promise<ethers.providers.Log[] | ethersV6.Log[]>} - Raw logs
+ */
+const fetchLogsInfuraChunked = async (
+  provider: Provider | ethersV6.Provider,
+  titleEscrowContract: ethers.Contract | ethersV6.Contract,
+  titleEscrowAddress: string,
+  includeObligationStatus = false,
+): Promise<ethers.providers.Log[] | ethersV6.Log[]> => {
+  if (includeObligationStatus) {
+    const bounded = await tryObligationBoundedRange(provider, titleEscrowContract);
+    if (bounded) {
+      return scanLogsForward(provider, titleEscrowAddress, bounded.fromBlock, bounded.toBlock);
+    }
   }
-  if (!titleEscrowAddress) {
-    // Handle ethers v5 and v6 differently
-    titleEscrowAddress = titleEscrowContract?.address ?? (await titleEscrowContract.getAddress());
-  }
 
+  const latestBlock = await provider.getBlockNumber();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const isMintLog = (log: any) => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const parsed = (titleEscrowContract.interface as any).parseLog(log);
+      // Obligation mints also emit StatusInitialized in the same tx; either marks the floor.
+      return (
+        (parsed?.name === 'TokenReceived' && parsed.args.isMinting) ||
+        parsed?.name === 'StatusInitialized'
+      );
+    } catch {
+      return false;
+    }
+  };
+  return scanLogsBackward(provider, titleEscrowAddress, latestBlock, 0, isMintLog);
+};
+
+/**
+ * ObligationEscrow exposes mintBlock()/shredBlock() as plain state — 1-2 eth_calls bound the
+ * getLogs range instead of walking from chain tip (critical on Infura Free's 10-block windows).
+ * @param {Provider | ethersV6.Provider} provider - Ethers provider
+ * @param {ethers.Contract | ethersV6.Contract} titleEscrowContract - ObligationEscrow contract
+ * @returns {Promise<{ fromBlock: number; toBlock: number } | null>} - Bounded range, or null
+ */
+const tryObligationBoundedRange = async (
+  provider: Provider | ethersV6.Provider,
+  titleEscrowContract: ethers.Contract | ethersV6.Contract,
+): Promise<{ fromBlock: number; toBlock: number } | null> => {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const contract = titleEscrowContract as any;
+    const mintBlock = Number(await contract.mintBlock());
+    if (!Number.isFinite(mintBlock) || mintBlock <= 0) return null;
+
+    const shredBlock = Number(await contract.shredBlock());
+    const toBlock =
+      Number.isFinite(shredBlock) && shredBlock > 0 ? shredBlock : await provider.getBlockNumber();
+
+    if (toBlock < mintBlock) return null;
+    return { fromBlock: mintBlock, toBlock };
+  } catch {
+    return null;
+  }
+};
+
+const mapParsedLogsToEvents = (
+  holderChangeLogsParsed: ParsedLog[],
+  titleEscrowAddress: string,
+  tokenRegistryAddress: string,
+): (TitleEscrowTransferEvent | TokenTransferEvent)[] => {
   return holderChangeLogsParsed
     .map((event) => {
       if (event?.name === 'HolderTransfer') {

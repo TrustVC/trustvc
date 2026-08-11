@@ -902,13 +902,12 @@ await (
 
 Escrow calls accept `{ obligationRegistryAddress, tokenId }` or `{ obligationEscrowAddress }`. Remarks are encrypted when `options.id` is set (same as Token Registry v5).
 
-**Endorsement chain** — pass the `TrustVCToken` address to existing helpers:
+**Endorsement chain** — pass the `TrustVCToken` address to the existing helper:
 
 ```ts
-import { fetchEndorsementChain, fetchObligationEndorsementChain } from '@trustvc/trustvc';
+import { fetchEndorsementChain } from '@trustvc/trustvc';
 
 const chain = await fetchEndorsementChain(obligationRegistry, tokenId, provider);
-// or: fetchObligationEndorsementChain(obligationRegistry, tokenId, provider, { encryptionId })
 ```
 
 **Low-level contracts** (`@trustvc/trustvc/token-registry-v5/contracts`):

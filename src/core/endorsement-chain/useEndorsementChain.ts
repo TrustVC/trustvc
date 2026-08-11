@@ -7,7 +7,6 @@ import { decrypt } from '../decrypt';
 import {
   fetchEscrowTransfersV4,
   fetchEscrowTransfersV5,
-  fetchEscrowTransfersObligation,
 } from '../endorsement-chain/fetchEscrowTransfer';
 import { fetchTokenTransfers } from '../endorsement-chain/fetchTokenTransfer';
 import { mergeTransfersV4, mergeTransfersV5 } from '../endorsement-chain/helpers';
@@ -241,10 +240,11 @@ export const fetchEndorsementChain = async (
 
     transferEvents = mergeTransfersV4([...titleEscrowLogs, ...tokenLogs]);
   } else if (isObligation) {
-    const obligationEscrowLogs = await fetchEscrowTransfersObligation(
+    const obligationEscrowLogs = await fetchEscrowTransfersV5(
       provider,
       resolvedTitleEscrowAddress,
       tokenRegistryAddress,
+      true,
     );
     transferEvents = mergeTransfersV5(obligationEscrowLogs);
   } else if (isV5) {

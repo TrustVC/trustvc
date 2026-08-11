@@ -83,29 +83,38 @@ export const mergeTransfersV5 = (transferEvents: TransferBaseEvent[]): TransferB
   return mergedTransaction;
 };
 
+/**
+ * Order-independent type precedence when several escrow events share one tx.
+ * Mirrors the historical multi-filter queryFilter order in fetchEscrowTransfer
+ * (TokenReceived / Shred before Status*), so address-scoped Infura scans — which
+ * return logs in on-chain emission order — still pick INITIAL (with the mint
+ * remark) over STATUS_INITIALIZED (which has no remark).
+ */
+const TYPE_PRECEDENCE: TransferEventType[] = [
+  'INITIAL',
+  'RETURN_TO_ISSUER_REJECTED',
+  'RETURNED_TO_ISSUER',
+  'REJECT_TRANSFER_OWNERS',
+  'REJECT_TRANSFER_BENEFICIARY',
+  'REJECT_TRANSFER_HOLDER',
+  'RETURN_TO_ISSUER_ACCEPTED',
+  'STATUS_INITIALIZED',
+  'STATUS_ACCEPTED',
+  'STATUS_REJECTED',
+  'STATUS_DISCHARGED',
+];
+
 const identifyEventTypeFromLogs = (groupedEvents: TransferBaseEvent[]): TransferEventType => {
-  for (const event of groupedEvents) {
-    if (
-      [
-        'STATUS_INITIALIZED',
-        'STATUS_ACCEPTED',
-        'STATUS_REJECTED',
-        'STATUS_DISCHARGED',
-        'INITIAL',
-        'RETURNED_TO_ISSUER',
-        'RETURN_TO_ISSUER_ACCEPTED',
-        'RETURN_TO_ISSUER_REJECTED',
-      ].includes(event.type) ||
-      event.type.startsWith('REJECT_')
-    ) {
-      return event.type;
+  const typesPresent = new Set(groupedEvents.map((event) => event.type));
+
+  for (const type of TYPE_PRECEDENCE) {
+    if (typesPresent.has(type)) {
+      return type;
     }
   }
 
-  const isTransferHolder = groupedEvents.some((event) => event.type === 'TRANSFER_HOLDER');
-  const isTransferBeneficiary = groupedEvents.some(
-    (event) => event.type === 'TRANSFER_BENEFICIARY',
-  );
+  const isTransferHolder = typesPresent.has('TRANSFER_HOLDER');
+  const isTransferBeneficiary = typesPresent.has('TRANSFER_BENEFICIARY');
 
   if (isTransferHolder && isTransferBeneficiary) {
     return 'TRANSFER_OWNERS';
