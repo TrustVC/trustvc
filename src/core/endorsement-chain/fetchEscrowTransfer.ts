@@ -44,7 +44,7 @@ export const fetchEscrowTransfersV4 = async (
 
 /**
  * Fetch V5 Title Escrow (or ObligationEscrow) transfer events.
- * Infura RPCs try paid-tier log windows first, then fall back to Free-tier (≤10 blocks);
+ * Infura/Alchemy RPCs try paid-tier log windows first, then fall back to Free-tier (≤10 blocks);
  * other providers keep the original unranged multi-filter queryFilter path.
  * @param {Provider | ethersV6.Provider} provider - Ethers provider
  * @param {string} titleEscrowAddress - Title escrow / ObligationEscrow address
@@ -131,7 +131,7 @@ const fetchHolderTransfers = async (
 
 /**
  * Retrieve all V5 / ObligationEscrow events.
- * Infura RPCs try paid-tier log windows first, then fall back to Free-tier (≤10 blocks);
+ * Infura/Alchemy RPCs try paid-tier log windows first, then fall back to Free-tier (≤10 blocks);
  * other providers keep the original unranged multi-filter queryFilter path.
  * @param {Provider | ethersV6.Provider} provider - Ethers provider
  * @param {ethers.Contract | ethersV6.Contract} titleEscrowContract - Escrow contract

@@ -62,9 +62,10 @@ function getProviderRpcUrl(provider: Provider | ethersV6.Provider): string {
 }
 
 /**
- * True when the provider talks to Infura (JSON-RPC URL host contains infura.io).
+ * True when the provider talks to an RPC that free-tier-limits eth_getLogs ranges
+ * (Infura and Alchemy both reject 0→latest on free plans).
  * @param {Provider | ethersV6.Provider} provider - Ethers provider
- * @returns {boolean} - Whether the provider RPC URL is Infura
+ * @returns {boolean} - Whether adaptive chunked eth_getLogs should be used
  */
 export function isInfuraProvider(provider: Provider | ethersV6.Provider): boolean {
   return INFURA_HOST_RE.test(getProviderRpcUrl(provider));
