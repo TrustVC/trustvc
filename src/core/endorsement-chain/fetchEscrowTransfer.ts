@@ -9,6 +9,7 @@ import {
   TitleEscrow as TitleEscrowV5,
 } from '../../token-registry-v5/contracts';
 import { getEthersContractFromProvider } from '../../utils/ethers';
+import { scanLogsBackward } from '../endorsement-chain/fetchLogsChunked';
 import {
   ParsedLog,
   TitleEscrowTransferEvent,
@@ -51,25 +52,24 @@ export const fetchEscrowTransfersV5 = async (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     provider as any,
   );
-  const holderChangeLogsDeferred = await fetchAllTransfers(
-    titleEscrowContract,
-    titleEscrowAddress,
-    tokenRegistryAddress,
-  );
-  return holderChangeLogsDeferred;
+  return fetchAllTransfers(provider, titleEscrowContract, titleEscrowAddress, tokenRegistryAddress);
 };
 
 const getParsedLogs = (
   logs: ethers.providers.Log[] | ethersV6.Log[],
   titleEscrow: TitleEscrowV4 | TitleEscrowV5,
 ): ParsedLog[] => {
-  return logs.map((log) => {
+  // Address-scoped scans can include topics the ABI cannot decode; skip those instead of failing the chain.
+  return logs.flatMap((log) => {
     if (!log.blockNumber) throw new Error('Block number not present');
-    return {
-      ...log,
+    try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ...(titleEscrow.interface as any).parseLog(log),
-    };
+      const parsed = (titleEscrow.interface as any).parseLog(log);
+      if (!parsed) return [];
+      return [{ ...log, ...parsed }];
+    } catch {
+      return [];
+    }
   });
 };
 
@@ -111,48 +111,45 @@ const fetchHolderTransfers = async (
 };
 
 /**
- * Retrieve all V5 events
- * @param {TitleEscrowV5} titleEscrowContract - Contract; Updated type to Contract to make it competible with ethers v5
+ * Retrieve all V5 events via adaptive backward log scan (stops at mint).
+ * @param {Provider | ethersV6.Provider} provider - Ethers provider
+ * @param {ethers.Contract | ethersV6.Contract} titleEscrowContract - Contract; Updated type to Contract to make it competible with ethers v5
  * @param {string} titleEscrowAddress - Title escrow address
  * @param {string} tokenRegistryAddress - Token registry address
  * @returns {Promise<(TitleEscrowTransferEvent | TokenTransferEvent)[]>} - Array of events
  */
 const fetchAllTransfers = async (
+  provider: Provider | ethersV6.Provider,
   titleEscrowContract: ethers.Contract | ethersV6.Contract,
   titleEscrowAddress?: string,
   tokenRegistryAddress?: string,
 ): Promise<(TitleEscrowTransferEvent | TokenTransferEvent)[]> => {
+  if (!titleEscrowAddress) {
+    // Handle ethers v5 and v6 differently
+    titleEscrowAddress = titleEscrowContract?.address ?? (await titleEscrowContract.getAddress());
+  }
+
+  const fromBlock = await provider.getBlockNumber();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const allFilters: any[] = [
-    titleEscrowContract.filters.HolderTransfer,
-    titleEscrowContract.filters.BeneficiaryTransfer,
-    titleEscrowContract.filters.TokenReceived,
-    titleEscrowContract.filters.ReturnToIssuer,
-    // titleEscrowContract.filters.Nomination,
-    titleEscrowContract.filters.RejectTransferOwners,
-    titleEscrowContract.filters.RejectTransferBeneficiary,
-    titleEscrowContract.filters.RejectTransferHolder,
-    titleEscrowContract.filters.Shred,
-  ];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const allLogs: any = await Promise.all(
-    allFilters.map(async (filter) => {
-      const logs = await titleEscrowContract.queryFilter(filter, 0, 'latest');
-      return logs;
-    }),
-  );
+  const isMintLog = (log: any) => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const parsed = (titleEscrowContract.interface as any).parseLog(log);
+      return parsed?.name === 'TokenReceived' && parsed.args.isMinting;
+    } catch {
+      return false;
+    }
+  };
+
+  const rawLogs = await scanLogsBackward(provider, titleEscrowAddress, fromBlock, 0, isMintLog);
 
   const holderChangeLogsParsed = getParsedLogs(
-    allLogs.flat(),
+    rawLogs,
     titleEscrowContract as unknown as TitleEscrowV5,
   );
 
   if (!tokenRegistryAddress) {
     tokenRegistryAddress = await titleEscrowContract.registry();
-  }
-  if (!titleEscrowAddress) {
-    // Handle ethers v5 and v6 differently
-    titleEscrowAddress = titleEscrowContract?.address ?? (await titleEscrowContract.getAddress());
   }
 
   return holderChangeLogsParsed
