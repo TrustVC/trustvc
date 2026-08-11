@@ -2,20 +2,19 @@ import { ethers } from 'ethers';
 import { ethers as ethersV6 } from 'ethersV6';
 import { Provider } from '@ethersproject/abstract-provider';
 
-// Rate limit means the window was fine, just retry it; range-too-large means the window itself must shrink instead.
+// Match RPC rate-limit errors (safe to retry the same block window).
 const RATE_LIMIT_ERROR_RE = /could not coalesce|rate-?limit|too many requests|429|-32005/i;
-// Providers phrase this both ways ("range ... exceeds" and "exceeded ... range"), so both word orders are matched.
+// Match "block range too large" errors (need a smaller window).
 const RANGE_TOO_LARGE_ERROR_RE =
   /query returned more than|range.*(too large|exceed)|(too large|exceed).*range|block range|10,?000 results|response size should not exceed|limit exceeded|-32600|-32012/i;
 
-// ethers v5/v6 tag genuine transport failures with these `.code` values, distinct from 'CALL_EXCEPTION' (the call executed and reverted).
+// ethers transport error codes (not contract reverts).
 const TRANSIENT_ERROR_CODES = new Set(['SERVER_ERROR', 'TIMEOUT', 'NETWORK_ERROR']);
 
-// Ankr Public free-tier max block range is 1000; Alchemy free is tighter (10) so we still
-// shrink down to MIN_CHUNK_SIZE when a provider rejects the window.
+// Start with 1000-block windows; shrink to as low as 10 if the provider rejects the range.
 const INITIAL_CHUNK_SIZE = 1000;
 const MIN_CHUNK_SIZE = 10;
-const MAX_CHUNK_SIZE = 1000;
+const MAX_CHUNK_SIZE = 50_000;
 const GROW_AFTER_EMPTY_CHUNKS = 3;
 const MAX_RETRIES = 8;
 
@@ -23,9 +22,7 @@ export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// Concatenates every message-like field instead of picking one: ethers v6 sometimes buries the useful
-// detail (e.g. a batched "Too Many Requests") in `.message` while `.shortMessage` is a generic label,
-// so matching against only the first truthy field can miss it.
+// Join all error message fields so rate-limit text isn't missed (ethers v5 vs v6).
 function errorMessage(err: unknown): string {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const anyErr = err as any;
@@ -34,7 +31,7 @@ function errorMessage(err: unknown): string {
     .join(' ');
 }
 
-// True for a transport-level failure (rate limit/timeout/network error) — false for a call that executed and reverted, or any other error.
+// True for rate-limit / timeout / network errors; false for reverts and other failures.
 export function isTransientRpcError(err: unknown): boolean {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const anyErr = err as any;
@@ -49,8 +46,7 @@ interface AdaptiveScanState {
   consecutiveEmpty: number;
 }
 
-// Fetches one window. On range-too-large / transient errors, mutates state for the next attempt and
-// returns undefined so the caller can retry the same cursor without advancing. Other errors rethrow.
+// Fetch one block window. Returns undefined to retry the same range; rethrows hard errors.
 async function requestLogsWindow(
   provider: Provider | ethersV6.Provider,
   address: string,
@@ -67,8 +63,7 @@ async function requestLogsWindow(
   } catch (err) {
     const message = errorMessage(err);
     if (RANGE_TOO_LARGE_ERROR_RE.test(message) && state.chunkSize > MIN_CHUNK_SIZE) {
-      // Cap growth to the reduced size, not rejected-1 — otherwise empty-window growth climbs
-      // back to near the failed range and keeps re-triggering the same provider limit.
+      // Shrink the window and remember the cap so we don't grow past the provider limit again.
       const reducedChunkSize = Math.max(Math.floor(state.chunkSize / 4), MIN_CHUNK_SIZE);
       state.maxChunkSize = Math.min(state.maxChunkSize, reducedChunkSize);
       state.chunkSize = reducedChunkSize;
@@ -84,7 +79,7 @@ async function requestLogsWindow(
   }
 }
 
-// After a successful window: grow chunk size on quiet stretches, otherwise reset the empty streak.
+// Grow the window after several empty chunks; reset when logs are found.
 function adaptChunkSizeAfterSuccess(state: AdaptiveScanState, logCount: number): void {
   if (logCount === 0) {
     state.consecutiveEmpty++;
@@ -97,11 +92,8 @@ function adaptChunkSizeAfterSuccess(state: AdaptiveScanState, logCount: number):
   }
 }
 
-// Adaptively-chunked backward eth_getLogs scan for one address, from fromBlock down to toBlockFloor: one
-// address-scoped call per window instead of several unranged per-event-name filters, growing the window on
-// quiet stretches and shrinking it (remembering the cap) when the provider rejects a range as too large.
-// Pass an exact toBlockFloor to stop by block, or toBlockFloor: 0 with an isMintLog predicate to stop by
-// log content when the floor isn't known upfront.
+// Scan eth_getLogs backward from fromBlock to toBlockFloor (or until isMintLog matches).
+// Window size grows on empty ranges and shrinks when the provider says the range is too large.
 export const scanLogsBackward = async (
   provider: Provider | ethersV6.Provider,
   address: string,
@@ -134,6 +126,6 @@ export const scanLogsBackward = async (
     cursor = chunkStart - 1;
   }
 
-  // Chunks were collected latest-first; each chunk is already ascending internally.
+  // Collected newest-first; reverse so the result is oldest → newest.
   return chunkGroups.reverse().flat();
 };
