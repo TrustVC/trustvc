@@ -210,8 +210,32 @@ const fetchLogsUnranged = async (
 };
 
 /**
+ * Prefer ObligationEscrow.mintBlock() as the scan floor when available; otherwise 0
+ * (scanLogsBackward still applies DEFAULT_MAX_BLOCKS_TO_SCAN).
+ * @param {ethers.Contract | ethersV6.Contract} titleEscrowContract - Escrow contract
+ * @param {number} latestBlock - Current chain tip
+ * @returns {Promise<number>} - Inclusive lower bound for backward scan
+ */
+const resolveEscrowScanFloor = async (
+  titleEscrowContract: ethers.Contract | ethersV6.Contract,
+  latestBlock: number,
+): Promise<number> => {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mintBlock = Number(await (titleEscrowContract as any).mintBlock());
+    if (Number.isFinite(mintBlock) && mintBlock > 0 && mintBlock <= latestBlock) {
+      return mintBlock;
+    }
+  } catch {
+    // Title Escrow V5 and some providers do not expose mintBlock.
+  }
+  return 0;
+};
+
+/**
  * Infura path: adaptive backward scan until mint (paid-tier windows first, Free-tier ≤10 on limit errors).
- * Bounded by DEFAULT_MAX_BLOCKS_TO_SCAN inside scanLogsBackward so a missing mint cannot walk to genesis.
+ * Prefers ObligationEscrow.mintBlock() as the floor; otherwise applies DEFAULT_MAX_BLOCKS_TO_SCAN.
+ * Throws when the scan is truncated without a mint/status marker so callers never get a partial chain.
  * @param {Provider | ethersV6.Provider} provider - Infura ethers provider
  * @param {ethers.Contract | ethersV6.Contract} titleEscrowContract - Escrow contract
  * @param {string} titleEscrowAddress - Escrow address
@@ -223,6 +247,7 @@ const fetchLogsInfuraChunked = async (
   titleEscrowAddress: string,
 ): Promise<ethers.providers.Log[] | ethersV6.Log[]> => {
   const latestBlock = await provider.getBlockNumber();
+  const scanFloor = await resolveEscrowScanFloor(titleEscrowContract, latestBlock);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const isMintLog = (log: any) => {
     try {
@@ -237,14 +262,28 @@ const fetchLogsInfuraChunked = async (
       return false;
     }
   };
-  return scanLogsBackward(
+
+  const result = await scanLogsBackward(
     provider,
     titleEscrowAddress,
     latestBlock,
-    0,
+    scanFloor,
     isMintLog,
     DEFAULT_MAX_BLOCKS_TO_SCAN,
   );
+
+  if (!result.foundMint && result.truncated) {
+    throw new Error(
+      'Unable to locate TokenReceived (mint) or StatusInitialized within the Infura scan budget; refusing incomplete endorsement chain',
+    );
+  }
+  if (!result.foundMint) {
+    throw new Error(
+      'Unable to locate TokenReceived (mint) or StatusInitialized before the escrow scan floor; refusing incomplete endorsement chain',
+    );
+  }
+
+  return result.logs;
 };
 
 const mapParsedLogsToEvents = (
