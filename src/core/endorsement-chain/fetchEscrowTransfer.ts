@@ -11,6 +11,7 @@ import {
 } from '../../token-registry-v5/contracts';
 import { getEthersContractFromProvider } from '../../utils/ethers';
 import { isInfuraProvider, scanLogsBackward } from '../endorsement-chain/fetchLogsChunked';
+import { DEFAULT_MAX_BLOCKS_TO_SCAN } from '../../constants';
 import {
   ParsedLog,
   TitleEscrowTransferEvent,
@@ -210,6 +211,7 @@ const fetchLogsUnranged = async (
 
 /**
  * Infura path: adaptive backward scan until mint (paid-tier windows first, Free-tier ≤10 on limit errors).
+ * Bounded by DEFAULT_MAX_BLOCKS_TO_SCAN inside scanLogsBackward so a missing mint cannot walk to genesis.
  * @param {Provider | ethersV6.Provider} provider - Infura ethers provider
  * @param {ethers.Contract | ethersV6.Contract} titleEscrowContract - Escrow contract
  * @param {string} titleEscrowAddress - Escrow address
@@ -235,7 +237,14 @@ const fetchLogsInfuraChunked = async (
       return false;
     }
   };
-  return scanLogsBackward(provider, titleEscrowAddress, latestBlock, 0, isMintLog);
+  return scanLogsBackward(
+    provider,
+    titleEscrowAddress,
+    latestBlock,
+    0,
+    isMintLog,
+    DEFAULT_MAX_BLOCKS_TO_SCAN,
+  );
 };
 
 const mapParsedLogsToEvents = (

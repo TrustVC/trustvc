@@ -1,25 +1,17 @@
 import { ethers } from 'ethers';
 import { ethers as ethersV6 } from 'ethersV6';
 import { Provider } from '@ethersproject/abstract-provider';
-
-// Infura Free-tier eth_getLogs: max 10-block window (-32600).
-// Example: "Under the Free tier plan, you can make eth_getLogs requests with up to a 10 block difference..."
-const INFURA_FREE_TIER_RANGE_RE =
-  /free tier plan|10\s*block difference|block range should work:\s*\[0x0,\s*0x9\]|-32600/i;
-
-// Also shrink for dense windows (result-count / response-size caps).
-const RANGE_TOO_LARGE_ERROR_RE =
-  /query returned more than|range.*(too large|exceed)|(too large|exceed).*range|block range|10\s*block|block difference|free tier plan|10,?000 results|response size|log response size|-32600|-32012/i;
-
-const INFURA_HOST_RE = /infura\.io/i;
-
-// Try paid-tier sized windows first; Free-tier errors snap the cap to 10.
-const INITIAL_CHUNK_SIZE = 10_000;
-const FREE_TIER_MAX_CHUNK_SIZE = 10;
-const MIN_CHUNK_SIZE = 1;
-const MAX_CHUNK_SIZE = 50_000;
-// Parallel Free-tier windows once the cap is ≤10 (no adaptive shrink mid-batch).
-const FREE_TIER_CONCURRENCY = 8;
+import {
+  DEFAULT_MAX_BLOCKS_TO_SCAN,
+  FREE_TIER_CONCURRENCY,
+  FREE_TIER_MAX_CHUNK_SIZE,
+  INFURA_FREE_TIER_RANGE_RE,
+  INFURA_HOST_RE,
+  INITIAL_CHUNK_SIZE,
+  MAX_CHUNK_SIZE,
+  MIN_CHUNK_SIZE,
+  RANGE_TOO_LARGE_ERROR_RE,
+} from '../../constants';
 
 function errorMessage(err: unknown): string {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -167,12 +159,13 @@ const scanLogsBackwardParallel = async (
 /**
  * Infura-only backward eth_getLogs scanner. Starts near paid Infura caps, shrinks on
  * range/result-size limits (Free-tier snaps max to 10), then finishes with parallel
- * Free-tier windows. Stops at toBlockFloor or isMintLog.
+ * Free-tier windows. Stops at toBlockFloor, maxBlocksToScan budget, or isMintLog.
  * @param {Provider | ethersV6.Provider} provider - Infura ethers provider
  * @param {string} address - Contract address to scan
  * @param {number} fromBlock - Latest block to start from
  * @param {number} toBlockFloor - Earliest block to stop at
  * @param {(log: any) => boolean} [isMintLog] - Optional mint detector to stop early
+ * @param {number} [maxBlocksToScan=DEFAULT_MAX_BLOCKS_TO_SCAN] - Max blocks to walk backward from fromBlock
  * @returns {Promise<ethers.providers.Log[] | ethersV6.Log[]>} - Logs oldest → newest
  */
 export const scanLogsBackward = async (
@@ -182,6 +175,7 @@ export const scanLogsBackward = async (
   toBlockFloor: number,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   isMintLog?: (log: any) => boolean,
+  maxBlocksToScan: number = DEFAULT_MAX_BLOCKS_TO_SCAN,
 ): Promise<ethers.providers.Log[] | ethersV6.Log[]> => {
   // Paid-tier chunks collected newest-first while walking backward.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -190,23 +184,24 @@ export const scanLogsBackward = async (
     chunkSize: Math.min(INITIAL_CHUNK_SIZE, MAX_CHUNK_SIZE),
     maxChunkSize: MAX_CHUNK_SIZE,
   };
+  const effectiveFloor = Math.max(toBlockFloor, Math.max(0, fromBlock - maxBlocksToScan));
   let cursor = fromBlock;
 
-  while (cursor >= toBlockFloor) {
+  while (cursor >= effectiveFloor) {
     // Free-tier: finish remaining (older) range with parallel fixed windows.
     if (state.maxChunkSize <= FREE_TIER_MAX_CHUNK_SIZE) {
       const olderLogs = await scanLogsBackwardParallel(
         provider,
         address,
         cursor,
-        toBlockFloor,
+        effectiveFloor,
         state.chunkSize,
         isMintLog,
       );
       return [...olderLogs, ...newerChunkGroups.reverse().flat()];
     }
 
-    const chunkStart = Math.max(cursor - state.chunkSize + 1, toBlockFloor);
+    const chunkStart = Math.max(cursor - state.chunkSize + 1, effectiveFloor);
     try {
       const chunkLogs = await getLogsRange(provider, address, chunkStart, cursor);
       if (isMintLog) {
@@ -226,7 +221,7 @@ export const scanLogsBackward = async (
       throw err;
     }
 
-    if (chunkStart <= toBlockFloor) break;
+    if (chunkStart <= effectiveFloor) break;
     cursor = chunkStart - 1;
   }
 
