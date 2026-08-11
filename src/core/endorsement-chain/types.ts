@@ -20,6 +20,8 @@ export type TransferEventType = TokenTransferEventType | TitleEscrowTransferEven
 export interface TransferBaseEvent {
   type: TransferEventType;
   transactionIndex: number;
+  /** Log index within the block; used to keep same-tx events in emission order. */
+  logIndex?: number;
   holder?: string;
   owner?: string;
   transactionHash: string;

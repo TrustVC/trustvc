@@ -55,12 +55,30 @@ export const mergeTransfersV4 = (transferEvents: TransferBaseEvent[]): TransferB
     }
     throw new Error('Invalid hash, update your configuration');
   });
-  return mergedTransaction;
+  return sortLogChain(mergedTransaction);
+};
+
+const isObligationStatusEvent = (type: TransferEventType): boolean =>
+  type === 'STATUS_INITIALIZED' ||
+  type === 'STATUS_ACCEPTED' ||
+  type === 'STATUS_REJECTED' ||
+  type === 'STATUS_DISCHARGED';
+
+const earliestLogIndex = (events: TransferBaseEvent[]): number | undefined => {
+  const indexes = events
+    .map((event) => event.logIndex)
+    .filter((logIndex): logIndex is number => logIndex !== undefined);
+  return indexes.length > 0 ? Math.min(...indexes) : undefined;
 };
 
 export const mergeTransfersV5 = (transferEvents: TransferBaseEvent[]): TransferBaseEvent[] => {
+  // ObligationEscrow co-emits status + transfer/shred in one tx; keep STATUS_* rows so
+  // chronological order (block → tx → logIndex) can replay the on-chain sequence.
+  const statusEvents = transferEvents.filter((event) => isObligationStatusEvent(event.type));
+  const mergeableEvents = transferEvents.filter((event) => !isObligationStatusEvent(event.type));
+
   const groupedEventsDict: Dictionary<TransferBaseEvent[]> = groupBy(
-    transferEvents,
+    mergeableEvents,
     'transactionHash',
   );
   const transactionHashValues = Object.values(groupedEventsDict);
@@ -75,16 +93,17 @@ export const mergeTransfersV5 = (transferEvents: TransferBaseEvent[]): TransferB
        * for type TRANSFER_OWNERS, it does not exist, both TRANSFER_HOLDER and TRANSFER_BENEFICIARY will have same details, hence default to return first event
        */
       const base = groupedEvents.find((event) => event.type === type) ?? groupedEvents[0];
-      return [{ ...base, owner, holder, type }];
+      return [{ ...base, owner, holder, type, logIndex: earliestLogIndex(groupedEvents) }];
     }
 
     throw new Error('Invalid hash, update your configuration');
   });
-  return mergedTransaction;
+  return sortLogChain([...statusEvents, ...mergedTransaction]);
 };
 
 const identifyEventTypeFromLogs = (groupedEvents: TransferBaseEvent[]): TransferEventType => {
-  // Same list as the V4/V5-only check, extended with the Obligation STATUS_* types — but checked in
+  // Prefer mint/return/terminal transfer types over STATUS_* when both appear in the same
+  // collapsed group (STATUS rows are normally kept separate by mergeTransfersV5).
   for (const type of [
     'INITIAL',
     'RETURNED_TO_ISSUER',
@@ -118,10 +137,15 @@ const identifyEventTypeFromLogs = (groupedEvents: TransferBaseEvent[]): Transfer
 };
 
 /*
-  Sort based on blockNumber
+  Chronological chain order matching on-chain creation:
+  blockNumber → transactionIndex → logIndex (emission order within a tx).
 */
 export const sortLogChain = (logChain: TransferBaseEvent[]): TransferBaseEvent[] => {
   return logChain.sort((a, b) => {
-    return a.blockNumber - b.blockNumber;
+    if (a.blockNumber !== b.blockNumber) return a.blockNumber - b.blockNumber;
+    if (a.transactionIndex !== b.transactionIndex) {
+      return a.transactionIndex - b.transactionIndex;
+    }
+    return (a.logIndex ?? 0) - (b.logIndex ?? 0);
   });
 };

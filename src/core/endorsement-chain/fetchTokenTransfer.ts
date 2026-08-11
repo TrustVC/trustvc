@@ -81,6 +81,8 @@ const formatTokenTransferEvent = (
     blockNumber: event.blockNumber,
     transactionHash: event.transactionHash,
     transactionIndex: event.transactionIndex,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    logIndex: (event as any).logIndex ?? (event as any).index,
   };
 };
 

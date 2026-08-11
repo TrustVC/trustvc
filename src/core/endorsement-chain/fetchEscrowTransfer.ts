@@ -87,14 +87,25 @@ const getParsedLogs = (
   logs: ethers.providers.Log[] | ethersV6.Log[],
   titleEscrow: TitleEscrowV4 | TitleEscrowV5,
 ): ParsedLog[] => {
-  return logs.map((log) => {
+  // Address-scoped scans can include topics the ABI cannot decode; skip those instead of failing the chain.
+  return logs.flatMap((log) => {
     if (!log.blockNumber) throw new Error('Block number not present');
-    return {
-      ...log,
+    try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ...(titleEscrow.interface as any).parseLog(log),
-    };
+      const parsed = (titleEscrow.interface as any).parseLog(log);
+      if (!parsed) return [];
+      return [{ ...log, ...parsed }];
+    } catch {
+      return [];
+    }
   });
+};
+
+const resolveLogIndex = (event: ParsedLog): number | undefined => {
+  // ethers v5 uses logIndex; ethers v6 Log uses index.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const anyEvent = event as any;
+  return anyEvent.logIndex ?? anyEvent.index;
 };
 
 /*
@@ -113,6 +124,7 @@ const fetchOwnerTransfers = async (
     blockNumber: event.blockNumber,
     transactionHash: event.transactionHash,
     transactionIndex: event.transactionIndex,
+    logIndex: resolveLogIndex(event),
   }));
 };
 
@@ -131,6 +143,7 @@ const fetchHolderTransfers = async (
     holder: event.args.toHolder,
     transactionHash: event.transactionHash,
     transactionIndex: event.transactionIndex,
+    logIndex: resolveLogIndex(event),
   }));
 };
 
@@ -178,6 +191,7 @@ const fetchAllTransfers = async (
 
   return holderChangeLogsParsed
     .map((event) => {
+      const logIndex = resolveLogIndex(event);
       if (event?.name === 'HolderTransfer') {
         return {
           type: 'TRANSFER_HOLDER',
@@ -185,6 +199,7 @@ const fetchAllTransfers = async (
           holder: event.args.toHolder,
           transactionHash: event.transactionHash,
           transactionIndex: event.transactionIndex,
+          logIndex,
           remark: event.args?.remark,
         } as TitleEscrowTransferEvent;
       } else if (event?.name === 'BeneficiaryTransfer') {
@@ -194,6 +209,7 @@ const fetchAllTransfers = async (
           blockNumber: event.blockNumber,
           transactionHash: event.transactionHash,
           transactionIndex: event.transactionIndex,
+          logIndex,
           remark: event.args?.remark,
         } as TitleEscrowTransferEvent;
       } else if (event?.name === 'TokenReceived') {
@@ -209,6 +225,7 @@ const fetchAllTransfers = async (
           blockNumber: event.blockNumber,
           transactionHash: event.transactionHash,
           transactionIndex: event.transactionIndex,
+          logIndex,
           remark: event.args?.remark,
         } as TokenTransferEvent;
       } else if (event?.name === 'ReturnToIssuer') {
@@ -220,6 +237,7 @@ const fetchAllTransfers = async (
           to: tokenRegistryAddress,
           transactionHash: event.transactionHash,
           transactionIndex: event.transactionIndex,
+          logIndex,
           remark: event.args?.remark,
         } as TokenTransferEvent;
       } else if (event?.name === 'Nomination') {
@@ -230,6 +248,7 @@ const fetchAllTransfers = async (
           blockNumber: event.blockNumber,
           transactionHash: event.transactionHash,
           transactionIndex: event.transactionIndex,
+          logIndex,
           remark: event.args?.remark,
         } as TitleEscrowTransferEvent;
       } else if (event?.name === 'RejectTransferBeneficiary') {
@@ -238,6 +257,7 @@ const fetchAllTransfers = async (
           blockNumber: event.blockNumber,
           transactionHash: event.transactionHash,
           transactionIndex: event.transactionIndex,
+          logIndex,
           remark: event.args?.remark,
         } as TitleEscrowTransferEvent;
       } else if (event?.name === 'RejectTransferHolder') {
@@ -246,6 +266,7 @@ const fetchAllTransfers = async (
           blockNumber: event.blockNumber,
           transactionHash: event.transactionHash,
           transactionIndex: event.transactionIndex,
+          logIndex,
           remark: event.args?.remark,
         } as TitleEscrowTransferEvent;
       } else if (event?.name === 'Shred') {
@@ -253,9 +274,10 @@ const fetchAllTransfers = async (
           type: 'RETURN_TO_ISSUER_ACCEPTED',
           blockNumber: event.blockNumber,
           from: tokenRegistryAddress,
-          to: '0x00000000000000000000000000000000000dead',
+          to: '0x000000000000000000000000000000000000dEaD',
           transactionHash: event.transactionHash,
           transactionIndex: event.transactionIndex,
+          logIndex,
           remark: event.args?.remark,
         } as TokenTransferEvent;
       } else if (event?.name === 'StatusInitialized') {
@@ -264,30 +286,36 @@ const fetchAllTransfers = async (
           blockNumber: event.blockNumber,
           transactionHash: event.transactionHash,
           transactionIndex: event.transactionIndex,
-          remark: event.args?.remark,
+          logIndex,
         } as TitleEscrowTransferEvent;
       } else if (event?.name === 'StatusAccepted') {
         return {
           type: 'STATUS_ACCEPTED',
           blockNumber: event.blockNumber,
+          holder: event.args.holder,
           transactionHash: event.transactionHash,
           transactionIndex: event.transactionIndex,
+          logIndex,
           remark: event.args?.remark,
         } as TitleEscrowTransferEvent;
       } else if (event?.name === 'StatusRejected') {
         return {
           type: 'STATUS_REJECTED',
           blockNumber: event.blockNumber,
+          holder: event.args.holder,
           transactionHash: event.transactionHash,
           transactionIndex: event.transactionIndex,
+          logIndex,
           remark: event.args?.remark,
         } as TitleEscrowTransferEvent;
       } else if (event?.name === 'StatusDischarged') {
         return {
           type: 'STATUS_DISCHARGED',
           blockNumber: event.blockNumber,
+          owner: event.args.beneficiary,
           transactionHash: event.transactionHash,
           transactionIndex: event.transactionIndex,
+          logIndex,
           remark: event.args?.remark,
         } as TitleEscrowTransferEvent;
       }
