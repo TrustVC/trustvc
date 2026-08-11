@@ -7,7 +7,7 @@ export const INFURA_FREE_TIER_RANGE_RE =
 
 // Also shrink for dense windows (result-count / response-size caps).
 export const RANGE_TOO_LARGE_ERROR_RE =
-  /query returned more than|range.*(too large|exceed)|(too large|exceed).*range|block range|10\s*block|block difference|free tier plan|10,?000 results|response size|log response size|-32600|-32012/i;
+  /query returned more than|too large|block range|10,?000 results|response size|-32012|-32600|10\s*block|free tier|block difference/i;
 
 export const INFURA_HOST_RE = /infura\.io/i;
 

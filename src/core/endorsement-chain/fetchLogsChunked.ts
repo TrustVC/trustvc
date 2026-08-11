@@ -16,15 +16,21 @@ import {
 function errorMessage(err: unknown): string {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const anyErr = err as any;
-  return [
+  const parts = [
     anyErr?.message,
     anyErr?.shortMessage,
     anyErr?.error?.message,
     anyErr?.info?.error?.message,
-    String(err),
-  ]
-    .filter(Boolean)
-    .join(' ');
+  ].filter((part): part is string => typeof part === 'string' && part.length > 0);
+
+  if (parts.length > 0) return parts.join(' ');
+  if (typeof err === 'string') return err;
+  if (err instanceof Error) return err.message;
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return 'Unknown error';
+  }
 }
 
 // Best-effort RPC URL from ethers v5 / v6 / wrapped providers.
@@ -84,6 +90,39 @@ function findMintIndex(logs: any[], isMintLog: (log: any) => boolean): number {
 }
 
 /**
+ * Newest-first chunk groups → oldest→newest flat log list.
+ * @param {any[][]} chunkGroups - Log groups collected newest-first
+ * @returns {any[]} - Flattened logs oldest → newest
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function flattenOldestFirst(chunkGroups: any[][]): any[] {
+  const oldestFirstGroups = chunkGroups.toReversed();
+  return oldestFirstGroups.flat();
+}
+
+/**
+ * Push mint-truncated chunk when a mint marker is present.
+ * @param {any[]} chunkLogs - Logs for one window
+ * @param {(log: any) => boolean | undefined} isMintLog - Optional mint detector
+ * @param {any[][]} groups - Output groups (mutated)
+ * @returns {boolean} - Whether a mint slice was pushed
+ */
+function pushMintSliceIfFound(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  chunkLogs: any[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  isMintLog: ((log: any) => boolean) | undefined,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  groups: any[][],
+): boolean {
+  if (!isMintLog) return false;
+  const mintIndex = findMintIndex(chunkLogs, isMintLog);
+  if (mintIndex < 0) return false;
+  groups.push(chunkLogs.slice(mintIndex));
+  return true;
+}
+
+/**
  * Free-tier path: fetch up to FREE_TIER_CONCURRENCY fixed windows in parallel while walking
  * backward, then process newest→oldest so mint truncation stays correct.
  * @param {Provider | ethersV6.Provider} provider - Infura ethers provider
@@ -133,15 +172,10 @@ const scanLogsBackwardParallel = async (
     }
 
     let foundMint = false;
-    for (let i = 0; i < results.length; i++) {
-      const chunkLogs = results[i];
-      if (isMintLog) {
-        const mintIndex = findMintIndex(chunkLogs, isMintLog);
-        if (mintIndex >= 0) {
-          chunkGroups.push(chunkLogs.slice(mintIndex));
-          foundMint = true;
-          break;
-        }
+    for (const chunkLogs of results) {
+      if (pushMintSliceIfFound(chunkLogs, isMintLog, chunkGroups)) {
+        foundMint = true;
+        break;
       }
       chunkGroups.push(chunkLogs);
     }
@@ -153,7 +187,7 @@ const scanLogsBackwardParallel = async (
     cursor = oldest.start - 1;
   }
 
-  return chunkGroups.reverse().flat();
+  return flattenOldestFirst(chunkGroups);
 };
 
 /**
@@ -198,18 +232,14 @@ export const scanLogsBackward = async (
         state.chunkSize,
         isMintLog,
       );
-      return [...olderLogs, ...newerChunkGroups.reverse().flat()];
+      return [...olderLogs, ...flattenOldestFirst(newerChunkGroups)];
     }
 
     const chunkStart = Math.max(cursor - state.chunkSize + 1, effectiveFloor);
     try {
       const chunkLogs = await getLogsRange(provider, address, chunkStart, cursor);
-      if (isMintLog) {
-        const mintIndex = findMintIndex(chunkLogs, isMintLog);
-        if (mintIndex >= 0) {
-          newerChunkGroups.push(chunkLogs.slice(mintIndex));
-          return newerChunkGroups.reverse().flat();
-        }
+      if (pushMintSliceIfFound(chunkLogs, isMintLog, newerChunkGroups)) {
+        return flattenOldestFirst(newerChunkGroups);
       }
       newerChunkGroups.push(chunkLogs);
     } catch (err) {
@@ -225,5 +255,5 @@ export const scanLogsBackward = async (
     cursor = chunkStart - 1;
   }
 
-  return newerChunkGroups.reverse().flat();
+  return flattenOldestFirst(newerChunkGroups);
 };
