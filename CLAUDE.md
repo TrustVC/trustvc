@@ -105,6 +105,11 @@ in step.
 
 ## Gotchas (hard-won — add to this list)
 
+- **Endorsement chain has one public path.** `fetchEndorsementChain` and
+  `fetchEscrowTransfersV5` auto-detect ObligationEscrow (status events included).
+  Do **not** re-add `fetchObligationEndorsementChain`, `fetchEscrowTransfersObligation`,
+  or `ObligationEscrowInterface`. Callers migrate to `fetchEndorsementChain`,
+  `fetchEscrowTransfersV5`, and `v5SupportInterfaceIds.ObligationEscrow`.
 - **Selective disclosure keeps the subject `id`.** If a credential was issued *with* a
   `credentialSubject.id`, deriving it (even revealing only other fields) **retains that
   id**. To test/produce a credential with *no* subject id, it must be issued without one.

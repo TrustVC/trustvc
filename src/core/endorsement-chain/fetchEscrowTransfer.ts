@@ -65,6 +65,13 @@ export const fetchEscrowTransfersV5 = async (
   );
 };
 
+const isContractInterfaceCallException = (err: unknown): boolean => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const code = (err as any)?.code;
+  // CALL_EXCEPTION: contract revert / missing ERC-165. BAD_DATA: ethers v6 empty/undecodable return.
+  return code === 'CALL_EXCEPTION' || code === 'BAD_DATA';
+};
+
 const supportsObligationEscrow = async (
   contractAddress: string,
   provider: Provider | ethersV6.Provider,
@@ -75,8 +82,9 @@ const supportsObligationEscrow = async (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const contract = new Contract(contractAddress, abi, provider as any);
     return await contract.supportsInterface(supportInterfaceIdsV5.ObligationEscrow);
-  } catch {
-    return false;
+  } catch (err) {
+    if (isContractInterfaceCallException(err)) return false;
+    throw err;
   }
 };
 
@@ -234,13 +242,18 @@ const fetchLogsChunked = async (
     }
   };
 
+  const maxBlocksToScan =
+    scanFloor > 0
+      ? Math.max(DEFAULT_MAX_BLOCKS_TO_SCAN, latestBlock - scanFloor)
+      : DEFAULT_MAX_BLOCKS_TO_SCAN;
+
   const result = await scanLogsBackward(
     provider,
     titleEscrowAddress,
     latestBlock,
     scanFloor,
     isMintLog,
-    DEFAULT_MAX_BLOCKS_TO_SCAN,
+    maxBlocksToScan,
   );
 
   if (!result.foundMint && result.truncated) {

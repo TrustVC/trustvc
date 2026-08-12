@@ -80,12 +80,28 @@ function shrinkForRangeLimit(state: AdaptiveScanState, message: string): void {
   state.chunkSize = Math.min(state.chunkSize, state.maxChunkSize);
 }
 
+class BudgetExhaustedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'BudgetExhaustedError';
+  }
+}
+
+function isBudgetExhaustedError(err: unknown): boolean {
+  return (
+    err instanceof BudgetExhaustedError ||
+    (err instanceof Error && err.name === 'BudgetExhaustedError')
+  );
+}
+
 function assertBudgets(budget: FreeTierBudget, upcoming = 0): void {
   if (Date.now() >= budget.deadlineAt) {
-    throw new Error(`RPC scan time budget exhausted after ${FREE_TIER_MAX_DURATION_MS}ms`);
+    throw new BudgetExhaustedError(
+      `RPC scan time budget exhausted after ${FREE_TIER_MAX_DURATION_MS}ms`,
+    );
   }
   if (budget.requestsUsed + upcoming > FREE_TIER_MAX_REQUESTS) {
-    throw new Error(
+    throw new BudgetExhaustedError(
       `RPC scan request budget exhausted (${FREE_TIER_MAX_REQUESTS} eth_getLogs calls)`,
     );
   }
@@ -95,12 +111,18 @@ function withDeadline<T>(promise: Promise<T>, deadlineAt: number): Promise<T> {
   const remaining = deadlineAt - Date.now();
   if (remaining <= 0) {
     return Promise.reject(
-      new Error(`RPC scan time budget exhausted after ${FREE_TIER_MAX_DURATION_MS}ms`),
+      new BudgetExhaustedError(
+        `RPC scan time budget exhausted after ${FREE_TIER_MAX_DURATION_MS}ms`,
+      ),
     );
   }
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => {
-      reject(new Error(`RPC scan time budget exhausted after ${FREE_TIER_MAX_DURATION_MS}ms`));
+      reject(
+        new BudgetExhaustedError(
+          `RPC scan time budget exhausted after ${FREE_TIER_MAX_DURATION_MS}ms`,
+        ),
+      );
     }, remaining);
     promise.then(
       (value) => {
@@ -225,8 +247,9 @@ function processSettledBatch(
   settled: PromiseSettledResult<any[]>[],
   windowSize: number,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): { results: any[][]; rangeTooLarge: boolean; hardError?: unknown } {
+): { results: any[][]; rangeTooLarge: boolean; budgetExhausted: boolean; hardError?: unknown } {
   let rangeTooLarge = false;
+  let budgetExhausted = false;
   let hardError: unknown;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const results: any[][] = new Array(settled.length);
@@ -237,6 +260,10 @@ function processSettledBatch(
       results[i] = outcome.value;
       continue;
     }
+    if (isBudgetExhaustedError(outcome.reason)) {
+      budgetExhausted = true;
+      continue;
+    }
     const message = errorMessage(outcome.reason);
     if (RANGE_TOO_LARGE_ERROR_RE.test(message) && windowSize > MIN_CHUNK_SIZE) {
       rangeTooLarge = true;
@@ -245,7 +272,7 @@ function processSettledBatch(
     }
   }
 
-  return { results, rangeTooLarge, hardError };
+  return { results, rangeTooLarge, budgetExhausted, hardError };
 }
 
 function collectBatchChunks(
@@ -257,6 +284,7 @@ function collectBatchChunks(
   chunkGroups: any[][],
 ): boolean {
   for (const chunkLogs of results) {
+    if (!chunkLogs) continue;
     if (pushMintSliceIfFound(chunkLogs, isMintLog, chunkGroups)) {
       return true;
     }
@@ -285,21 +313,34 @@ const scanLogsBackwardParallel = async (
 
   while (cursor >= toBlockFloor) {
     const windows = buildParallelWindows(cursor, toBlockFloor, windowSize);
-    assertBudgets(budget, windows.length);
+    try {
+      assertBudgets(budget, windows.length);
+    } catch (err) {
+      if (isBudgetExhaustedError(err)) {
+        return { logs: flattenOldestFirst(chunkGroups), foundMint: false, truncated: true };
+      }
+      throw err;
+    }
 
     const settled = await Promise.allSettled(
       windows.map(({ start, end }) => getLogsRangeFreeTier(provider, address, start, end, budget)),
     );
-    const { results, rangeTooLarge, hardError } = processSettledBatch(settled, windowSize);
+    const { results, rangeTooLarge, budgetExhausted, hardError } = processSettledBatch(
+      settled,
+      windowSize,
+    );
 
     if (hardError) throw hardError;
-    if (rangeTooLarge) {
+    if (rangeTooLarge && !budgetExhausted) {
       windowSize = Math.max(Math.floor(windowSize / 4), MIN_CHUNK_SIZE);
       continue;
     }
 
     if (collectBatchChunks(results, isMintLog, chunkGroups)) {
       return { logs: flattenOldestFirst(chunkGroups), foundMint: true, truncated: false };
+    }
+    if (budgetExhausted) {
+      return { logs: flattenOldestFirst(chunkGroups), foundMint: false, truncated: true };
     }
 
     const oldest = windows[windows.length - 1];
