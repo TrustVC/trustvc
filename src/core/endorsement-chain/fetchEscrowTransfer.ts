@@ -68,8 +68,7 @@ export const fetchEscrowTransfersV5 = async (
 };
 
 const isContractInterfaceCallException = (err: unknown): boolean => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const code = (err as any)?.code;
+  const code = (err as { code?: unknown } | null | undefined)?.code;
   // CALL_EXCEPTION: contract revert / missing ERC-165. BAD_DATA: ethers v6 empty/undecodable return.
   return code === 'CALL_EXCEPTION' || code === 'BAD_DATA';
 };
