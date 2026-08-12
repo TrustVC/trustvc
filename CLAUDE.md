@@ -29,6 +29,7 @@ Source map (`src/`):
 | Path | What |
 | --- | --- |
 | `src/core/verify.ts` | **`verifyDocument()`** — the unified verify entry point (OA + W3C). |
+| `src/core/endorsement-chain/useEndorsementChain.ts` | **`fetchEndorsementChain()`** — unified V4/V5/Obligation escrow path (auto-detects contract type). |
 | `src/verify/verify.ts` | `verificationBuilder`, `openAttestationVerifiers`, `w3cVerifiers`. |
 | `src/verify/fragments/` | Verifier fragments by dimension: `document-integrity`, `document-status`, `issuer-identity`, `presentation`. |
 | `src/w3c/` | The W3C surface: `sign`, `derive`, `verify`, **`presentation`** (VP wrappers), `types`. |

@@ -206,6 +206,11 @@ export const fetchEndorsementChain = async (
   const resolvedTitleEscrowAddress =
     titleEscrowAddress ?? (await getTitleEscrowAddress(tokenRegistryAddress, tokenId, provider));
 
+  // Migration: obligation/BoE titles are handled here via supportsInterface detection.
+  // Removed public aliases — use fetchEndorsementChain (this function),
+  // fetchEscrowTransfersV5, and supportInterfaceIdsV5.ObligationEscrow instead of
+  // fetchObligationEndorsementChain, fetchEscrowTransfersObligation, or
+  // ObligationEscrowInterface.
   const [isV4, isV5, isObligation] = await Promise.all([
     isTitleEscrowVersion({
       titleEscrowAddress: resolvedTitleEscrowAddress,
