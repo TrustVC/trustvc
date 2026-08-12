@@ -47,8 +47,10 @@ export const fetchEscrowTransfersV5 = async (
   provider: Provider | ethersV6.Provider,
   titleEscrowAddress: string,
   tokenRegistryAddress?: string,
+  includeObligationStatus?: boolean,
 ): Promise<TransferBaseEvent[]> => {
-  const isObligationEscrow = await supportsObligationEscrow(titleEscrowAddress, provider);
+  const isObligationEscrow =
+    includeObligationStatus ?? (await supportsObligationEscrow(titleEscrowAddress, provider));
   const Contract = getEthersContractFromProvider(provider);
   const titleEscrowContract = new Contract(
     titleEscrowAddress,

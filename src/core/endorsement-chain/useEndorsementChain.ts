@@ -242,6 +242,7 @@ export const fetchEndorsementChain = async (
       provider,
       resolvedTitleEscrowAddress,
       tokenRegistryAddress,
+      isObligation,
     );
     transferEvents = mergeTransfersV5(titleEscrowLogs);
   }
