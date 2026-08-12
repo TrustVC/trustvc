@@ -10,7 +10,9 @@ import {
   ObligationEscrow__factory,
 } from '../../token-registry-v5/contracts';
 import { supportInterfaceIds as supportInterfaceIdsV5 } from '../../token-registry-v5/supportInterfaceIds';
+import { DEFAULT_MAX_BLOCKS_TO_SCAN } from '../../constants';
 import { getEthersContractFromProvider } from '../../utils/ethers';
+import { isLogsRetryableError, scanLogsBackward } from './fetchLogsChunked';
 import {
   ParsedLog,
   TitleEscrowTransferEvent,
@@ -55,6 +57,7 @@ export const fetchEscrowTransfersV5 = async (
     provider as any,
   );
   return fetchAllTransfers(
+    provider,
     titleEscrowContract,
     titleEscrowAddress,
     tokenRegistryAddress,
@@ -81,19 +84,19 @@ const getParsedLogs = (
   logs: ethers.providers.Log[] | ethersV6.Log[],
   titleEscrow: TitleEscrowV4 | TitleEscrowV5,
 ): ParsedLog[] => {
-  return logs.map((log) => {
+  return logs.flatMap((log) => {
     if (!log.blockNumber) throw new Error('Block number not present');
-    return {
-      ...log,
+    try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ...(titleEscrow.interface as any).parseLog(log),
-    };
+      const parsed = (titleEscrow.interface as any).parseLog(log);
+      if (!parsed) return [];
+      return [{ ...log, ...parsed }];
+    } catch {
+      return [];
+    }
   });
 };
 
-/*
-  Retrieve all events that emits BENEFICIARY_TRANSFER
-*/
 const fetchOwnerTransfers = async (
   titleEscrowContract: TitleEscrowV4,
 ): Promise<TitleEscrowTransferEvent[]> => {
@@ -110,9 +113,6 @@ const fetchOwnerTransfers = async (
   }));
 };
 
-/*
-  Retrieve all events that emits HOLDER_TRANSFER
-*/
 const fetchHolderTransfers = async (
   titleEscrowContract: TitleEscrowV4,
 ): Promise<TitleEscrowTransferEvent[]> => {
@@ -128,27 +128,45 @@ const fetchHolderTransfers = async (
   }));
 };
 
-/**
- * Retrieve all V5 / ObligationEscrow events
- * @param {ethers.Contract | ethersV6.Contract} titleEscrowContract - Escrow contract
- * @param {string} titleEscrowAddress - Escrow address
- * @param {string} tokenRegistryAddress - Registry address
- * @param {boolean} includeObligationStatus - When true, also collect ObligationEscrow status events
- * @returns {Promise<(TitleEscrowTransferEvent | TokenTransferEvent)[]>} - Array of events
- */
 const fetchAllTransfers = async (
+  provider: Provider | ethersV6.Provider,
   titleEscrowContract: ethers.Contract | ethersV6.Contract,
   titleEscrowAddress?: string,
   tokenRegistryAddress?: string,
   includeObligationStatus = false,
 ): Promise<(TitleEscrowTransferEvent | TokenTransferEvent)[]> => {
+  if (!titleEscrowAddress) {
+    titleEscrowAddress = titleEscrowContract?.address ?? (await titleEscrowContract.getAddress());
+  }
+
+  if (!tokenRegistryAddress) {
+    tokenRegistryAddress = await titleEscrowContract.registry();
+  }
+
+  const rawLogs = await fetchEscrowLogs(
+    provider,
+    titleEscrowContract,
+    titleEscrowAddress,
+    includeObligationStatus,
+  );
+  const holderChangeLogsParsed = getParsedLogs(
+    rawLogs,
+    titleEscrowContract as unknown as TitleEscrowV5,
+  );
+
+  return mapParsedLogsToEvents(holderChangeLogsParsed, titleEscrowAddress, tokenRegistryAddress);
+};
+
+const buildEscrowFilters = (
+  titleEscrowContract: ethers.Contract | ethersV6.Contract,
+  includeObligationStatus: boolean,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const allFilters: any[] = [
+): any[] => {
+  const filters = [
     titleEscrowContract.filters.HolderTransfer,
     titleEscrowContract.filters.BeneficiaryTransfer,
     titleEscrowContract.filters.TokenReceived,
     titleEscrowContract.filters.ReturnToIssuer,
-    // titleEscrowContract.filters.Nomination,
     titleEscrowContract.filters.RejectTransferOwners,
     titleEscrowContract.filters.RejectTransferBeneficiary,
     titleEscrowContract.filters.RejectTransferHolder,
@@ -156,34 +174,108 @@ const fetchAllTransfers = async (
   ];
 
   if (includeObligationStatus) {
-    allFilters.push(
+    filters.push(
       titleEscrowContract.filters.StatusInitialized,
       titleEscrowContract.filters.StatusAccepted,
       titleEscrowContract.filters.StatusRejected,
       titleEscrowContract.filters.StatusDischarged,
     );
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const allLogs: any = await Promise.all(
-    allFilters.map(async (filter) => {
-      const logs = await titleEscrowContract.queryFilter(filter, 0, 'latest');
+
+  return filters;
+};
+
+const fetchLogsUnranged = async (
+  titleEscrowContract: ethers.Contract | ethersV6.Contract,
+  includeObligationStatus: boolean,
+): Promise<ethers.providers.Log[] | ethersV6.Log[]> => {
+  const allFilters = buildEscrowFilters(titleEscrowContract, includeObligationStatus);
+  const allLogs = await Promise.all(
+    allFilters.map(async (filterFactory) => {
+      const logs = await titleEscrowContract.queryFilter(filterFactory(), 0, 'latest');
       return logs;
     }),
   );
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return allLogs.flat() as any;
+};
 
-  const holderChangeLogsParsed = getParsedLogs(
-    allLogs.flat(),
-    titleEscrowContract as unknown as TitleEscrowV5,
+const resolveEscrowScanFloor = async (
+  titleEscrowContract: ethers.Contract | ethersV6.Contract,
+  latestBlock: number,
+): Promise<number> => {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mintBlock = Number(await (titleEscrowContract as any).mintBlock());
+    if (Number.isFinite(mintBlock) && mintBlock > 0 && mintBlock <= latestBlock) {
+      return mintBlock;
+    }
+  } catch {
+    // Title Escrow V5 does not expose mintBlock.
+  }
+  return 0;
+};
+
+const fetchLogsChunked = async (
+  provider: Provider | ethersV6.Provider,
+  titleEscrowContract: ethers.Contract | ethersV6.Contract,
+  titleEscrowAddress: string,
+): Promise<ethers.providers.Log[] | ethersV6.Log[]> => {
+  const latestBlock = await provider.getBlockNumber();
+  const scanFloor = await resolveEscrowScanFloor(titleEscrowContract, latestBlock);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const isMintLog = (log: any) => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const parsed = (titleEscrowContract.interface as any).parseLog(log);
+      return parsed?.name === 'TokenReceived' && parsed.args.isMinting;
+    } catch {
+      return false;
+    }
+  };
+
+  const result = await scanLogsBackward(
+    provider,
+    titleEscrowAddress,
+    latestBlock,
+    scanFloor,
+    isMintLog,
+    DEFAULT_MAX_BLOCKS_TO_SCAN,
   );
 
-  if (!tokenRegistryAddress) {
-    tokenRegistryAddress = await titleEscrowContract.registry();
+  if (!result.foundMint && result.truncated) {
+    throw new Error(
+      'Unable to locate TokenReceived (mint) within the scan budget; refusing incomplete endorsement chain',
+    );
   }
-  if (!titleEscrowAddress) {
-    // Handle ethers v5 and v6 differently
-    titleEscrowAddress = titleEscrowContract?.address ?? (await titleEscrowContract.getAddress());
+  if (!result.foundMint) {
+    throw new Error(
+      'Unable to locate TokenReceived (mint) before the escrow scan floor; refusing incomplete endorsement chain',
+    );
   }
 
+  return result.logs;
+};
+
+const fetchEscrowLogs = async (
+  provider: Provider | ethersV6.Provider,
+  titleEscrowContract: ethers.Contract | ethersV6.Contract,
+  titleEscrowAddress: string,
+  includeObligationStatus: boolean,
+): Promise<ethers.providers.Log[] | ethersV6.Log[]> => {
+  try {
+    return await fetchLogsUnranged(titleEscrowContract, includeObligationStatus);
+  } catch (err) {
+    if (!isLogsRetryableError(err)) throw err;
+    return fetchLogsChunked(provider, titleEscrowContract, titleEscrowAddress);
+  }
+};
+
+const mapParsedLogsToEvents = (
+  holderChangeLogsParsed: ParsedLog[],
+  titleEscrowAddress: string,
+  tokenRegistryAddress: string,
+): (TitleEscrowTransferEvent | TokenTransferEvent)[] => {
   return holderChangeLogsParsed
     .map((event) => {
       if (event?.name === 'HolderTransfer') {
@@ -205,7 +297,6 @@ const fetchAllTransfers = async (
           remark: event.args?.remark,
         } as TitleEscrowTransferEvent;
       } else if (event?.name === 'TokenReceived') {
-        // MINT / RESTORE
         const type = identifyTokenReceivedType(event);
         return {
           type,
@@ -223,7 +314,6 @@ const fetchAllTransfers = async (
         return {
           type: 'RETURNED_TO_ISSUER',
           blockNumber: event.blockNumber,
-          // Handle ethers v5 and v6 differently
           from: titleEscrowAddress,
           to: tokenRegistryAddress,
           transactionHash: event.transactionHash,
@@ -308,7 +398,6 @@ const fetchAllTransfers = async (
 function identifyTokenReceivedType(event: ParsedLog): TokenTransferEventType {
   if (event.args.isMinting) {
     return 'INITIAL';
-  } else {
-    return 'RETURN_TO_ISSUER_REJECTED';
   }
+  return 'RETURN_TO_ISSUER_REJECTED';
 }
