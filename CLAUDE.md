@@ -104,13 +104,29 @@ so an unsigned VP is still routed in and then judged INVALID by the integrity fr
 aligned to both enforce proof-presence + holder binding. If you touch one, keep the other
 in step.
 
+## Endorsement chain (`src/core/endorsement-chain/useEndorsementChain.ts`)
+
+**`fetchEndorsementChain()`** is the single public path for Token Registry V4/V5 and
+Obligation/BoE titles. It auto-detects the escrow contract via `supportsInterface`
+(including `supportInterfaceIdsV5.ObligationEscrow` around the obligation check).
+
+These public aliases were removed:
+
+| Removed | Use instead |
+| --- | --- |
+| `fetchObligationEndorsementChain` | `fetchEndorsementChain` |
+| `fetchEscrowTransfersObligation` | `fetchEscrowTransfersV5` (auto-detects obligation status events) |
+| `ObligationEscrowInterface` | `v5SupportInterfaceIds.ObligationEscrow` |
+
+Do **not** re-add the removed aliases. User-facing docs also live in `README.md`
+(Obligation Registry section).
+
 ## Gotchas (hard-won — add to this list)
 
-- **Endorsement chain has one public path.** `fetchEndorsementChain` and
-  `fetchEscrowTransfersV5` auto-detect ObligationEscrow (status events included).
-  Do **not** re-add `fetchObligationEndorsementChain`, `fetchEscrowTransfersObligation`,
-  or `ObligationEscrowInterface`. Callers migrate to `fetchEndorsementChain`,
-  `fetchEscrowTransfersV5`, and `v5SupportInterfaceIds.ObligationEscrow`.
+- **Endorsement chain has one public path.** See
+  [Endorsement chain](#endorsement-chain-srccoreendorsement-chainuseendorsementchaints)
+  — do not re-add `fetchObligationEndorsementChain`, `fetchEscrowTransfersObligation`,
+  or `ObligationEscrowInterface`.
 - **Selective disclosure keeps the subject `id`.** If a credential was issued *with* a
   `credentialSubject.id`, deriving it (even revealing only other fields) **retains that
   id**. To test/produce a credential with *no* subject id, it must be issued without one.

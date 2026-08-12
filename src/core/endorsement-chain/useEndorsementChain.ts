@@ -193,6 +193,22 @@ export const isTitleEscrowVersion = async ({
   }
 };
 
+/**
+ * Fetch the endorsement chain for Token Registry V4/V5 or Obligation/BoE titles.
+ *
+ * Auto-detects Title Escrow V4/V5 and ObligationEscrow via supportsInterface.
+ *
+ * Migration — these public aliases were removed; use this function instead:
+ * - fetchObligationEndorsementChain → fetchEndorsementChain
+ * - fetchEscrowTransfersObligation → fetchEscrowTransfersV5
+ * - ObligationEscrowInterface → supportInterfaceIdsV5.ObligationEscrow
+ * @param {string} tokenRegistryAddress - Token registry or obligation registry address
+ * @param {string} tokenId - Token ID
+ * @param {Provider | ethersV6.Provider} provider - Ethers provider
+ * @param {string} [keyId] - Encryption key ID for decrypting remarks (V5/Obligation)
+ * @param {string} [titleEscrowAddress] - Pre-resolved escrow address (optional)
+ * @returns {Promise<EndorsementChain>} Endorsement chain events
+ */
 export const fetchEndorsementChain = async (
   tokenRegistryAddress: string,
   tokenId: string,
@@ -206,11 +222,6 @@ export const fetchEndorsementChain = async (
   const resolvedTitleEscrowAddress =
     titleEscrowAddress ?? (await getTitleEscrowAddress(tokenRegistryAddress, tokenId, provider));
 
-  // Migration: obligation/BoE titles are handled here via supportsInterface detection.
-  // Removed public aliases — use fetchEndorsementChain (this function),
-  // fetchEscrowTransfersV5, and supportInterfaceIdsV5.ObligationEscrow instead of
-  // fetchObligationEndorsementChain, fetchEscrowTransfersObligation, or
-  // ObligationEscrowInterface.
   const [isV4, isV5, isObligation] = await Promise.all([
     isTitleEscrowVersion({
       titleEscrowAddress: resolvedTitleEscrowAddress,
@@ -222,6 +233,7 @@ export const fetchEndorsementChain = async (
       versionInterface: TitleEscrowInterface.V5,
       provider,
     }),
+    // ObligationEscrow detection (replaces removed ObligationEscrowInterface alias).
     isTitleEscrowVersion({
       titleEscrowAddress: resolvedTitleEscrowAddress,
       versionInterface: supportInterfaceIdsV5.ObligationEscrow,
