@@ -18,7 +18,7 @@ export const FREE_TIER_MAX_CHUNK_SIZE = 10;
 export const MIN_CHUNK_SIZE = 1;
 export const MAX_CHUNK_SIZE = 50_000;
 // Parallel Free-tier windows once the cap is ≤10 (no adaptive shrink mid-batch).
-export const FREE_TIER_CONCURRENCY = 8;
+export const FREE_TIER_CONCURRENCY = 3;
 /** Default backward-scan budget when no mint marker / deploy floor is available (blocks from tip). */
 export const DEFAULT_MAX_BLOCKS_TO_SCAN = 200_000;
 /** Max eth_getLogs calls on the Free-tier parallel path before failing fast. */
