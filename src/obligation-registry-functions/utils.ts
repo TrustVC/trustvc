@@ -1,4 +1,4 @@
-import { encrypt, getObligationEscrowAddress, checkSupportsInterface } from '../core';
+import { encrypt, getTitleEscrowAddress, checkSupportsInterface } from '../core';
 import { v5Contracts } from '../token-registry-v5';
 import { getTxOptions } from '../token-registry-functions/utils';
 import { Signer as SignerV6, Contract as ContractV6 } from 'ethersV6';
@@ -46,7 +46,7 @@ export const resolveObligationEscrowAddress = async (
       throw new Error('Provider is required');
     }
 
-    obligationEscrowAddress = await getObligationEscrowAddress(
+    obligationEscrowAddress = await getTitleEscrowAddress(
       obligationRegistryAddress,
       tokenId as string,
       signer.provider,

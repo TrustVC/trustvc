@@ -905,10 +905,9 @@ Escrow calls accept `{ obligationRegistryAddress, tokenId }` or `{ obligationEsc
 **Endorsement chain** — pass the `TrustVCToken` address to existing helpers:
 
 ```ts
-import { fetchEndorsementChain, fetchObligationEndorsementChain } from '@trustvc/trustvc';
+import { fetchEndorsementChain } from '@trustvc/trustvc';
 
 const chain = await fetchEndorsementChain(obligationRegistry, tokenId, provider);
-// or: fetchObligationEndorsementChain(obligationRegistry, tokenId, provider, { encryptionId })
 ```
 
 **Low-level contracts** (`@trustvc/trustvc/token-registry-v5/contracts`):

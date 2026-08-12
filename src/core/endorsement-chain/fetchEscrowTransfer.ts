@@ -9,6 +9,7 @@ import {
   TitleEscrow as TitleEscrowV5,
   ObligationEscrow__factory,
 } from '../../token-registry-v5/contracts';
+import { supportInterfaceIds as supportInterfaceIdsV5 } from '../../token-registry-v5/supportInterfaceIds';
 import { getEthersContractFromProvider } from '../../utils/ethers';
 import {
   ParsedLog,
@@ -45,41 +46,35 @@ export const fetchEscrowTransfersV5 = async (
   titleEscrowAddress: string,
   tokenRegistryAddress?: string,
 ): Promise<TransferBaseEvent[]> => {
+  const isObligationEscrow = await supportsObligationEscrow(titleEscrowAddress, provider);
   const Contract = getEthersContractFromProvider(provider);
   const titleEscrowContract = new Contract(
     titleEscrowAddress,
-    TitleEscrowFactoryV5.abi,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    provider as any,
-  );
-  return fetchAllTransfers(titleEscrowContract, titleEscrowAddress, tokenRegistryAddress);
-};
-
-/**
- * ObligationEscrow shares Title Escrow V5 transfer events and adds status lifecycle events.
- * @param {Provider | ethersV6.Provider} provider - Ethers provider
- * @param {string} obligationEscrowAddress - ObligationEscrow contract address
- * @param {string} [obligationRegistryAddress] - Obligation registry (TrustVCToken) address
- * @returns {Promise<TransferBaseEvent[]>} - Transfer and status events
- */
-export const fetchEscrowTransfersObligation = async (
-  provider: Provider | ethersV6.Provider,
-  obligationEscrowAddress: string,
-  obligationRegistryAddress?: string,
-): Promise<TransferBaseEvent[]> => {
-  const Contract = getEthersContractFromProvider(provider);
-  const obligationEscrowContract = new Contract(
-    obligationEscrowAddress,
-    ObligationEscrow__factory.abi,
+    isObligationEscrow ? ObligationEscrow__factory.abi : TitleEscrowFactoryV5.abi,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     provider as any,
   );
   return fetchAllTransfers(
-    obligationEscrowContract,
-    obligationEscrowAddress,
-    obligationRegistryAddress,
-    true,
+    titleEscrowContract,
+    titleEscrowAddress,
+    tokenRegistryAddress,
+    isObligationEscrow,
   );
+};
+
+const supportsObligationEscrow = async (
+  contractAddress: string,
+  provider: Provider | ethersV6.Provider,
+): Promise<boolean> => {
+  try {
+    const abi = ['function supportsInterface(bytes4 interfaceId) external view returns (bool)'];
+    const Contract = getEthersContractFromProvider(provider);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const contract = new Contract(contractAddress, abi, provider as any);
+    return await contract.supportsInterface(supportInterfaceIdsV5.ObligationEscrow);
+  } catch {
+    return false;
+  }
 };
 
 const getParsedLogs = (

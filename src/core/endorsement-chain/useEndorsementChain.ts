@@ -7,7 +7,6 @@ import { decrypt } from '../decrypt';
 import {
   fetchEscrowTransfersV4,
   fetchEscrowTransfersV5,
-  fetchEscrowTransfersObligation,
 } from '../endorsement-chain/fetchEscrowTransfer';
 import { fetchTokenTransfers } from '../endorsement-chain/fetchTokenTransfer';
 import { mergeTransfersV4, mergeTransfersV5 } from '../endorsement-chain/helpers';
@@ -19,8 +18,6 @@ export const TitleEscrowInterface = {
   V4: supportInterfaceIdsV4.TitleEscrow,
   V5: supportInterfaceIdsV5.TitleEscrow,
 };
-
-export const ObligationEscrowInterface = supportInterfaceIdsV5.ObligationEscrow;
 
 // Helper to fetch Title Escrow Factory Address
 const getTitleEscrowFactoryAddress = async (
@@ -222,7 +219,7 @@ export const fetchEndorsementChain = async (
     }),
     isTitleEscrowVersion({
       titleEscrowAddress: resolvedTitleEscrowAddress,
-      versionInterface: ObligationEscrowInterface,
+      versionInterface: supportInterfaceIdsV5.ObligationEscrow,
       provider,
     }),
   ]);
@@ -240,14 +237,7 @@ export const fetchEndorsementChain = async (
     ]);
 
     transferEvents = mergeTransfersV4([...titleEscrowLogs, ...tokenLogs]);
-  } else if (isObligation) {
-    const obligationEscrowLogs = await fetchEscrowTransfersObligation(
-      provider,
-      resolvedTitleEscrowAddress,
-      tokenRegistryAddress,
-    );
-    transferEvents = mergeTransfersV5(obligationEscrowLogs);
-  } else if (isV5) {
+  } else if (isV5 || isObligation) {
     const titleEscrowLogs = await fetchEscrowTransfersV5(
       provider,
       resolvedTitleEscrowAddress,

@@ -87,14 +87,14 @@ const identifyEventTypeFromLogs = (groupedEvents: TransferBaseEvent[]): Transfer
   for (const event of groupedEvents) {
     if (
       [
-        'STATUS_INITIALIZED',
-        'STATUS_ACCEPTED',
-        'STATUS_REJECTED',
-        'STATUS_DISCHARGED',
         'INITIAL',
         'RETURNED_TO_ISSUER',
         'RETURN_TO_ISSUER_ACCEPTED',
         'RETURN_TO_ISSUER_REJECTED',
+        'STATUS_INITIALIZED',
+        'STATUS_ACCEPTED',
+        'STATUS_REJECTED',
+        'STATUS_DISCHARGED',
       ].includes(event.type) ||
       event.type.startsWith('REJECT_')
     ) {
