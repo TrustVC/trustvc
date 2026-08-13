@@ -3,8 +3,11 @@ import { vi, describe, beforeEach, it, expect } from 'vitest';
 vi.mock('@trustvc/eip7702', () => ({
   abis: { platformPaymasterAbi: [] },
   constants: {
-    ChainId: { Sepolia: 11155111 },
-    contractAddress: { PlatformAccountFactory: {} },
+    ChainId: { Sepolia: 11155111, Amoy: 80002 },
+    contractAddress: {
+      PlatformAccountFactory: { 11155111: '0xfactory', 80002: '0xfactoryAmoy' },
+      PaymasterImplementation: { 11155111: '0xpaymasterImpl', 80002: '0xpaymasterImplAmoy' },
+    },
   },
 }));
 
@@ -30,6 +33,9 @@ import {
   addAuthorizedCaller,
   removeAuthorizedCaller,
   setDailyLimit,
+  stakePaymaster,
+  fundPaymaster,
+  delegateUser,
 } from '../../eip7702-functions';
 import { getEthersContractFromProvider, isV6EthersProvider } from '../../utils/ethers';
 
@@ -491,6 +497,197 @@ describe('sendAdminTx error propagation', () => {
     vi.mocked(isV6EthersProvider).mockReturnValue(true);
     await expect(setDailyLimit(makeEthersV5Signer() as any, PAYMASTER, 100n)).rejects.toThrow(
       'v6 call failed',
+    );
+  });
+});
+
+// ─── stakePaymaster ───────────────────────────────────────────────────────────
+
+describe('stakePaymaster', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('viem — calls writeContract with addStake, correct args, and value', async () => {
+    const signer = makeViemSigner();
+    await stakePaymaster(signer as never, PAYMASTER, 86400, 1000000000000000000n);
+    expect(signer.writeContract).toHaveBeenCalledWith(
+      expect.objectContaining({
+        address: PAYMASTER,
+        functionName: 'addStake',
+        args: [86400],
+        value: 1000000000000000000n,
+      }),
+    );
+  });
+
+  it('viem — returns the transaction hash', async () => {
+    const signer = makeViemSigner();
+    expect(await stakePaymaster(signer as never, PAYMASTER, 86400, 1n)).toBe(TX_HASH);
+  });
+
+  it('ethers v5 — calls addStake with args and value override', async () => {
+    const mockContract = makeEthersV5Contract('addStake');
+    vi.mocked(getEthersContractFromProvider).mockReturnValue(vi.fn(() => mockContract) as never);
+    vi.mocked(isV6EthersProvider).mockReturnValue(false);
+    await stakePaymaster(makeEthersV5Signer() as never, PAYMASTER, 86400, 500n);
+    expect(mockContract.addStake).toHaveBeenCalledWith(86400, { value: 500n });
+  });
+
+  it('ethers v5 — returns the transaction hash', async () => {
+    setupEthersV5Mock('addStake');
+    expect(await stakePaymaster(makeEthersV5Signer() as never, PAYMASTER, 86400, 1n)).toBe(TX_HASH);
+  });
+
+  it('ethers v6 — returns tx.hash directly', async () => {
+    setupEthersV6Mock('addStake');
+    expect(await stakePaymaster(makeEthersV5Signer() as never, PAYMASTER, 86400, 1n)).toBe(TX_HASH);
+  });
+});
+
+// ─── fundPaymaster ────────────────────────────────────────────────────────────
+
+describe('fundPaymaster', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('viem — calls writeContract with deposit and value', async () => {
+    const signer = makeViemSigner();
+    await fundPaymaster(signer as never, PAYMASTER, 2000000000000000000n);
+    expect(signer.writeContract).toHaveBeenCalledWith(
+      expect.objectContaining({
+        address: PAYMASTER,
+        functionName: 'deposit',
+        args: [],
+        value: 2000000000000000000n,
+      }),
+    );
+  });
+
+  it('viem — returns the transaction hash', async () => {
+    const signer = makeViemSigner();
+    expect(await fundPaymaster(signer as never, PAYMASTER, 1n)).toBe(TX_HASH);
+  });
+
+  it('ethers v5 — calls deposit with value override', async () => {
+    const mockContract = makeEthersV5Contract('deposit');
+    vi.mocked(getEthersContractFromProvider).mockReturnValue(vi.fn(() => mockContract) as never);
+    vi.mocked(isV6EthersProvider).mockReturnValue(false);
+    await fundPaymaster(makeEthersV5Signer() as never, PAYMASTER, 999n);
+    expect(mockContract.deposit).toHaveBeenCalledWith({ value: 999n });
+  });
+
+  it('ethers v5 — returns the transaction hash', async () => {
+    setupEthersV5Mock('deposit');
+    expect(await fundPaymaster(makeEthersV5Signer() as never, PAYMASTER, 1n)).toBe(TX_HASH);
+  });
+
+  it('ethers v6 — returns tx.hash directly', async () => {
+    setupEthersV6Mock('deposit');
+    expect(await fundPaymaster(makeEthersV5Signer() as never, PAYMASTER, 1n)).toBe(TX_HASH);
+  });
+});
+
+// ─── delegateUser ─────────────────────────────────────────────────────────────
+
+const IMPL = '0x5555555555555555555555555555555555555555' as `0x${string}`;
+const OWNER_ADDR = '0xowner' as `0x${string}`;
+const SIGNED_AUTH = {
+  contractAddress: IMPL,
+  chainId: 11155111,
+  nonce: 1,
+  r: '0x',
+  s: '0x',
+  yParity: 0,
+};
+
+const makeOwnerSigner = () => ({
+  account: { address: OWNER_ADDR },
+  chain: { id: 11155111 },
+  signAuthorization: vi.fn(() => Promise.resolve(SIGNED_AUTH)),
+  sendTransaction: vi.fn(() => Promise.resolve(TX_HASH)),
+});
+
+const makePayerSigner = () => ({
+  account: { address: '0xpayer' as `0x${string}` },
+  chain: { id: 11155111 },
+  sendTransaction: vi.fn(() => Promise.resolve(TX_HASH)),
+});
+
+describe('delegateUser', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('owner signs authorization with the implementation address', async () => {
+    const owner = makeOwnerSigner();
+    await delegateUser(IMPL, owner as never);
+    expect(owner.signAuthorization).toHaveBeenCalledWith(
+      expect.objectContaining({ contractAddress: IMPL }),
+    );
+  });
+
+  it('without payerSigner — signAuthorization uses executor: self', async () => {
+    const owner = makeOwnerSigner();
+    await delegateUser(IMPL, owner as never);
+    expect(owner.signAuthorization).toHaveBeenCalledWith(
+      expect.objectContaining({ executor: 'self' }),
+    );
+  });
+
+  it('with payerSigner — signAuthorization does not set executor', async () => {
+    const owner = makeOwnerSigner();
+    const payer = makePayerSigner();
+    await delegateUser(IMPL, owner as never, payer as never);
+    expect(owner.signAuthorization).toHaveBeenCalledWith(
+      expect.not.objectContaining({ executor: expect.anything() }),
+    );
+  });
+
+  it('without payerSigner — owner submits and pays gas', async () => {
+    const owner = makeOwnerSigner();
+    await delegateUser(IMPL, owner as never);
+    expect(owner.sendTransaction).toHaveBeenCalledWith(
+      expect.objectContaining({ authorizationList: [SIGNED_AUTH], to: OWNER_ADDR, data: '0x' }),
+    );
+  });
+
+  it('with payerSigner — payer submits the transaction, owner does not', async () => {
+    const owner = makeOwnerSigner();
+    const payer = makePayerSigner();
+    await delegateUser(IMPL, owner as never, payer as never);
+    expect(payer.sendTransaction).toHaveBeenCalledWith(
+      expect.objectContaining({ authorizationList: [SIGNED_AUTH], to: OWNER_ADDR, data: '0x' }),
+    );
+    expect(owner.sendTransaction).not.toHaveBeenCalled();
+  });
+
+  it('returns the transaction hash', async () => {
+    const owner = makeOwnerSigner();
+    expect(await delegateUser(IMPL, owner as never)).toBe(TX_HASH);
+  });
+
+  it('throws if ownerSigner has no account', async () => {
+    const owner = { ...makeOwnerSigner(), account: undefined as undefined };
+    await expect(delegateUser(IMPL, owner as never)).rejects.toThrow(
+      'ownerSigner must have an account',
+    );
+  });
+
+  it('throws if payerSigner has no account', async () => {
+    const owner = makeOwnerSigner();
+    const payer = { ...makePayerSigner(), account: undefined as undefined };
+    await expect(delegateUser(IMPL, owner as never, payer as never)).rejects.toThrow(
+      'payerSigner must have an account',
+    );
+  });
+
+  it('throws if ownerSigner and payerSigner are on different chains', async () => {
+    const owner = makeOwnerSigner(); // chain id 11155111
+    const payer = { ...makePayerSigner(), chain: { id: 80002 } };
+    await expect(delegateUser(IMPL, owner as never, payer as never)).rejects.toThrow(
+      'chain mismatch',
     );
   });
 });

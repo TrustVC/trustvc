@@ -11,8 +11,11 @@ vi.mock('viem', () => ({
 vi.mock('@trustvc/eip7702', () => ({
   abis: { platformPaymasterAbi: [] },
   constants: {
-    ChainId: { Sepolia: 11155111 },
-    contractAddress: { PlatformAccountFactory: {} },
+    ChainId: { Sepolia: 11155111, Amoy: 80002 },
+    contractAddress: {
+      PlatformAccountFactory: { 11155111: '0xfactory', 80002: '0xfactoryAmoy' },
+      PaymasterImplementation: { 11155111: '0xpaymasterImpl', 80002: '0xpaymasterImplAmoy' },
+    },
   },
 }));
 
