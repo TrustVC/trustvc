@@ -392,7 +392,7 @@ const mapParsedLogsToEvents = (
           type: 'RETURN_TO_ISSUER_ACCEPTED',
           blockNumber: event.blockNumber,
           from: tokenRegistryAddress,
-          to: '0x000000000000000000000000000000000000dEaD',
+          to: '0x000000000000000000000000000000000000dead',
           owner: lastBeneficiary,
           holder: lastHolder,
           transactionHash: event.transactionHash,
