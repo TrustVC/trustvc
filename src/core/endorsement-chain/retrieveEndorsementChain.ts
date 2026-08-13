@@ -33,7 +33,7 @@ export const getEndorsementChain = async (
       holder: pickParty(log.holder, previousHolder),
       timestamp: timestamp,
       remark: log?.remark || '',
-      terminationReason: log.terminationReason,
+      ...(log.terminationReason ? { terminationReason: log.terminationReason } : {}),
     } as TransferEvent;
 
     if (
@@ -54,12 +54,20 @@ export const getEndorsementChain = async (
       previousHolder = transactionDetails.holder;
       previousBeneficiary = transactionDetails.owner;
     } else if (log.type === 'SURRENDER_ACCEPTED' || log.type === 'RETURN_TO_ISSUER_ACCEPTED') {
-      // Prefer Shred event lastBeneficiary/lastHolder when present; else carry previous (old ABI).
+      // Obligation Shred carries lastBeneficiary/lastHolder on the event.
+      // Classic TitleEscrow shred has no parties — keep zero addresses (fixture / ETR UI).
+      const owner =
+        log.owner && !isZeroAddress(log.owner)
+          ? log.owner
+          : '0x0000000000000000000000000000000000000000';
+      const holder =
+        log.holder && !isZeroAddress(log.holder)
+          ? log.holder
+          : '0x0000000000000000000000000000000000000000';
       historyChain.push({
         ...transactionDetails,
-        owner: pickParty(log.owner, previousBeneficiary),
-        holder: pickParty(log.holder, previousHolder),
-        terminationReason: log.terminationReason,
+        owner,
+        holder,
       });
       previousHolder = '';
       previousBeneficiary = '';

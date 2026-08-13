@@ -387,6 +387,7 @@ const mapParsedLogsToEvents = (
         // New ABI: lastBeneficiary/lastHolder on Shred. Old ABI: leave unset (carry-forward fallback).
         const lastBeneficiary = event.args?.lastBeneficiary as string | undefined;
         const lastHolder = event.args?.lastHolder as string | undefined;
+        const terminationReason = toTerminationReasonLabel(event.args?.reason);
         return {
           type: 'RETURN_TO_ISSUER_ACCEPTED',
           blockNumber: event.blockNumber,
@@ -397,7 +398,7 @@ const mapParsedLogsToEvents = (
           transactionHash: event.transactionHash,
           transactionIndex: event.transactionIndex,
           remark: event.args?.remark,
-          terminationReason: toTerminationReasonLabel(event.args?.reason),
+          ...(terminationReason ? { terminationReason } : {}),
         } as TokenTransferEvent;
       } else if (event?.name === 'StatusInitialized') {
         return {

@@ -96,7 +96,16 @@ export const mergeTransfersV5 = (transferEvents: TransferBaseEvent[]): TransferB
       const terminationReason = groupedEvents.find(
         (event) => event.terminationReason,
       )?.terminationReason;
-      return [{ ...base, owner, holder, type, remark, terminationReason }];
+      return [
+        {
+          ...base,
+          owner,
+          holder,
+          type,
+          remark,
+          ...(terminationReason ? { terminationReason } : {}),
+        },
+      ];
     }
 
     throw new Error('Invalid hash, update your configuration');
