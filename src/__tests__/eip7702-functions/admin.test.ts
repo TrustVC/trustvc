@@ -628,6 +628,23 @@ describe('delegateUser', () => {
     );
   });
 
+  it('without payerSigner — signAuthorization uses executor: self', async () => {
+    const owner = makeOwnerSigner();
+    await delegateUser(IMPL, owner as never);
+    expect(owner.signAuthorization).toHaveBeenCalledWith(
+      expect.objectContaining({ executor: 'self' }),
+    );
+  });
+
+  it('with payerSigner — signAuthorization does not set executor', async () => {
+    const owner = makeOwnerSigner();
+    const payer = makePayerSigner();
+    await delegateUser(IMPL, owner as never, payer as never);
+    expect(owner.signAuthorization).toHaveBeenCalledWith(
+      expect.not.objectContaining({ executor: expect.anything() }),
+    );
+  });
+
   it('without payerSigner — owner submits and pays gas', async () => {
     const owner = makeOwnerSigner();
     await delegateUser(IMPL, owner as never);

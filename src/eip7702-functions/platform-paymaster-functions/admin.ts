@@ -219,6 +219,7 @@ export const delegateUser = async (
   const authorization = await ownerSigner.signAuthorization({
     account: ownerSigner.account,
     contractAddress: implementationAddress,
+    ...(payerSigner ? {} : { executor: 'self' as const }),
   });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (submitter.sendTransaction as any)({
