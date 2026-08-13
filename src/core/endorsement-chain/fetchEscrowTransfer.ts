@@ -32,7 +32,8 @@ const TERMINATION_REASON_LABELS: TerminationReasonLabel[] = [
 
 const toTerminationReasonLabel = (reason: unknown): TerminationReasonLabel | undefined => {
   const index = Number(reason);
-  if (!Number.isInteger(index) || index < 0 || index >= TERMINATION_REASON_LABELS.length) {
+  // Index 0 is TerminationReason.None — omit so shred rows don't expose a fake reason.
+  if (!Number.isInteger(index) || index <= 0 || index >= TERMINATION_REASON_LABELS.length) {
     return undefined;
   }
   return TERMINATION_REASON_LABELS[index];
@@ -225,8 +226,42 @@ const fetchLogsUnranged = async (
   return allLogs.flat() as any;
 };
 
+const isNonEmptyCode = (code: unknown): boolean =>
+  typeof code === 'string' && code !== '0x' && code.length > 2;
+
+// Binary-search the first block where the escrow has code (Title Escrow V5 has no mintBlock).
+const resolveContractCreationBlock = async (
+  provider: Provider | ethersV6.Provider,
+  address: string,
+  latestBlock: number,
+): Promise<number> => {
+  try {
+    const hasCodeAt = async (block: number): Promise<boolean> => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return isNonEmptyCode(await (provider as any).getCode(address, block));
+    };
+
+    if (!(await hasCodeAt(latestBlock))) return 0;
+    // Already present at genesis — cannot bound a useful floor.
+    if (await hasCodeAt(0)) return 0;
+
+    let low = 0;
+    let high = latestBlock;
+    while (low + 1 < high) {
+      const mid = Math.floor((low + high) / 2);
+      if (await hasCodeAt(mid)) high = mid;
+      else low = mid;
+    }
+    return high;
+  } catch {
+    return 0;
+  }
+};
+
 const resolveEscrowScanFloor = async (
+  provider: Provider | ethersV6.Provider,
   titleEscrowContract: ethers.Contract | ethersV6.Contract,
+  titleEscrowAddress: string,
   latestBlock: number,
 ): Promise<number> => {
   try {
@@ -238,6 +273,15 @@ const resolveEscrowScanFloor = async (
   } catch {
     // Title Escrow V5 does not expose mintBlock.
   }
+
+  const creationBlock = await resolveContractCreationBlock(
+    provider,
+    titleEscrowAddress,
+    latestBlock,
+  );
+  if (creationBlock > 0 && creationBlock <= latestBlock) {
+    return creationBlock;
+  }
   return 0;
 };
 
@@ -247,7 +291,12 @@ const fetchLogsChunked = async (
   titleEscrowAddress: string,
 ): Promise<ethers.providers.Log[] | ethersV6.Log[]> => {
   const latestBlock = await provider.getBlockNumber();
-  const scanFloor = await resolveEscrowScanFloor(titleEscrowContract, latestBlock);
+  const scanFloor = await resolveEscrowScanFloor(
+    provider,
+    titleEscrowContract,
+    titleEscrowAddress,
+    latestBlock,
+  );
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const isMintLog = (log: any) => {
     try {
@@ -259,6 +308,8 @@ const fetchLogsChunked = async (
     }
   };
 
+  // When a floor is known (mintBlock or escrow creation), cover the full span to latest.
+  // Otherwise keep the default backward budget as a last resort.
   const maxBlocksToScan =
     scanFloor > 0
       ? Math.max(DEFAULT_MAX_BLOCKS_TO_SCAN, latestBlock - scanFloor)
