@@ -2,7 +2,6 @@ import { ethers as ethersV6 } from 'ethersV6';
 import { Provider } from '@ethersproject/abstract-provider';
 import {
   DEFAULT_MAX_BLOCKS_TO_SCAN,
-  FREE_TIER_CONCURRENCY,
   FREE_TIER_MAX_CHUNK_SIZE,
   FREE_TIER_MAX_DURATION_MS,
   FREE_TIER_MAX_REQUESTS,
@@ -49,10 +48,6 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function isRateLimitError(err: unknown): boolean {
-  return RATE_LIMIT_ERROR_RE.test(errorMessage(err));
-}
-
 interface ScanLogsBackwardResult {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   logs: any[];
@@ -63,14 +58,9 @@ interface ScanLogsBackwardResult {
 interface AdaptiveScanState {
   chunkSize: number;
   maxChunkSize: number;
-}
-
-interface FreeTierBudget {
   requestsUsed: number;
   deadlineAt: number;
 }
-
-type BlockWindow = { start: number; end: number };
 
 function shrinkForRangeLimit(state: AdaptiveScanState, message: string): void {
   if (INFURA_FREE_TIER_RANGE_RE.test(message)) {
@@ -80,61 +70,8 @@ function shrinkForRangeLimit(state: AdaptiveScanState, message: string): void {
   state.chunkSize = Math.min(state.chunkSize, state.maxChunkSize);
 }
 
-class BudgetExhaustedError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'BudgetExhaustedError';
-  }
-}
-
-function isBudgetExhaustedError(err: unknown): boolean {
-  return (
-    err instanceof BudgetExhaustedError ||
-    (err instanceof Error && err.name === 'BudgetExhaustedError')
-  );
-}
-
-function assertBudgets(budget: FreeTierBudget, upcoming = 0): void {
-  if (Date.now() >= budget.deadlineAt) {
-    throw new BudgetExhaustedError(
-      `RPC scan time budget exhausted after ${FREE_TIER_MAX_DURATION_MS}ms`,
-    );
-  }
-  if (budget.requestsUsed + upcoming > FREE_TIER_MAX_REQUESTS) {
-    throw new BudgetExhaustedError(
-      `RPC scan request budget exhausted (${FREE_TIER_MAX_REQUESTS} eth_getLogs calls)`,
-    );
-  }
-}
-
-function withDeadline<T>(promise: Promise<T>, deadlineAt: number): Promise<T> {
-  const remaining = deadlineAt - Date.now();
-  if (remaining <= 0) {
-    return Promise.reject(
-      new BudgetExhaustedError(
-        `RPC scan time budget exhausted after ${FREE_TIER_MAX_DURATION_MS}ms`,
-      ),
-    );
-  }
-  return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => {
-      reject(
-        new BudgetExhaustedError(
-          `RPC scan time budget exhausted after ${FREE_TIER_MAX_DURATION_MS}ms`,
-        ),
-      );
-    }, remaining);
-    promise.then(
-      (value) => {
-        clearTimeout(timer);
-        resolve(value);
-      },
-      (err) => {
-        clearTimeout(timer);
-        reject(err);
-      },
-    );
-  });
+function isBudgetExhausted(state: AdaptiveScanState): boolean {
+  return Date.now() >= state.deadlineAt || state.requestsUsed >= FREE_TIER_MAX_REQUESTS;
 }
 
 async function getLogsRange(
@@ -142,44 +79,21 @@ async function getLogsRange(
   address: string,
   fromBlock: number,
   toBlock: number,
+  state: AdaptiveScanState,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<any[]> {
-  let attempt = 0;
-  while (true) {
+  for (let attempt = 0; ; attempt++) {
+    if (isBudgetExhausted(state)) {
+      throw new Error('RPC scan budget exhausted');
+    }
+    state.requestsUsed += 1;
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (await provider.getLogs({ address, fromBlock, toBlock })) as any[];
     } catch (err) {
-      if (isRateLimitError(err) && attempt < RATE_LIMIT_MAX_RETRIES) {
-        await sleep(RATE_LIMIT_BASE_DELAY_MS * 2 ** attempt);
-        attempt += 1;
-        continue;
-      }
-      throw err;
-    }
-  }
-}
-
-async function getLogsRangeFreeTier(
-  provider: Provider | ethersV6.Provider,
-  address: string,
-  fromBlock: number,
-  toBlock: number,
-  budget: FreeTierBudget,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): Promise<any[]> {
-  for (let attempt = 0; ; attempt++) {
-    assertBudgets(budget);
-    budget.requestsUsed += 1;
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const pending = provider.getLogs({ address, fromBlock, toBlock }) as Promise<any[]>;
-      return await withDeadline(pending, budget.deadlineAt);
-    } catch (err) {
-      if (isRateLimitError(err) && attempt < RATE_LIMIT_MAX_RETRIES) {
-        assertBudgets(budget);
+      if (RATE_LIMIT_ERROR_RE.test(errorMessage(err)) && attempt < RATE_LIMIT_MAX_RETRIES) {
         await sleep(
-          Math.min(RATE_LIMIT_BASE_DELAY_MS * 2 ** attempt, budget.deadlineAt - Date.now()),
+          Math.min(RATE_LIMIT_BASE_DELAY_MS * 2 ** attempt, state.deadlineAt - Date.now()),
         );
         continue;
       }
@@ -188,6 +102,7 @@ async function getLogsRangeFreeTier(
   }
 }
 
+// Keep mint and any same-tx companion logs that precede it (e.g. StatusInitialized).
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function findMintSliceStart(logs: any[], isMintLog: (log: any) => boolean): number {
   let mintIndex = -1;
@@ -207,209 +122,18 @@ function findMintSliceStart(logs: any[], isMintLog: (log: any) => boolean): numb
   return start;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function flattenOldestFirst(chunkGroups: any[][]): any[] {
-  return chunkGroups.toReversed().flat();
-}
-
-function pushMintSliceIfFound(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  chunkLogs: any[],
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  isMintLog: ((log: any) => boolean) | undefined,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  groups: any[][],
-): boolean {
-  if (!isMintLog) return false;
-  const start = findMintSliceStart(chunkLogs, isMintLog);
-  if (start < 0) return false;
-  groups.push(chunkLogs.slice(start));
-  return true;
-}
-
-function buildParallelWindows(
-  cursor: number,
-  toBlockFloor: number,
-  windowSize: number,
-): BlockWindow[] {
-  const windows: BlockWindow[] = [];
-  for (let winCursor = cursor, i = 0; i < FREE_TIER_CONCURRENCY && winCursor >= toBlockFloor; i++) {
-    const start = Math.max(winCursor - windowSize + 1, toBlockFloor);
-    windows.push({ start, end: winCursor });
-    if (start <= toBlockFloor) break;
-    winCursor = start - 1;
-  }
-  return windows;
-}
-
-function processSettledBatch(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  settled: PromiseSettledResult<any[]>[],
-  windowSize: number,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): { results: any[][]; rangeTooLarge: boolean; budgetExhausted: boolean; hardError?: unknown } {
-  let rangeTooLarge = false;
-  let budgetExhausted = false;
-  let hardError: unknown;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const results: any[][] = new Array(settled.length);
-
-  for (let i = 0; i < settled.length; i++) {
-    const outcome = settled[i];
-    if (outcome.status === 'fulfilled') {
-      results[i] = outcome.value;
-      continue;
-    }
-    if (isBudgetExhaustedError(outcome.reason)) {
-      budgetExhausted = true;
-      continue;
-    }
-    const message = errorMessage(outcome.reason);
-    if (RANGE_TOO_LARGE_ERROR_RE.test(message) && windowSize > MIN_CHUNK_SIZE) {
-      rangeTooLarge = true;
-    } else if (!hardError) {
-      hardError = outcome.reason;
-    }
-  }
-
-  return { results, rangeTooLarge, budgetExhausted, hardError };
-}
-
-function collectBatchChunks(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  results: any[][],
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  isMintLog: ((log: any) => boolean) | undefined,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  chunkGroups: any[][],
-): boolean {
-  for (const chunkLogs of results) {
-    if (!chunkLogs) continue;
-    if (pushMintSliceIfFound(chunkLogs, isMintLog, chunkGroups)) {
-      return true;
-    }
-    chunkGroups.push(chunkLogs);
-  }
-  return false;
-}
-
-const scanLogsBackwardParallel = async (
-  provider: Provider | ethersV6.Provider,
-  address: string,
-  fromBlock: number,
-  toBlockFloor: number,
-  chunkSize: number,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  isMintLog?: (log: any) => boolean,
-): Promise<ScanLogsBackwardResult> => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const chunkGroups: any[][] = [];
-  let cursor = fromBlock;
-  let windowSize = Math.max(Math.min(chunkSize, FREE_TIER_MAX_CHUNK_SIZE), MIN_CHUNK_SIZE);
-  const budget: FreeTierBudget = {
-    requestsUsed: 0,
-    deadlineAt: Date.now() + FREE_TIER_MAX_DURATION_MS,
-  };
-
-  while (cursor >= toBlockFloor) {
-    const windows = buildParallelWindows(cursor, toBlockFloor, windowSize);
-    try {
-      assertBudgets(budget, windows.length);
-    } catch (err) {
-      if (isBudgetExhaustedError(err)) {
-        return { logs: flattenOldestFirst(chunkGroups), foundMint: false, truncated: true };
-      }
-      throw err;
-    }
-
-    const settled = await Promise.allSettled(
-      windows.map(({ start, end }) => getLogsRangeFreeTier(provider, address, start, end, budget)),
-    );
-    const { results, rangeTooLarge, budgetExhausted, hardError } = processSettledBatch(
-      settled,
-      windowSize,
-    );
-
-    if (hardError) throw hardError;
-    if (rangeTooLarge && !budgetExhausted) {
-      windowSize = Math.max(Math.floor(windowSize / 4), MIN_CHUNK_SIZE);
-      continue;
-    }
-
-    if (collectBatchChunks(results, isMintLog, chunkGroups)) {
-      return { logs: flattenOldestFirst(chunkGroups), foundMint: true, truncated: false };
-    }
-    if (budgetExhausted) {
-      return { logs: flattenOldestFirst(chunkGroups), foundMint: false, truncated: true };
-    }
-
-    const oldest = windows[windows.length - 1];
-    if (oldest.start <= toBlockFloor) break;
-    cursor = oldest.start - 1;
-  }
-
-  return {
-    logs: flattenOldestFirst(chunkGroups),
-    foundMint: false,
-    truncated: Boolean(isMintLog),
-  };
-};
-
-async function handoffToFreeTier(
-  provider: Provider | ethersV6.Provider,
-  address: string,
-  cursor: number,
-  effectiveFloor: number,
-  chunkSize: number,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  isMintLog: ((log: any) => boolean) | undefined,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  newerChunkGroups: any[][],
-): Promise<ScanLogsBackwardResult> {
-  const older = await scanLogsBackwardParallel(
-    provider,
-    address,
-    cursor,
-    effectiveFloor,
-    chunkSize,
-    isMintLog,
-  );
-  return {
-    logs: [...older.logs, ...flattenOldestFirst(newerChunkGroups)],
-    foundMint: older.foundMint,
-    truncated: older.foundMint ? false : older.truncated,
-  };
-}
-
-async function fetchPaidTierChunk(
-  provider: Provider | ethersV6.Provider,
-  address: string,
-  cursor: number,
-  effectiveFloor: number,
-  state: AdaptiveScanState,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  isMintLog: ((log: any) => boolean) | undefined,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  newerChunkGroups: any[][],
-): Promise<'mint' | 'continue' | 'done'> {
-  const chunkStart = Math.max(cursor - state.chunkSize + 1, effectiveFloor);
-  try {
-    const chunkLogs = await getLogsRange(provider, address, chunkStart, cursor);
-    if (pushMintSliceIfFound(chunkLogs, isMintLog, newerChunkGroups)) {
-      return 'mint';
-    }
-    newerChunkGroups.push(chunkLogs);
-  } catch (err) {
-    const message = errorMessage(err);
-    if (RANGE_TOO_LARGE_ERROR_RE.test(message) && state.chunkSize > MIN_CHUNK_SIZE) {
-      shrinkForRangeLimit(state, message);
-      return 'continue';
-    }
-    throw err;
-  }
-  return chunkStart <= effectiveFloor ? 'done' : 'continue';
-}
-
+/**
+ * Adaptive backward eth_getLogs scanner.
+ * Starts with a large window, shrinks on provider range limits (including Infura's 10-block
+ * free-tier cap), retries rate limits, and stops early when isMintLog matches.
+ * @param {Provider | ethersV6.Provider} provider - Ethers provider
+ * @param {string} address - Contract address to scan
+ * @param {number} fromBlock - Latest block to start from
+ * @param {number} toBlockFloor - Earliest block to stop at
+ * @param {(log: any) => boolean} [isMintLog] - Optional mint detector to stop early
+ * @param {number} [maxBlocksToScan] - Max blocks to walk back from fromBlock
+ * @returns {Promise<ScanLogsBackwardResult>} Logs oldest→newest plus mint/truncation flags
+ */
 export const scanLogsBackward = async (
   provider: Provider | ethersV6.Provider,
   address: string,
@@ -420,10 +144,12 @@ export const scanLogsBackward = async (
   maxBlocksToScan: number = DEFAULT_MAX_BLOCKS_TO_SCAN,
 ): Promise<ScanLogsBackwardResult> => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const newerChunkGroups: any[][] = [];
+  const chunkGroups: any[][] = [];
   const state: AdaptiveScanState = {
     chunkSize: Math.min(INITIAL_CHUNK_SIZE, MAX_CHUNK_SIZE),
     maxChunkSize: MAX_CHUNK_SIZE,
+    requestsUsed: 0,
+    deadlineAt: Date.now() + FREE_TIER_MAX_DURATION_MS,
   };
   const budgetFloor = Math.max(0, fromBlock - maxBlocksToScan);
   const effectiveFloor = Math.max(toBlockFloor, budgetFloor);
@@ -431,44 +157,51 @@ export const scanLogsBackward = async (
   let cursor = fromBlock;
 
   while (cursor >= effectiveFloor) {
-    if (state.maxChunkSize <= FREE_TIER_MAX_CHUNK_SIZE) {
-      return handoffToFreeTier(
-        provider,
-        address,
-        cursor,
-        effectiveFloor,
-        state.chunkSize,
-        isMintLog,
-        newerChunkGroups,
-      );
-    }
-
-    const priorChunkSize = state.chunkSize;
-    const outcome = await fetchPaidTierChunk(
-      provider,
-      address,
-      cursor,
-      effectiveFloor,
-      state,
-      isMintLog,
-      newerChunkGroups,
-    );
-    if (outcome === 'mint') {
+    if (isBudgetExhausted(state)) {
       return {
-        logs: flattenOldestFirst(newerChunkGroups),
-        foundMint: true,
-        truncated: false,
+        logs: chunkGroups.toReversed().flat(),
+        foundMint: false,
+        truncated: true,
       };
     }
-    if (state.chunkSize !== priorChunkSize) continue;
 
-    const chunkStart = Math.max(cursor - priorChunkSize + 1, effectiveFloor);
-    if (outcome === 'done' || chunkStart <= effectiveFloor) break;
+    const chunkStart = Math.max(cursor - state.chunkSize + 1, effectiveFloor);
+    try {
+      const chunkLogs = await getLogsRange(provider, address, chunkStart, cursor, state);
+      if (isMintLog) {
+        const start = findMintSliceStart(chunkLogs, isMintLog);
+        if (start >= 0) {
+          chunkGroups.push(chunkLogs.slice(start));
+          return {
+            logs: chunkGroups.toReversed().flat(),
+            foundMint: true,
+            truncated: false,
+          };
+        }
+      }
+      chunkGroups.push(chunkLogs);
+    } catch (err) {
+      if (err instanceof Error && err.message === 'RPC scan budget exhausted') {
+        return {
+          logs: chunkGroups.toReversed().flat(),
+          foundMint: false,
+          truncated: true,
+        };
+      }
+      const message = errorMessage(err);
+      if (RANGE_TOO_LARGE_ERROR_RE.test(message) && state.chunkSize > MIN_CHUNK_SIZE) {
+        shrinkForRangeLimit(state, message);
+        continue;
+      }
+      throw err;
+    }
+
+    if (chunkStart <= effectiveFloor) break;
     cursor = chunkStart - 1;
   }
 
   return {
-    logs: flattenOldestFirst(newerChunkGroups),
+    logs: chunkGroups.toReversed().flat(),
     foundMint: false,
     truncated: Boolean(isMintLog) && budgetRaisedFloor,
   };

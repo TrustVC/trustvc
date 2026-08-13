@@ -12,7 +12,6 @@ export const INITIAL_CHUNK_SIZE = 10_000;
 export const FREE_TIER_MAX_CHUNK_SIZE = 10;
 export const MIN_CHUNK_SIZE = 1;
 export const MAX_CHUNK_SIZE = 50_000;
-export const FREE_TIER_CONCURRENCY = 3;
 export const DEFAULT_MAX_BLOCKS_TO_SCAN = 200_000;
 export const FREE_TIER_MAX_REQUESTS = 5_000;
 export const FREE_TIER_MAX_DURATION_MS = 60_000;
