@@ -9,6 +9,7 @@ import {
   CredentialStatus,
   SignedVerifiableCredential,
   VerifiablePresentation,
+  verifyCredential,
   verifyCredentialStatus,
   verifyPresentation,
 } from '@trustvc/w3c-vc';
@@ -51,6 +52,20 @@ const toArray = <T>(value: T | T[] | undefined | null): T[] => {
 // Returns ALL credentialSubjects (credentialSubject may be an object or an array).
 const getSubjects = (cred: SignedVerifiableCredential): unknown[] =>
   toArray(cred?.credentialSubject as unknown);
+
+// The temporal window of a credential, honouring both VC Data Model versions:
+// v2.0 uses validFrom/validUntil, v1.1 uses issuanceDate/expirationDate.
+const getCredentialWindow = (
+  cred: SignedVerifiableCredential,
+): { from?: string; until?: string } => {
+  const c = cred as {
+    validFrom?: string;
+    validUntil?: string;
+    issuanceDate?: string;
+    expirationDate?: string;
+  };
+  return { from: c.validFrom ?? c.issuanceDate, until: c.validUntil ?? c.expirationDate };
+};
 
 // Holder binding: the signer's DID (from the proof's verificationMethod) must equal the
 // holder and every credentialSubject.id. Returns an error message, or undefined when bound.
@@ -101,10 +116,14 @@ const checkDidResolve = async (did: string, documentLoader?: DocumentLoader): Pr
 };
 
 // ---------------------------------------------------------------------------
-// DOCUMENT_INTEGRITY — the holder proof (crypto only) + every embedded credential's signature.
-// NOTE: challenge/domain are NOT enforced here — they are interactive (anti-replay / audience)
-// concerns that a stateless verification pipeline cannot check. Only cryptographic validity
-// of the holder proof is verified.
+// DOCUMENT_INTEGRITY — the holder proof (crypto only) + every embedded credential's SIGNATURE.
+// This fragment is strictly cryptographic: it does NOT judge temporal validity (expiry /
+// not-yet-valid) or revocation of embedded credentials — those are DOCUMENT_STATUS concerns
+// handled by `w3cVpCredentialStatus`. That is why the embedded credentials are checked with
+// `verifyCredential` (signature-only) rather than `verifyPresentation`'s `credentialResults`,
+// which fold expiry + revocation into each credential's `verified` flag.
+// NOTE: challenge/domain are NOT enforced here either — they are interactive (anti-replay /
+// audience) concerns that a stateless verification pipeline cannot check.
 // ---------------------------------------------------------------------------
 export const w3cVpSignatureIntegrity: Verifier<VerificationFragment> = {
   skip: async () => ({
@@ -136,16 +155,28 @@ export const w3cVpSignatureIntegrity: Verifier<VerificationFragment> = {
       };
     }
 
-    // Pass the proof's own challenge/domain so an authentication proof verifies its crypto
-    // (this checks signature validity, NOT freshness — freshness is out of pipeline scope).
+    // Holder proof crypto. Pass the proof's own challenge/domain so an authentication proof
+    // verifies its crypto (this checks signature validity, NOT freshness — freshness is out
+    // of pipeline scope). We only consume `presentationResult` here; the aggregate `verified`
+    // and `credentialResults` also encode expiry/revocation, which are NOT integrity concerns.
     const result = await verifyPresentation(doc, {
       challenge: doc.proof?.challenge as string | undefined,
       domain: doc.proof?.domain as string | undefined,
       documentLoader: verifierOptions?.documentLoader,
     });
-
-    const credentialsValid = (result.credentialResults ?? []).every((r) => r.verified);
     const proofValid = result.presentationResult?.verified === true;
+
+    // Embedded credentials — SIGNATURE only. `verifyCredential` verifies the proof crypto
+    // and does not assert expiry or revocation, so an expired-but-authentic credential still
+    // passes integrity and is caught downstream by `w3cVpCredentialStatus`.
+    const signatureResults = await Promise.all(
+      getCredentials(doc).map((cred) =>
+        verifyCredential(cred, { documentLoader: verifierOptions?.documentLoader }),
+      ),
+    );
+    const badSignatureIdx = signatureResults.findIndex((r) => !r.verified);
+    const credentialsValid = badSignatureIdx === -1;
+
     // Holder binding: signer DID == holder == every credentialSubject.id.
     const bindingError = checkVpHolderBinding(doc);
     const valid = credentialsValid && proofValid && !bindingError;
@@ -157,7 +188,7 @@ export const w3cVpSignatureIntegrity: Verifier<VerificationFragment> = {
         data: {
           holderProofVerified: true,
           holderBound: true,
-          credentialResults: result.credentialResults,
+          credentialResults: signatureResults,
         },
         status: 'VALID',
       };
@@ -168,14 +199,19 @@ export const w3cVpSignatureIntegrity: Verifier<VerificationFragment> = {
       data: {
         holderProofVerified: proofValid,
         holderBound: !bindingError,
-        credentialResults: result.credentialResults,
+        credentialResults: signatureResults,
       },
       reason: {
         message: !proofValid
           ? (result.presentationResult?.error ?? 'Presentation proof is invalid.')
           : (bindingError ??
-            result.credentialResults?.find((r) => !r.verified)?.error ??
-            'An embedded credential is invalid.'),
+            (badSignatureIdx !== -1
+              ? `Embedded credential at index ${badSignatureIdx} has an invalid signature${
+                  signatureResults[badSignatureIdx].error
+                    ? `: ${signatureResults[badSignatureIdx].error}`
+                    : '.'
+                }`
+              : 'An embedded credential signature is invalid.')),
       },
       status: 'INVALID',
     };
@@ -214,19 +250,54 @@ export const w3cVpCredentialStatus: Verifier<VerificationFragment> = {
       };
     }
 
-    // Embedded credentials' revocation status.
     const credentials = getCredentials(doc);
-    const allStatuses = credentials.flatMap((cred) =>
-      toArray(cred.credentialStatus as CredentialStatus | CredentialStatus[] | undefined),
+
+    // Embedded credentials' temporal validity (expiry / not-yet-valid). This is where the
+    // integrity fragment used to implicitly catch expiry via `verifyPresentation`; temporal
+    // validity is a STATUS concern, so it lives here next to VP expiry and revocation.
+    const now = new Date();
+    for (let i = 0; i < credentials.length; i++) {
+      const { from, until } = getCredentialWindow(credentials[i]);
+      if (until && now > new Date(until)) {
+        return {
+          type: 'DOCUMENT_STATUS',
+          name: 'W3CVpCredentialStatus',
+          data: { expired: true, credentialIndex: i, validUntil: until },
+          reason: {
+            message: `Embedded credential at index ${i} has expired (validUntil ${until}).`,
+          },
+          status: 'INVALID',
+        };
+      }
+      if (from && now < new Date(from)) {
+        return {
+          type: 'DOCUMENT_STATUS',
+          name: 'W3CVpCredentialStatus',
+          data: { notYetValid: true, credentialIndex: i, validFrom: from },
+          reason: {
+            message: `Embedded credential at index ${i} is not yet valid (validFrom ${from}).`,
+          },
+          status: 'INVALID',
+        };
+      }
+    }
+
+    // Embedded credentials' revocation status. Each status entry keeps its owning
+    // credential index so a revoked/error result can name it (parity with the temporal
+    // checks above); VP expiry stays index-less because it is the envelope, not a credential.
+    const statusEntries = credentials.flatMap((cred, i) =>
+      toArray(cred.credentialStatus as CredentialStatus | CredentialStatus[] | undefined).map(
+        (cs) => ({ cs, credentialIndex: i }),
+      ),
     );
 
     // A status entry whose type we cannot evaluate must NOT be silently dropped (that would
     // report VALID while revocation is unenforced). Surface it as ERROR.
-    const unsupported = allStatuses.filter(
-      (cs) => cs?.type && !SUPPORTED_STATUS_TYPES.has(cs.type),
+    const unsupported = statusEntries.filter(
+      ({ cs }) => cs?.type && !SUPPORTED_STATUS_TYPES.has(cs.type),
     );
     if (unsupported.length > 0) {
-      const types = [...new Set(unsupported.map((cs) => cs.type))].join(', ');
+      const types = [...new Set(unsupported.map(({ cs }) => cs.type))].join(', ');
       return {
         type: 'DOCUMENT_STATUS',
         name: 'W3CVpCredentialStatus',
@@ -235,36 +306,40 @@ export const w3cVpCredentialStatus: Verifier<VerificationFragment> = {
       };
     }
 
+    const supported = statusEntries.filter(({ cs }) => SUPPORTED_STATUS_TYPES.has(cs?.type));
     const statusChecks = await Promise.all(
-      allStatuses
-        .filter((cs) => SUPPORTED_STATUS_TYPES.has(cs?.type))
-        .map((cs) =>
-          verifyCredentialStatus(
-            cs as BitstringStatusListCredentialStatus,
-            cs.type as CredentialStatusType,
-            verifierOptions,
-          ),
+      supported.map(({ cs }) =>
+        verifyCredentialStatus(
+          cs as BitstringStatusListCredentialStatus,
+          cs.type as CredentialStatusType,
+          verifierOptions,
         ),
+      ),
     );
 
-    const revoked = statusChecks.find((r) => r.status === true);
-    if (revoked) {
+    const revokedIdx = statusChecks.findIndex((r) => r.status === true);
+    if (revokedIdx !== -1) {
+      const revoked = statusChecks[revokedIdx];
+      const credentialIndex = supported[revokedIdx].credentialIndex;
       return {
         type: 'DOCUMENT_STATUS',
         name: 'W3CVpCredentialStatus',
-        data: { revoked: true },
+        data: { revoked: true, credentialIndex },
         reason: {
-          message: `An embedded credential has been revoked (status purpose "${revoked.purpose ?? 'revocation'}").`,
+          message: `Embedded credential at index ${credentialIndex} has been revoked (status purpose "${revoked.purpose ?? 'revocation'}").`,
         },
         status: 'INVALID',
       };
     }
-    const statusError = statusChecks.find((r) => r.error);
-    if (statusError) {
+    const errorIdx = statusChecks.findIndex((r) => r.error);
+    if (errorIdx !== -1) {
+      const credentialIndex = supported[errorIdx].credentialIndex;
       return {
         type: 'DOCUMENT_STATUS',
         name: 'W3CVpCredentialStatus',
-        reason: { message: `Could not verify an embedded credential status: ${statusError.error}` },
+        reason: {
+          message: `Could not verify status of embedded credential at index ${credentialIndex}: ${statusChecks[errorIdx].error}`,
+        },
         status: 'ERROR',
       };
     }
@@ -301,8 +376,8 @@ export const w3cVpIssuerIdentity: Verifier<VerificationFragment> = {
 
     // Every embedded credential must declare an issuer — a missing issuer cannot be
     // resolved, so it must fail rather than be silently dropped.
-    const missing = issuerIds.filter((id) => !id).length;
-    if (credentials.length === 0 || missing > 0) {
+    const missingIndices = issuerIds.map((id, i) => (id ? -1 : i)).filter((i) => i !== -1);
+    if (credentials.length === 0 || missingIndices.length > 0) {
       return {
         type: 'ISSUER_IDENTITY',
         name: 'W3CVpIssuerIdentity',
@@ -310,7 +385,7 @@ export const w3cVpIssuerIdentity: Verifier<VerificationFragment> = {
           message:
             credentials.length === 0
               ? 'Presentation contains no verifiable credentials.'
-              : `${missing} embedded credential(s) have no issuer.`,
+              : `Embedded credential(s) at index ${missingIndices.join(', ')} have no issuer.`,
         },
         status: 'INVALID',
       };
