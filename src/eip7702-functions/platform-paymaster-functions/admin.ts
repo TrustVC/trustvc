@@ -212,6 +212,10 @@ export const delegateUser = async (
   if (!ownerSigner.account) throw new Error('ownerSigner must have an account');
   const submitter = payerSigner ?? ownerSigner;
   if (!submitter.account) throw new Error('payerSigner must have an account');
+  if (payerSigner && ownerSigner.chain?.id !== payerSigner.chain?.id)
+    throw new Error(
+      `chain mismatch: ownerSigner is on chain ${ownerSigner.chain?.id} but payerSigner is on chain ${payerSigner.chain?.id}`,
+    );
   const authorization = await ownerSigner.signAuthorization({
     account: ownerSigner.account,
     contractAddress: implementationAddress,
