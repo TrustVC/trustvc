@@ -1,3 +1,15 @@
+## [2.16.0-beta.4](https://github.com/TrustVC/trustvc/compare/v2.16.0-beta.3...v2.16.0-beta.4) (2026-08-13)
+
+
+### Bug Fixes
+
+* eip imports for new beta version ([#167](https://github.com/TrustVC/trustvc/issues/167)) ([2eb6883](https://github.com/TrustVC/trustvc/commit/2eb688368eb94d8b172f7c7ba0077d75768e40a9))
+
+
+### Miscellaneous Chores
+
+* update @tradetrust-tt/token-registry-v5 to version 5.6.0-beta.2 ([#160](https://github.com/TrustVC/trustvc/issues/160)) ([a9f85c4](https://github.com/TrustVC/trustvc/commit/a9f85c4d895b91a1b01645c42a7e6764dcb1d8e2))
+
 ## [2.16.0-beta.3](https://github.com/TrustVC/trustvc/compare/v2.16.0-beta.2...v2.16.0-beta.3) (2026-08-07)
 
 
