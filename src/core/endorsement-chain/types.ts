@@ -66,7 +66,6 @@ export interface TransferEvent extends TransferBaseEvent {
   timestamp: number;
   holder: string;
   owner: string;
-  terminationReason?: TerminationReasonLabel;
 }
 
 export type EndorsementChain = TransferEvent[];
