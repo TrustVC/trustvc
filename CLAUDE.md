@@ -116,7 +116,7 @@ These public aliases were removed:
 | --- | --- |
 | `fetchObligationEndorsementChain` | `fetchEndorsementChain` |
 | `fetchEscrowTransfersObligation` | `fetchEscrowTransfersV5` (auto-detects obligation status events) |
-| `ObligationEscrowInterface` | `v5SupportInterfaceIds.ObligationEscrow` |
+| `ObligationEscrowInterface` | `supportInterfaceIdsV5.ObligationEscrow` |
 
 Do **not** re-add the removed aliases. User-facing docs also live in `README.md`
 (Obligation Registry section).
