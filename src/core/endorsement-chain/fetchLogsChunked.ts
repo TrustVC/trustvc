@@ -93,7 +93,10 @@ async function getLogsRange(
     } catch (err) {
       if (RATE_LIMIT_ERROR_RE.test(errorMessage(err)) && attempt < RATE_LIMIT_MAX_RETRIES) {
         await sleep(
-          Math.max(0, Math.min(RATE_LIMIT_BASE_DELAY_MS * 2 ** attempt, state.deadlineAt - Date.now())),
+          Math.max(
+            0,
+            Math.min(RATE_LIMIT_BASE_DELAY_MS * 2 ** attempt, state.deadlineAt - Date.now()),
+          ),
         );
         continue;
       }
