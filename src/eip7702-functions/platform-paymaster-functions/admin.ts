@@ -12,6 +12,7 @@ async function sendAdminTx(
   paymasterAddress: `0x${string}`,
   functionName: string,
   args: unknown[],
+  value?: bigint,
 ): Promise<string> {
   if ('writeContract' in signer) {
     return signer.writeContract({
@@ -21,6 +22,7 @@ async function sendAdminTx(
       args: args as never,
       chain: signer.chain,
       account: signer.account!,
+      ...(value !== undefined && { value }),
     });
   }
 
@@ -32,8 +34,9 @@ async function sendAdminTx(
     ethSigner as any, // eslint-disable-line @typescript-eslint/no-explicit-any
   );
   const isV6 = isV6EthersProvider(ethSigner.provider);
+  const callArgs = value !== undefined ? [...args, { value }] : args;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const tx = await (contract as any)[functionName](...args);
+  const tx = await (contract as any)[functionName](...callArgs);
   if (isV6) {
     return tx.hash as `0x${string}`;
   }
@@ -161,3 +164,64 @@ export const setDailyLimit = async (
   paymasterAddress: `0x${string}`,
   dailyLimit: bigint,
 ): Promise<string> => sendAdminTx(signer, paymasterAddress, 'setDailyLimit', [dailyLimit]);
+
+/**
+ * Stakes ETH on the PlatformPaymaster with the ERC-4337 EntryPoint.
+ * Required before the paymaster can sponsor UserOperations.
+ * @param {AdminSigner} signer - Owner ethers signer (v5/v6) or viem WalletClient.
+ * @param {string} paymasterAddress - Address of the deployed PlatformPaymaster.
+ * @param {number} unstakeDelaySec - Lock period in seconds before stake can be withdrawn.
+ * @param {bigint} amount - Amount of ETH to stake in wei.
+ * @returns {Promise<string>} Transaction hash.
+ */
+export const stakePaymaster = async (
+  signer: AdminSigner,
+  paymasterAddress: `0x${string}`,
+  unstakeDelaySec: number,
+  amount: bigint,
+): Promise<string> => sendAdminTx(signer, paymasterAddress, 'addStake', [unstakeDelaySec], amount);
+
+/**
+ * Deposits ETH into the PlatformPaymaster's EntryPoint balance to fund gas sponsorship.
+ * Unlike staking, deposited funds are not locked and can be withdrawn at any time.
+ * @param {AdminSigner} signer - Ethers signer (v5/v6) or viem WalletClient.
+ * @param {string} paymasterAddress - Address of the deployed PlatformPaymaster.
+ * @param {bigint} amount - Amount of ETH to deposit in wei.
+ * @returns {Promise<string>} Transaction hash.
+ */
+export const fundPaymaster = async (
+  signer: AdminSigner,
+  paymasterAddress: `0x${string}`,
+  amount: bigint,
+): Promise<string> => sendAdminTx(signer, paymasterAddress, 'deposit', [], amount);
+
+/**
+ * Delegates a user's EOA to an EIP-7702 smart account implementation.
+ * The owner signs the authorization (no gas required). If a payerSigner is provided,
+ * it submits the type-4 transaction and covers gas; otherwise the owner submits and pays.
+ * @param {string} implementationAddress - The EIP-7702 implementation contract address to delegate to.
+ * @param {WalletClient} ownerSigner - The user's viem WalletClient (signs the EIP-7702 authorization).
+ * @param {WalletClient} [payerSigner] - Optional funded viem WalletClient that submits the tx and pays gas.
+ * @returns {Promise<string>} Transaction hash.
+ */
+export const delegateUser = async (
+  implementationAddress: `0x${string}`,
+  ownerSigner: WalletClient,
+  payerSigner?: WalletClient,
+): Promise<string> => {
+  if (!ownerSigner.account) throw new Error('ownerSigner must have an account');
+  const submitter = payerSigner ?? ownerSigner;
+  if (!submitter.account) throw new Error('payerSigner must have an account');
+  const authorization = await ownerSigner.signAuthorization({
+    account: ownerSigner.account,
+    contractAddress: implementationAddress,
+  });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (submitter.sendTransaction as any)({
+    to: ownerSigner.account.address,
+    data: '0x',
+    authorizationList: [authorization],
+    account: submitter.account,
+    chain: submitter.chain,
+  });
+};
