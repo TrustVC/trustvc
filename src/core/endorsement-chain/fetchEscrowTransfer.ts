@@ -301,144 +301,126 @@ const fetchEscrowLogs = async (
   }
 };
 
+const logMeta = (event: ParsedLog) => ({
+  blockNumber: event.blockNumber,
+  transactionHash: event.transactionHash,
+  transactionIndex: event.transactionIndex,
+  remark: event.args?.remark,
+});
+
+const mapTokenReceivedEvent = (
+  event: ParsedLog,
+  titleEscrowAddress: string,
+  tokenRegistryAddress: string,
+): TokenTransferEvent => {
+  const type = identifyTokenReceivedType(event);
+  return {
+    type,
+    from: type === 'INITIAL' ? '0x0000000000000000000000000000000000000000' : tokenRegistryAddress,
+    to: titleEscrowAddress,
+    // TokenReceived carries beneficiary/holder — needed when merge prefers INITIAL.
+    owner: event.args?.beneficiary,
+    holder: event.args?.holder,
+    ...logMeta(event),
+  } as TokenTransferEvent;
+};
+
+const mapShredEvent = (event: ParsedLog, tokenRegistryAddress: string): TokenTransferEvent => {
+  // New ABI: lastBeneficiary/lastHolder on Shred. Old ABI: leave unset (carry-forward fallback).
+  const terminationReason = toTerminationReasonLabel(event.args?.reason);
+  return {
+    type: 'RETURN_TO_ISSUER_ACCEPTED',
+    from: tokenRegistryAddress,
+    to: '0x000000000000000000000000000000000000dead',
+    owner: event.args?.lastBeneficiary as string | undefined,
+    holder: event.args?.lastHolder as string | undefined,
+    ...logMeta(event),
+    ...(terminationReason ? { terminationReason } : {}),
+  } as TokenTransferEvent;
+};
+
+const mapParsedLogToEvent = (
+  event: ParsedLog,
+  titleEscrowAddress: string,
+  tokenRegistryAddress: string,
+): TitleEscrowTransferEvent | TokenTransferEvent | undefined => {
+  switch (event?.name) {
+    case 'HolderTransfer':
+      return {
+        type: 'TRANSFER_HOLDER',
+        holder: event.args.toHolder,
+        ...logMeta(event),
+      } as TitleEscrowTransferEvent;
+    case 'BeneficiaryTransfer':
+      return {
+        type: 'TRANSFER_BENEFICIARY',
+        owner: event.args.toBeneficiary,
+        ...logMeta(event),
+      } as TitleEscrowTransferEvent;
+    case 'TokenReceived':
+      return mapTokenReceivedEvent(event, titleEscrowAddress, tokenRegistryAddress);
+    case 'ReturnToIssuer':
+      return {
+        type: 'RETURNED_TO_ISSUER',
+        from: titleEscrowAddress,
+        to: tokenRegistryAddress,
+        ...logMeta(event),
+      } as TokenTransferEvent;
+    case 'Nomination':
+      return undefined;
+    case 'RejectTransferOwners':
+      return {
+        type: 'REJECT_TRANSFER_OWNERS',
+        owner: event.args?.toBeneficiary,
+        holder: event.args?.toHolder,
+        ...logMeta(event),
+      } as TitleEscrowTransferEvent;
+    case 'RejectTransferBeneficiary':
+      return {
+        type: 'REJECT_TRANSFER_BENEFICIARY',
+        owner: event.args?.toBeneficiary,
+        ...logMeta(event),
+      } as TitleEscrowTransferEvent;
+    case 'RejectTransferHolder':
+      return {
+        type: 'REJECT_TRANSFER_HOLDER',
+        holder: event.args?.toHolder,
+        ...logMeta(event),
+      } as TitleEscrowTransferEvent;
+    case 'Shred':
+      return mapShredEvent(event, tokenRegistryAddress);
+    case 'StatusInitialized':
+      return { type: 'STATUS_INITIALIZED', ...logMeta(event) } as TitleEscrowTransferEvent;
+    case 'StatusAccepted':
+      return {
+        type: 'STATUS_ACCEPTED',
+        holder: event.args?.holder,
+        ...logMeta(event),
+      } as TitleEscrowTransferEvent;
+    case 'StatusRejected':
+      return {
+        type: 'STATUS_REJECTED',
+        holder: event.args?.holder,
+        ...logMeta(event),
+      } as TitleEscrowTransferEvent;
+    case 'StatusDischarged':
+      return {
+        type: 'STATUS_DISCHARGED',
+        owner: event.args?.beneficiary,
+        ...logMeta(event),
+      } as TitleEscrowTransferEvent;
+    default:
+      return undefined;
+  }
+};
+
 const mapParsedLogsToEvents = (
   holderChangeLogsParsed: ParsedLog[],
   titleEscrowAddress: string,
   tokenRegistryAddress: string,
 ): (TitleEscrowTransferEvent | TokenTransferEvent)[] => {
   return holderChangeLogsParsed
-    .map((event) => {
-      if (event?.name === 'HolderTransfer') {
-        return {
-          type: 'TRANSFER_HOLDER',
-          blockNumber: event.blockNumber,
-          holder: event.args.toHolder,
-          transactionHash: event.transactionHash,
-          transactionIndex: event.transactionIndex,
-          remark: event.args?.remark,
-        } as TitleEscrowTransferEvent;
-      } else if (event?.name === 'BeneficiaryTransfer') {
-        return {
-          type: 'TRANSFER_BENEFICIARY',
-          owner: event.args.toBeneficiary,
-          blockNumber: event.blockNumber,
-          transactionHash: event.transactionHash,
-          transactionIndex: event.transactionIndex,
-          remark: event.args?.remark,
-        } as TitleEscrowTransferEvent;
-      } else if (event?.name === 'TokenReceived') {
-        const type = identifyTokenReceivedType(event);
-        return {
-          type,
-          from:
-            type === 'INITIAL'
-              ? '0x0000000000000000000000000000000000000000'
-              : tokenRegistryAddress,
-          to: titleEscrowAddress,
-          // TokenReceived carries beneficiary/holder — needed when merge prefers INITIAL.
-          owner: event.args?.beneficiary,
-          holder: event.args?.holder,
-          blockNumber: event.blockNumber,
-          transactionHash: event.transactionHash,
-          transactionIndex: event.transactionIndex,
-          remark: event.args?.remark,
-        } as TokenTransferEvent;
-      } else if (event?.name === 'ReturnToIssuer') {
-        return {
-          type: 'RETURNED_TO_ISSUER',
-          blockNumber: event.blockNumber,
-          from: titleEscrowAddress,
-          to: tokenRegistryAddress,
-          transactionHash: event.transactionHash,
-          transactionIndex: event.transactionIndex,
-          remark: event.args?.remark,
-        } as TokenTransferEvent;
-      } else if (event?.name === 'Nomination') {
-        return undefined;
-      } else if (event?.name === 'RejectTransferOwners') {
-        return {
-          type: 'REJECT_TRANSFER_OWNERS',
-          owner: event.args?.toBeneficiary,
-          holder: event.args?.toHolder,
-          blockNumber: event.blockNumber,
-          transactionHash: event.transactionHash,
-          transactionIndex: event.transactionIndex,
-          remark: event.args?.remark,
-        } as TitleEscrowTransferEvent;
-      } else if (event?.name === 'RejectTransferBeneficiary') {
-        return {
-          type: 'REJECT_TRANSFER_BENEFICIARY',
-          owner: event.args?.toBeneficiary,
-          blockNumber: event.blockNumber,
-          transactionHash: event.transactionHash,
-          transactionIndex: event.transactionIndex,
-          remark: event.args?.remark,
-        } as TitleEscrowTransferEvent;
-      } else if (event?.name === 'RejectTransferHolder') {
-        return {
-          type: 'REJECT_TRANSFER_HOLDER',
-          holder: event.args?.toHolder,
-          blockNumber: event.blockNumber,
-          transactionHash: event.transactionHash,
-          transactionIndex: event.transactionIndex,
-          remark: event.args?.remark,
-        } as TitleEscrowTransferEvent;
-      } else if (event?.name === 'Shred') {
-        // New ABI: lastBeneficiary/lastHolder on Shred. Old ABI: leave unset (carry-forward fallback).
-        const lastBeneficiary = event.args?.lastBeneficiary as string | undefined;
-        const lastHolder = event.args?.lastHolder as string | undefined;
-        const terminationReason = toTerminationReasonLabel(event.args?.reason);
-        return {
-          type: 'RETURN_TO_ISSUER_ACCEPTED',
-          blockNumber: event.blockNumber,
-          from: tokenRegistryAddress,
-          to: '0x000000000000000000000000000000000000dead',
-          owner: lastBeneficiary,
-          holder: lastHolder,
-          transactionHash: event.transactionHash,
-          transactionIndex: event.transactionIndex,
-          remark: event.args?.remark,
-          ...(terminationReason ? { terminationReason } : {}),
-        } as TokenTransferEvent;
-      } else if (event?.name === 'StatusInitialized') {
-        return {
-          type: 'STATUS_INITIALIZED',
-          blockNumber: event.blockNumber,
-          transactionHash: event.transactionHash,
-          transactionIndex: event.transactionIndex,
-          remark: event.args?.remark,
-        } as TitleEscrowTransferEvent;
-      } else if (event?.name === 'StatusAccepted') {
-        return {
-          type: 'STATUS_ACCEPTED',
-          holder: event.args?.holder,
-          blockNumber: event.blockNumber,
-          transactionHash: event.transactionHash,
-          transactionIndex: event.transactionIndex,
-          remark: event.args?.remark,
-        } as TitleEscrowTransferEvent;
-      } else if (event?.name === 'StatusRejected') {
-        return {
-          type: 'STATUS_REJECTED',
-          holder: event.args?.holder,
-          blockNumber: event.blockNumber,
-          transactionHash: event.transactionHash,
-          transactionIndex: event.transactionIndex,
-          remark: event.args?.remark,
-        } as TitleEscrowTransferEvent;
-      } else if (event?.name === 'StatusDischarged') {
-        return {
-          type: 'STATUS_DISCHARGED',
-          owner: event.args?.beneficiary,
-          blockNumber: event.blockNumber,
-          transactionHash: event.transactionHash,
-          transactionIndex: event.transactionIndex,
-          remark: event.args?.remark,
-        } as TitleEscrowTransferEvent;
-      }
-
-      return undefined;
-    })
+    .map((event) => mapParsedLogToEvent(event, titleEscrowAddress, tokenRegistryAddress))
     .filter((event) => event !== undefined) as (TitleEscrowTransferEvent | TokenTransferEvent)[];
 };
 

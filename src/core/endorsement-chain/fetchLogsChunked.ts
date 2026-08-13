@@ -125,6 +125,50 @@ function findMintSliceStart(logs: any[], isMintLog: (log: any) => boolean): numb
   return start;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function flattenOldestFirst(chunkGroups: any[][]): any[] {
+  return chunkGroups.toReversed().flat();
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function truncatedScanResult(chunkGroups: any[][]): ScanLogsBackwardResult {
+  return { logs: flattenOldestFirst(chunkGroups), foundMint: false, truncated: true };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mintScanResult(chunkGroups: any[][]): ScanLogsBackwardResult {
+  return { logs: flattenOldestFirst(chunkGroups), foundMint: true, truncated: false };
+}
+
+function tryCollectMintSlice(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  chunkLogs: any[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  isMintLog: ((log: any) => boolean) | undefined,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  chunkGroups: any[][],
+): boolean {
+  if (!isMintLog) return false;
+  const start = findMintSliceStart(chunkLogs, isMintLog);
+  if (start < 0) return false;
+  chunkGroups.push(chunkLogs.slice(start));
+  return true;
+}
+
+type ScanChunkErrorOutcome = 'truncated' | 'retry';
+
+function handleScanChunkError(err: unknown, state: AdaptiveScanState): ScanChunkErrorOutcome {
+  if (err instanceof Error && err.message === 'RPC scan budget exhausted') {
+    return 'truncated';
+  }
+  const message = errorMessage(err);
+  if (RANGE_TOO_LARGE_ERROR_RE.test(message) && state.chunkSize > MIN_CHUNK_SIZE) {
+    shrinkForRangeLimit(state, message);
+    return 'retry';
+  }
+  throw err;
+}
+
 /**
  * Adaptive backward eth_getLogs scanner.
  * Starts with a large window, shrinks on provider range limits (including Infura's 10-block
@@ -161,42 +205,20 @@ export const scanLogsBackward = async (
 
   while (cursor >= effectiveFloor) {
     if (isBudgetExhausted(state)) {
-      return {
-        logs: chunkGroups.toReversed().flat(),
-        foundMint: false,
-        truncated: true,
-      };
+      return truncatedScanResult(chunkGroups);
     }
 
     const chunkStart = Math.max(cursor - state.chunkSize + 1, effectiveFloor);
     try {
       const chunkLogs = await getLogsRange(provider, address, chunkStart, cursor, state);
-      if (isMintLog) {
-        const start = findMintSliceStart(chunkLogs, isMintLog);
-        if (start >= 0) {
-          chunkGroups.push(chunkLogs.slice(start));
-          return {
-            logs: chunkGroups.toReversed().flat(),
-            foundMint: true,
-            truncated: false,
-          };
-        }
+      if (tryCollectMintSlice(chunkLogs, isMintLog, chunkGroups)) {
+        return mintScanResult(chunkGroups);
       }
       chunkGroups.push(chunkLogs);
     } catch (err) {
-      if (err instanceof Error && err.message === 'RPC scan budget exhausted') {
-        return {
-          logs: chunkGroups.toReversed().flat(),
-          foundMint: false,
-          truncated: true,
-        };
-      }
-      const message = errorMessage(err);
-      if (RANGE_TOO_LARGE_ERROR_RE.test(message) && state.chunkSize > MIN_CHUNK_SIZE) {
-        shrinkForRangeLimit(state, message);
-        continue;
-      }
-      throw err;
+      const outcome = handleScanChunkError(err, state);
+      if (outcome === 'truncated') return truncatedScanResult(chunkGroups);
+      if (outcome === 'retry') continue;
     }
 
     if (chunkStart <= effectiveFloor) break;
@@ -204,7 +226,7 @@ export const scanLogsBackward = async (
   }
 
   return {
-    logs: chunkGroups.toReversed().flat(),
+    logs: flattenOldestFirst(chunkGroups),
     foundMint: false,
     truncated: Boolean(isMintLog) && budgetRaisedFloor,
   };
