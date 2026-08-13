@@ -15,12 +15,28 @@ import { getEthersContractFromProvider } from '../../utils/ethers';
 import { isLogsRetryableError, scanLogsBackward } from './fetchLogsChunked';
 import {
   ParsedLog,
+  TerminationReasonLabel,
   TitleEscrowTransferEvent,
   TokenTransferEvent,
   TokenTransferEventType,
   TransferBaseEvent,
 } from '../endorsement-chain/types';
 import { Provider } from '@ethersproject/abstract-provider';
+
+const TERMINATION_REASON_LABELS: TerminationReasonLabel[] = [
+  'None',
+  'ReturnToIssuer',
+  'Rejected',
+  'Discharged',
+];
+
+const toTerminationReasonLabel = (reason: unknown): TerminationReasonLabel | undefined => {
+  const index = Number(reason);
+  if (!Number.isInteger(index) || index < 0 || index >= TERMINATION_REASON_LABELS.length) {
+    return undefined;
+  }
+  return TERMINATION_REASON_LABELS[index];
+};
 
 export const fetchEscrowTransfersV4 = async (
   provider: Provider | ethersV6.Provider,
@@ -319,6 +335,9 @@ const mapParsedLogsToEvents = (
               ? '0x0000000000000000000000000000000000000000'
               : tokenRegistryAddress,
           to: titleEscrowAddress,
+          // TokenReceived carries beneficiary/holder — needed when merge prefers INITIAL.
+          owner: event.args?.beneficiary,
+          holder: event.args?.holder,
           blockNumber: event.blockNumber,
           transactionHash: event.transactionHash,
           transactionIndex: event.transactionIndex,
@@ -339,6 +358,8 @@ const mapParsedLogsToEvents = (
       } else if (event?.name === 'RejectTransferOwners') {
         return {
           type: 'REJECT_TRANSFER_OWNERS',
+          owner: event.args?.toBeneficiary,
+          holder: event.args?.toHolder,
           blockNumber: event.blockNumber,
           transactionHash: event.transactionHash,
           transactionIndex: event.transactionIndex,
@@ -347,6 +368,7 @@ const mapParsedLogsToEvents = (
       } else if (event?.name === 'RejectTransferBeneficiary') {
         return {
           type: 'REJECT_TRANSFER_BENEFICIARY',
+          owner: event.args?.toBeneficiary,
           blockNumber: event.blockNumber,
           transactionHash: event.transactionHash,
           transactionIndex: event.transactionIndex,
@@ -355,20 +377,27 @@ const mapParsedLogsToEvents = (
       } else if (event?.name === 'RejectTransferHolder') {
         return {
           type: 'REJECT_TRANSFER_HOLDER',
+          holder: event.args?.toHolder,
           blockNumber: event.blockNumber,
           transactionHash: event.transactionHash,
           transactionIndex: event.transactionIndex,
           remark: event.args?.remark,
         } as TitleEscrowTransferEvent;
       } else if (event?.name === 'Shred') {
+        // New ABI: lastBeneficiary/lastHolder on Shred. Old ABI: leave unset (carry-forward fallback).
+        const lastBeneficiary = event.args?.lastBeneficiary as string | undefined;
+        const lastHolder = event.args?.lastHolder as string | undefined;
         return {
           type: 'RETURN_TO_ISSUER_ACCEPTED',
           blockNumber: event.blockNumber,
           from: tokenRegistryAddress,
           to: '0x00000000000000000000000000000000000dead',
+          owner: lastBeneficiary,
+          holder: lastHolder,
           transactionHash: event.transactionHash,
           transactionIndex: event.transactionIndex,
           remark: event.args?.remark,
+          terminationReason: toTerminationReasonLabel(event.args?.reason),
         } as TokenTransferEvent;
       } else if (event?.name === 'StatusInitialized') {
         return {
@@ -381,6 +410,7 @@ const mapParsedLogsToEvents = (
       } else if (event?.name === 'StatusAccepted') {
         return {
           type: 'STATUS_ACCEPTED',
+          holder: event.args?.holder,
           blockNumber: event.blockNumber,
           transactionHash: event.transactionHash,
           transactionIndex: event.transactionIndex,
@@ -389,6 +419,7 @@ const mapParsedLogsToEvents = (
       } else if (event?.name === 'StatusRejected') {
         return {
           type: 'STATUS_REJECTED',
+          holder: event.args?.holder,
           blockNumber: event.blockNumber,
           transactionHash: event.transactionHash,
           transactionIndex: event.transactionIndex,
@@ -397,6 +428,7 @@ const mapParsedLogsToEvents = (
       } else if (event?.name === 'StatusDischarged') {
         return {
           type: 'STATUS_DISCHARGED',
+          owner: event.args?.beneficiary,
           blockNumber: event.blockNumber,
           transactionHash: event.transactionHash,
           transactionIndex: event.transactionIndex,

@@ -127,6 +127,17 @@ Do **not** re-add the removed aliases. User-facing docs also live in `README.md`
   [Endorsement chain](#endorsement-chain-srccoreendorsement-chainuseendorsementchaints)
   — do not re-add `fetchObligationEndorsementChain`, `fetchEscrowTransfersObligation`,
   or `ObligationEscrowInterface`.
+- **Obligation mint merges to INITIAL.** ObligationEscrow emits `StatusInitialized`
+  in the same tx as `TokenReceived(isMinting)` (often *before* it in log order).
+  `mergeTransfersV5` must prefer `INITIAL` so owner/holder/remarks match classic ETR
+  mint rows. Do not let `STATUS_INITIALIZED` win that merge.
+- **eBoE shred last parties + reason come from the contract.** ObligationEscrow
+  persists `lastBeneficiary` / `lastHolder` in `_deactivate` and emits them on
+  `Shred` with `TerminationReason`. SDK maps those onto `RETURN_TO_ISSUER_ACCEPTED`
+  (`owner`/`holder`/`terminationReason`). Do not reconstruct parties from transfer
+  history as the primary source of truth. Classic ETR shred UI still blanks parties
+  (no reason field). **ABI break:** redeploy or upgrade obligation registries /
+  escrow impl before validating against live docs.
 - **Selective disclosure keeps the subject `id`.** If a credential was issued *with* a
   `credentialSubject.id`, deriving it (even revealing only other fields) **retains that
   id**. To test/produce a credential with *no* subject id, it must be issued without one.
