@@ -67,6 +67,49 @@ const getCredentialWindow = (
   return { from: c.validFrom ?? c.issuanceDate, until: c.validUntil ?? c.expirationDate };
 };
 
+// True when `value` parses to a real date. `new Date('garbage')` is an Invalid Date, whose
+// comparisons all read false — so an unparseable validFrom/validUntil would otherwise slip
+// through the temporal checks as "valid". Callers must reject a present-but-unparseable value.
+const isValidDate = (value: string): boolean => !Number.isNaN(new Date(value).getTime());
+
+// Finds the first embedded credential outside its validity window — unparseable, expired, or
+// not-yet-valid — returning the reason + fragment data, or undefined when all are within range.
+// Extracted from the status verifier to keep that function's cognitive complexity low.
+const findEmbeddedTemporalError = (
+  credentials: SignedVerifiableCredential[],
+  now: Date,
+): { message: string; data: Record<string, unknown> } | undefined => {
+  for (let i = 0; i < credentials.length; i++) {
+    const { from, until } = getCredentialWindow(credentials[i]);
+    // Reject unparseable values before comparing (Invalid Date comparisons all read false).
+    if (until !== undefined && !isValidDate(until)) {
+      return {
+        message: `Embedded credential at index ${i} has an unparseable validUntil ("${until}").`,
+        data: { credentialIndex: i, validUntil: until },
+      };
+    }
+    if (from !== undefined && !isValidDate(from)) {
+      return {
+        message: `Embedded credential at index ${i} has an unparseable validFrom ("${from}").`,
+        data: { credentialIndex: i, validFrom: from },
+      };
+    }
+    if (until && now > new Date(until)) {
+      return {
+        message: `Embedded credential at index ${i} has expired (validUntil ${until}).`,
+        data: { expired: true, credentialIndex: i, validUntil: until },
+      };
+    }
+    if (from && now < new Date(from)) {
+      return {
+        message: `Embedded credential at index ${i} is not yet valid (validFrom ${from}).`,
+        data: { notYetValid: true, credentialIndex: i, validFrom: from },
+      };
+    }
+  }
+  return undefined;
+};
+
 // Holder binding: the signer's DID (from the proof's verificationMethod) must equal the
 // holder and every credentialSubject.id. Returns an error message, or undefined when bound.
 const checkVpHolderBinding = (doc: VerifiablePresentation): string | undefined => {
@@ -193,6 +236,21 @@ export const w3cVpSignatureIntegrity: Verifier<VerificationFragment> = {
         status: 'VALID',
       };
     }
+
+    // Compose the failure reason as a flat if-chain (no nested ternaries).
+    let message: string;
+    if (!proofValid) {
+      message = result.presentationResult?.error ?? 'Presentation proof is invalid.';
+    } else if (bindingError) {
+      message = bindingError;
+    } else if (badSignatureIdx !== -1) {
+      const detail = signatureResults[badSignatureIdx].error;
+      message = `Embedded credential at index ${badSignatureIdx} has an invalid signature${
+        detail ? `: ${detail}` : '.'
+      }`;
+    } else {
+      message = 'An embedded credential signature is invalid.';
+    }
     return {
       type: 'DOCUMENT_INTEGRITY',
       name: 'W3CVpSignatureIntegrity',
@@ -201,18 +259,7 @@ export const w3cVpSignatureIntegrity: Verifier<VerificationFragment> = {
         holderBound: !bindingError,
         credentialResults: signatureResults,
       },
-      reason: {
-        message: !proofValid
-          ? (result.presentationResult?.error ?? 'Presentation proof is invalid.')
-          : (bindingError ??
-            (badSignatureIdx !== -1
-              ? `Embedded credential at index ${badSignatureIdx} has an invalid signature${
-                  signatureResults[badSignatureIdx].error
-                    ? `: ${signatureResults[badSignatureIdx].error}`
-                    : '.'
-                }`
-              : 'An embedded credential signature is invalid.')),
-      },
+      reason: { message },
       status: 'INVALID',
     };
   },
@@ -238,8 +285,17 @@ export const w3cVpCredentialStatus: Verifier<VerificationFragment> = {
   verify: async (document: unknown, verifierOptions: VerifierOptions) => {
     const doc = document as VerifiablePresentation;
 
-    // VP expiry (validUntil / expirationDate).
+    // VP expiry (validUntil / expirationDate). A present-but-unparseable value is rejected —
+    // it must not be silently treated as "not expired".
     const validUntil = (doc.validUntil ?? doc.expirationDate) as string | undefined;
+    if (validUntil !== undefined && !isValidDate(validUntil)) {
+      return {
+        type: 'DOCUMENT_STATUS',
+        name: 'W3CVpCredentialStatus',
+        reason: { message: `Presentation has an unparseable validUntil ("${validUntil}").` },
+        status: 'INVALID',
+      };
+    }
     if (validUntil && new Date() > new Date(validUntil)) {
       return {
         type: 'DOCUMENT_STATUS',
@@ -252,34 +308,18 @@ export const w3cVpCredentialStatus: Verifier<VerificationFragment> = {
 
     const credentials = getCredentials(doc);
 
-    // Embedded credentials' temporal validity (expiry / not-yet-valid). This is where the
-    // integrity fragment used to implicitly catch expiry via `verifyPresentation`; temporal
-    // validity is a STATUS concern, so it lives here next to VP expiry and revocation.
-    const now = new Date();
-    for (let i = 0; i < credentials.length; i++) {
-      const { from, until } = getCredentialWindow(credentials[i]);
-      if (until && now > new Date(until)) {
-        return {
-          type: 'DOCUMENT_STATUS',
-          name: 'W3CVpCredentialStatus',
-          data: { expired: true, credentialIndex: i, validUntil: until },
-          reason: {
-            message: `Embedded credential at index ${i} has expired (validUntil ${until}).`,
-          },
-          status: 'INVALID',
-        };
-      }
-      if (from && now < new Date(from)) {
-        return {
-          type: 'DOCUMENT_STATUS',
-          name: 'W3CVpCredentialStatus',
-          data: { notYetValid: true, credentialIndex: i, validFrom: from },
-          reason: {
-            message: `Embedded credential at index ${i} is not yet valid (validFrom ${from}).`,
-          },
-          status: 'INVALID',
-        };
-      }
+    // Embedded credentials' temporal validity (unparseable / expired / not-yet-valid). This is
+    // where the integrity fragment used to implicitly catch expiry via `verifyPresentation`;
+    // temporal validity is a STATUS concern, so it lives here next to VP expiry and revocation.
+    const temporalError = findEmbeddedTemporalError(credentials, new Date());
+    if (temporalError) {
+      return {
+        type: 'DOCUMENT_STATUS',
+        name: 'W3CVpCredentialStatus',
+        data: temporalError.data,
+        reason: { message: temporalError.message },
+        status: 'INVALID',
+      };
     }
 
     // Embedded credentials' revocation status. Each status entry keeps its owning
@@ -291,17 +331,21 @@ export const w3cVpCredentialStatus: Verifier<VerificationFragment> = {
       ),
     );
 
-    // A status entry whose type we cannot evaluate must NOT be silently dropped (that would
-    // report VALID while revocation is unenforced). Surface it as ERROR.
-    const unsupported = statusEntries.filter(
-      ({ cs }) => cs?.type && !SUPPORTED_STATUS_TYPES.has(cs.type),
-    );
+    // A status entry we cannot evaluate must NOT be silently dropped (that would report VALID
+    // while revocation is unenforced). A MISSING type counts as unevaluable too — otherwise a
+    // `credentialStatus: {}` would fall through both filters and skip revocation. Surface as
+    // ERROR, naming each offending credential index.
+    const unsupported = statusEntries.filter(({ cs }) => !SUPPORTED_STATUS_TYPES.has(cs?.type));
     if (unsupported.length > 0) {
-      const types = [...new Set(unsupported.map(({ cs }) => cs.type))].join(', ');
+      const detail = unsupported
+        .map(
+          ({ cs, credentialIndex }) => `index ${credentialIndex} (${cs?.type ?? 'missing type'})`,
+        )
+        .join(', ');
       return {
         type: 'DOCUMENT_STATUS',
         name: 'W3CVpCredentialStatus',
-        reason: { message: `Unsupported credentialStatus type(s) cannot be verified: ${types}.` },
+        reason: { message: `Unsupported or missing credentialStatus type at ${detail}.` },
         status: 'ERROR',
       };
     }
@@ -404,12 +448,20 @@ export const w3cVpIssuerIdentity: Verifier<VerificationFragment> = {
         status: 'VALID',
       };
     }
-    const unresolved = issuers.filter((_, i) => !resolved[i]);
+    // Report both the credential index and the DID: the index locates the offending
+    // credential (parity with the other branches), the DID says what failed to resolve.
+    const unresolved = issuers
+      .map((did, i) => ({ did, credentialIndex: i }))
+      .filter(({ credentialIndex }) => !resolved[credentialIndex]);
     return {
       type: 'ISSUER_IDENTITY',
       name: 'W3CVpIssuerIdentity',
       data: { issuers, unresolved },
-      reason: { message: `Could not resolve issuer(s): ${unresolved.join(', ')}.` },
+      reason: {
+        message: `Could not resolve issuer(s): ${unresolved
+          .map(({ did, credentialIndex }) => `index ${credentialIndex} (${did})`)
+          .join(', ')}.`,
+      },
       status: 'INVALID',
     };
   },

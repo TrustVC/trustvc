@@ -314,6 +314,43 @@ describe('W3C VP verification fragments', () => {
     expect((status as { reason?: { message?: string } }).reason?.message).toMatch(/Unsupported/i);
   });
 
+  it('w3cVpCredentialStatus returns VALID for a credential with NO credentialStatus (nothing to check)', async () => {
+    // Absent credentialStatus is NOT the same as a malformed one: it contributes no status
+    // entry, so there is nothing to revoke-check and the fragment must stay VALID (not ERROR).
+    const noStatus = { ...W3C_VERIFIABLE_DOCUMENT } as { credentialStatus?: unknown };
+    delete noStatus.credentialStatus;
+    const vp = { type: ['VerifiablePresentation'], verifiableCredential: [noStatus] };
+    const o = await opts();
+    const status = await w3cVpCredentialStatus.verify(vp as never, o as never);
+    expect(status.status).toBe('VALID');
+  });
+
+  it('w3cVpCredentialStatus ERRORs on a credentialStatus with NO type (not silently dropped)', async () => {
+    // A `credentialStatus: {}` must not fall through both filters and skip revocation — it is
+    // unevaluable, so it must surface as ERROR naming the credential index.
+    const vc = { ...W3C_VERIFIABLE_DOCUMENT, credentialStatus: {} };
+    const vp = { type: ['VerifiablePresentation'], verifiableCredential: [vc] };
+    const o = await opts();
+    const status = await w3cVpCredentialStatus.verify(vp as never, o as never);
+    expect(status.status).toBe('ERROR');
+    const message = (status as { reason?: { message?: string } }).reason?.message;
+    expect(message).toMatch(/missing/i);
+    expect(message).toMatch(/index 0/);
+  });
+
+  it('w3cVpCredentialStatus emits INVALID for an UNPARSEABLE embedded temporal value', async () => {
+    // `new Date("invalid")` is an Invalid Date whose comparisons all read false, so a garbage
+    // validUntil would slip through as "not expired" unless explicitly rejected.
+    const vc = { ...W3C_VERIFIABLE_DOCUMENT, validUntil: 'not-a-date' };
+    const vp = { type: ['VerifiablePresentation'], verifiableCredential: [vc] };
+    const o = await opts();
+    const status = await w3cVpCredentialStatus.verify(vp as never, o as never);
+    expect(status.status).toBe('INVALID');
+    const message = (status as { reason?: { message?: string } }).reason?.message;
+    expect(message).toMatch(/unparseable validUntil/i);
+    expect(message).toMatch(/index 0/);
+  });
+
   it('w3cVpIssuerIdentity emits INVALID when an embedded credential has no issuer', async () => {
     const noIssuer = { ...W3C_VERIFIABLE_DOCUMENT } as { issuer?: string };
     delete noIssuer.issuer;
@@ -355,9 +392,9 @@ describe('W3C VP verification fragments', () => {
     const o = await opts();
     const issuer = await w3cVpIssuerIdentity.verify(vp as never, o as never);
     expect(issuer.status).toBe('INVALID');
-    expect((issuer as { reason?: { message?: string } }).reason?.message).toMatch(
-      /could not resolve issuer/i,
-    );
+    const message = (issuer as { reason?: { message?: string } }).reason?.message;
+    expect(message).toMatch(/could not resolve issuer/i);
+    expect(message).toMatch(/index 0/);
   });
 
   it('runs through the full verifyDocument() pipeline for a signed VP', async () => {
