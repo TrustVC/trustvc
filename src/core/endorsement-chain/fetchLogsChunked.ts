@@ -169,6 +169,44 @@ function handleScanChunkError(err: unknown, state: AdaptiveScanState): ScanChunk
   throw err;
 }
 
+type ScanStepResult =
+  | { kind: 'done'; result: ScanLogsBackwardResult }
+  | { kind: 'retry' }
+  | { kind: 'advance'; nextCursor: number };
+
+async function scanOneChunkBackward(
+  provider: Provider | ethersV6.Provider,
+  address: string,
+  cursor: number,
+  effectiveFloor: number,
+  state: AdaptiveScanState,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  isMintLog: ((log: any) => boolean) | undefined,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  chunkGroups: any[][],
+): Promise<ScanStepResult> {
+  if (isBudgetExhausted(state)) {
+    return { kind: 'done', result: truncatedScanResult(chunkGroups) };
+  }
+
+  const chunkStart = Math.max(cursor - state.chunkSize + 1, effectiveFloor);
+  try {
+    const chunkLogs = await getLogsRange(provider, address, chunkStart, cursor, state);
+    if (tryCollectMintSlice(chunkLogs, isMintLog, chunkGroups)) {
+      return { kind: 'done', result: mintScanResult(chunkGroups) };
+    }
+    chunkGroups.push(chunkLogs);
+  } catch (err) {
+    const outcome = handleScanChunkError(err, state);
+    if (outcome === 'truncated') {
+      return { kind: 'done', result: truncatedScanResult(chunkGroups) };
+    }
+    return { kind: 'retry' };
+  }
+
+  return { kind: 'advance', nextCursor: chunkStart - 1 };
+}
+
 /**
  * Adaptive backward eth_getLogs scanner.
  * Starts with a large window, shrinks on provider range limits (including Infura's 10-block
@@ -204,25 +242,18 @@ export const scanLogsBackward = async (
   let cursor = fromBlock;
 
   while (cursor >= effectiveFloor) {
-    if (isBudgetExhausted(state)) {
-      return truncatedScanResult(chunkGroups);
-    }
-
-    const chunkStart = Math.max(cursor - state.chunkSize + 1, effectiveFloor);
-    try {
-      const chunkLogs = await getLogsRange(provider, address, chunkStart, cursor, state);
-      if (tryCollectMintSlice(chunkLogs, isMintLog, chunkGroups)) {
-        return mintScanResult(chunkGroups);
-      }
-      chunkGroups.push(chunkLogs);
-    } catch (err) {
-      const outcome = handleScanChunkError(err, state);
-      if (outcome === 'truncated') return truncatedScanResult(chunkGroups);
-      if (outcome === 'retry') continue;
-    }
-
-    if (chunkStart <= effectiveFloor) break;
-    cursor = chunkStart - 1;
+    const step = await scanOneChunkBackward(
+      provider,
+      address,
+      cursor,
+      effectiveFloor,
+      state,
+      isMintLog,
+      chunkGroups,
+    );
+    if (step.kind === 'done') return step.result;
+    if (step.kind === 'retry') continue;
+    cursor = step.nextCursor;
   }
 
   return {
