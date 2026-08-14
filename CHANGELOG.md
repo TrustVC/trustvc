@@ -1,3 +1,10 @@
+## [2.16.0-beta.5](https://github.com/TrustVC/trustvc/compare/v2.16.0-beta.4...v2.16.0-beta.5) (2026-08-14)
+
+
+### Features
+
+* Endorsement Chain ([#165](https://github.com/TrustVC/trustvc/issues/165)) ([cb4d1c3](https://github.com/TrustVC/trustvc/commit/cb4d1c3784a8909e828671377411fab206aa245e))
+
 ## [2.16.0-beta.4](https://github.com/TrustVC/trustvc/compare/v2.16.0-beta.3...v2.16.0-beta.4) (2026-08-13)
 
 
