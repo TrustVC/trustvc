@@ -29,7 +29,7 @@ export const RANGE_TOO_LARGE_ERROR_RE = new RegExp(
 // response extracted from infura logs and also alchemy logs
 export const RATE_LIMIT_ERROR_RE = new RegExp(
   [
-    `rate-?limit`,
+    String.raw`rate[\s-]?limit`,
     `too many requests`,
     `could not coalesce`,
     rpcCode('429'),
