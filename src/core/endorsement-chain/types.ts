@@ -17,6 +17,8 @@ export type TradeTrustTokenEventType =
 
 export type TransferEventType = TokenTransferEventType | TitleEscrowTransferEventType;
 
+export type TerminationReasonLabel = 'None' | 'ReturnToIssuer' | 'Rejected' | 'Discharged';
+
 export interface TransferBaseEvent {
   type: TransferEventType;
   transactionIndex: number;
@@ -25,6 +27,8 @@ export interface TransferBaseEvent {
   transactionHash: string;
   blockNumber: number;
   remark?: string;
+  /** Present on shred (RETURN_TO_ISSUER_ACCEPTED) for ObligationEscrow */
+  terminationReason?: TerminationReasonLabel;
 }
 
 export type TokenTransferEventType =

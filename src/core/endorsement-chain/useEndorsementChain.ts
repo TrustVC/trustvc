@@ -7,7 +7,6 @@ import { decrypt } from '../decrypt';
 import {
   fetchEscrowTransfersV4,
   fetchEscrowTransfersV5,
-  fetchEscrowTransfersObligation,
 } from '../endorsement-chain/fetchEscrowTransfer';
 import { fetchTokenTransfers } from '../endorsement-chain/fetchTokenTransfer';
 import { mergeTransfersV4, mergeTransfersV5 } from '../endorsement-chain/helpers';
@@ -19,8 +18,6 @@ export const TitleEscrowInterface = {
   V4: supportInterfaceIdsV4.TitleEscrow,
   V5: supportInterfaceIdsV5.TitleEscrow,
 };
-
-export const ObligationEscrowInterface = supportInterfaceIdsV5.ObligationEscrow;
 
 // Helper to fetch Title Escrow Factory Address
 const getTitleEscrowFactoryAddress = async (
@@ -196,6 +193,22 @@ export const isTitleEscrowVersion = async ({
   }
 };
 
+/**
+ * Fetch the endorsement chain for Token Registry V4/V5 or Obligation/BoE titles.
+ *
+ * Auto-detects Title Escrow V4/V5 and ObligationEscrow via supportsInterface.
+ *
+ * Migration — these public aliases were removed; use this function instead:
+ * - fetchObligationEndorsementChain → fetchEndorsementChain
+ * - fetchEscrowTransfersObligation → fetchEscrowTransfersV5
+ * - ObligationEscrowInterface → supportInterfaceIdsV5.ObligationEscrow
+ * @param {string} tokenRegistryAddress - Token registry or obligation registry address
+ * @param {string} tokenId - Token ID
+ * @param {Provider | ethersV6.Provider} provider - Ethers provider
+ * @param {string} [keyId] - Encryption key ID for decrypting remarks (V5/Obligation)
+ * @param {string} [titleEscrowAddress] - Pre-resolved escrow address (optional)
+ * @returns {Promise<EndorsementChain>} Endorsement chain events
+ */
 export const fetchEndorsementChain = async (
   tokenRegistryAddress: string,
   tokenId: string,
@@ -220,9 +233,10 @@ export const fetchEndorsementChain = async (
       versionInterface: TitleEscrowInterface.V5,
       provider,
     }),
+    // ObligationEscrow detection (replaces removed ObligationEscrowInterface alias).
     isTitleEscrowVersion({
       titleEscrowAddress: resolvedTitleEscrowAddress,
-      versionInterface: ObligationEscrowInterface,
+      versionInterface: supportInterfaceIdsV5.ObligationEscrow,
       provider,
     }),
   ]);
@@ -240,18 +254,12 @@ export const fetchEndorsementChain = async (
     ]);
 
     transferEvents = mergeTransfersV4([...titleEscrowLogs, ...tokenLogs]);
-  } else if (isObligation) {
-    const obligationEscrowLogs = await fetchEscrowTransfersObligation(
-      provider,
-      resolvedTitleEscrowAddress,
-      tokenRegistryAddress,
-    );
-    transferEvents = mergeTransfersV5(obligationEscrowLogs);
-  } else if (isV5) {
+  } else if (isV5 || isObligation) {
     const titleEscrowLogs = await fetchEscrowTransfersV5(
       provider,
       resolvedTitleEscrowAddress,
       tokenRegistryAddress,
+      isObligation,
     );
     transferEvents = mergeTransfersV5(titleEscrowLogs);
   }

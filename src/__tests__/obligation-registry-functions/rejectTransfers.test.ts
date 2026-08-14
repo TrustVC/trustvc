@@ -41,7 +41,7 @@ describe.each(providers)(
         } as unknown as Network);
       }
 
-      vi.spyOn(coreModule, 'getObligationEscrowAddress').mockResolvedValue(
+      vi.spyOn(coreModule, 'getTitleEscrowAddress').mockResolvedValue(
         MOCK_OBLIGATION_ESCROW_ADDRESS,
       );
       mockObligationEscrowContract.callStatic.rejectTransferHolder.mockResolvedValue(true);
@@ -72,7 +72,7 @@ describe.each(providers)(
       );
 
       expect(result).toEqual('reject_transfer_beneficiary_tx_hash');
-      expect(coreModule.getObligationEscrowAddress).toHaveBeenCalled();
+      expect(coreModule.getTitleEscrowAddress).toHaveBeenCalled();
     });
 
     it('rejectTransferOwnersObligationRegistry without remarks', async () => {

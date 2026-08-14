@@ -905,11 +905,18 @@ Escrow calls accept `{ obligationRegistryAddress, tokenId }` or `{ obligationEsc
 **Endorsement chain** — pass the `TrustVCToken` address to existing helpers:
 
 ```ts
-import { fetchEndorsementChain, fetchObligationEndorsementChain } from '@trustvc/trustvc';
+import { fetchEndorsementChain } from '@trustvc/trustvc';
 
-const chain = await fetchEndorsementChain(obligationRegistry, tokenId, provider);
-// or: fetchObligationEndorsementChain(obligationRegistry, tokenId, provider, { encryptionId })
+const chain = await fetchEndorsementChain(obligationRegistry, tokenId, provider, encryptionKeyId);
 ```
+
+Obligation / BoE titles use the same functions as Token Registry V5 (`fetchEndorsementChain` auto-detects `ObligationEscrow`). These public aliases were removed:
+
+| Removed | Use instead |
+| --- | --- |
+| `fetchObligationEndorsementChain` | `fetchEndorsementChain` |
+| `fetchEscrowTransfersObligation` | `fetchEscrowTransfersV5` (auto-detects obligation status events) |
+| `ObligationEscrowInterface` | `v5SupportInterfaceIds.ObligationEscrow` |
 
 **Low-level contracts** (`@trustvc/trustvc/token-registry-v5/contracts`):
 

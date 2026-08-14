@@ -38,7 +38,7 @@ describe.each(providers)(
         vi.spyOn(Provider, 'getNetwork').mockResolvedValue({ chainId: 1 } as unknown as Network);
       }
 
-      vi.spyOn(coreModule, 'getObligationEscrowAddress').mockResolvedValue(
+      vi.spyOn(coreModule, 'getTitleEscrowAddress').mockResolvedValue(
         MOCK_OBLIGATION_ESCROW_ADDRESS,
       );
       mockObligationEscrowContract.status.mockResolvedValue(ObligationDocumentStatus.Accepted);
