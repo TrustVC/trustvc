@@ -1,7 +1,8 @@
 export const DEFAULT_KEY = '4d5a4e3f2f6d2b0a1f2e9b8f8a3c7a0b8d4f5c2e7b1a1c3f2e7b8c2d5a4f7e3e';
 
 // Match JSON-RPC / HTTP codes as standalone tokens (not inside block numbers, gas, chain IDs).
-const rpcCode = (code: string): string => `(?:^|[^0-9])${code}(?![0-9])`;
+const rpcCode = (code: string): string =>
+  `(?:^|[^0-9A-Za-z+-])${code}(?![0-9A-Za-z])`;
 // use string raw to avoid escaping the backslashes
 export const INFURA_FREE_TIER_RANGE_RE = new RegExp(
   String.raw`free tier plan|10\s*block difference|block range should work:\s*\[0x0,\s*0x9\]|Upgrade to PAYG|${rpcCode('-32600')}`,
