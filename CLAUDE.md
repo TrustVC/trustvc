@@ -108,7 +108,7 @@ in step.
 
 **`fetchEndorsementChain()`** is the single public path for Token Registry V4/V5 and
 Obligation/BoE titles. It auto-detects the escrow contract via `supportsInterface`
-(including `supportInterfaceIdsV5.ObligationEscrow` around the obligation check).
+(including `v5SupportInterfaceIds.ObligationEscrow` around the obligation check).
 
 These public aliases were removed:
 
@@ -116,7 +116,7 @@ These public aliases were removed:
 | --- | --- |
 | `fetchObligationEndorsementChain` | `fetchEndorsementChain` |
 | `fetchEscrowTransfersObligation` | `fetchEscrowTransfersV5` (auto-detects obligation status events) |
-| `ObligationEscrowInterface` | `supportInterfaceIdsV5.ObligationEscrow` |
+| `ObligationEscrowInterface` | `v5SupportInterfaceIds.ObligationEscrow` |
 
 Do **not** re-add the removed aliases. User-facing docs also live in `README.md`
 (Obligation Registry section).
