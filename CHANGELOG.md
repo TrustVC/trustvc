@@ -105,6 +105,13 @@
 
 * replace local eip7702 file ref with npm package @trustvc/eip7702@^1.0.0-beta.1 ([bc81fb5](https://github.com/TrustVC/trustvc/commit/bc81fb5fae6c52b3e0fe16ca5e7e7d6f1023c857))
 
+## [2.15.2](https://github.com/TrustVC/trustvc/compare/v2.15.1...v2.15.2) (2026-08-13)
+
+
+### Bug Fixes
+
+* move embedded-VC temporal checks out of VP integrity into status ([#166](https://github.com/TrustVC/trustvc/issues/166)) ([66da040](https://github.com/TrustVC/trustvc/commit/66da040c7a7ef0da107cb29b54cd085b365428d9))
+
 ## [2.15.1](https://github.com/TrustVC/trustvc/compare/v2.15.0...v2.15.1) (2026-08-07)
 
 

@@ -89,12 +89,22 @@ and keep create/verify symmetric** (if create rejects something, verify must too
 Three aggregate verifiers plug into `verifyDocument()`'s pipeline via `w3cVerifiers`:
 
 - `w3cVpSignatureIntegrity` (DOCUMENT_INTEGRITY) — **requires a holder proof** (unsigned
-  → INVALID), verifies the proof crypto, and enforces **holder binding** in-fragment.
-  Freshness (challenge/domain) is intentionally out of scope — a stateless pipeline
-  can't check it.
+  → INVALID), verifies the proof crypto + **each embedded credential's signature**, and
+  enforces **holder binding** in-fragment. This fragment is **strictly cryptographic**:
+  embedded credentials are checked with `verifyCredential` (signature only), **not**
+  `verifyPresentation`'s `credentialResults` — the latter folds expiry/revocation into
+  `verified`, and those are DOCUMENT_STATUS concerns, not integrity. Freshness
+  (challenge/domain) is also out of scope — a stateless pipeline can't check it.
 - `w3cVpCredentialStatus` (DOCUMENT_STATUS) — VP expiry + each embedded credential's
-  StatusList revocation.
+  **temporal validity** (expiry / not-yet-valid, honouring v2 `validFrom`/`validUntil`
+  and v1.1 `issuanceDate`/`expirationDate`) + StatusList revocation.
 - `w3cVpIssuerIdentity` (ISSUER_IDENTITY) — each embedded issuer resolves.
+
+**Layer split (why an expired embedded VC lands in STATUS, not INTEGRITY):** temporal
+validity is a *status* property, so it's judged by `w3cVpCredentialStatus`. INTEGRITY
+answers only "is every signature authentic + is the holder bound". If you move a check
+between these two fragments, move its test with it — an expired embedded VC must stay
+caught *somewhere*.
 
 `isVpDocument()` (the `test()` gate) routes on shape only (`type` includes
 `VerifiablePresentation` + has `verifiableCredential`) — it does **not** look at `proof`,
@@ -143,8 +153,10 @@ Do **not** re-add the removed aliases. User-facing docs also live in `README.md`
   id**. To test/produce a credential with *no* subject id, it must be issued without one.
 - **Holder binding is string-equality of DIDs and is method-agnostic** (did:key and
   did:web both work). It's independent of the issuer.
-- **StatusList test indices** on `.../statuslist/1`: index **5 → revoked**, index
-  **10 → not revoked**. Reuse these instead of inventing new ones.
+- **StatusList test indices** on `.../statuslist/1` (a **StatusList2021Credential**): index
+  **5 → revoked**, index **10 → not revoked**. `.../statuslist/2` is the **BitstringStatusList**
+  equivalent — indices **5–9 → revoked**, others not (so 5 → revoked, 10 → not revoked, same
+  mnemonic). Reuse these instead of inventing new ones.
 - **Test fixtures share key material** across did:key and did:web (the same ECDSA key is
   published under `did:key:zDnae…` and `did:web:trustvc.github.io:did:1#multikey-1`). Handy
   for tests, but it means "different DID" ≠ "different key" in fixtures.
