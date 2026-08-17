@@ -1,3 +1,15 @@
+## [2.16.0-beta.6](https://github.com/TrustVC/trustvc/compare/v2.16.0-beta.5...v2.16.0-beta.6) (2026-08-17)
+
+
+### Bug Fixes
+
+* move embedded-VC temporal checks out of VP integrity into status ([#166](https://github.com/TrustVC/trustvc/issues/166)) ([66da040](https://github.com/TrustVC/trustvc/commit/66da040c7a7ef0da107cb29b54cd085b365428d9))
+
+
+### Miscellaneous Chores
+
+* **release:** 2.15.2 [skip ci] ([015eef3](https://github.com/TrustVC/trustvc/commit/015eef3584fca7151daa5997b81fdbe72a5d8590)), closes [#166](https://github.com/TrustVC/trustvc/issues/166)
+
 ## [2.16.0-beta.5](https://github.com/TrustVC/trustvc/compare/v2.16.0-beta.4...v2.16.0-beta.5) (2026-08-14)
 
 
