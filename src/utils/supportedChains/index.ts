@@ -1,6 +1,13 @@
 import 'dotenv/config';
 import { gasStation, GasStationFeeData } from '../gasStation';
-import { iconAstron, iconEthereum, iconPolygon, iconStability, iconXDC } from '../static/icons';
+import {
+  iconAstron,
+  iconEthereum,
+  iconPolygon,
+  iconStability,
+  iconXDC,
+  iconZetrix,
+} from '../static/icons';
 import { networkCurrency, networkName, networkType } from './../network';
 
 export enum CHAIN_ID {
@@ -17,6 +24,7 @@ export enum CHAIN_ID {
   stability = '101010',
   astron = '1338',
   astrontestnet = '21002',
+  zetrixL2Testnet = '938748',
 }
 
 export type chainInfo = {
@@ -199,6 +207,21 @@ export const SUPPORTED_CHAINS: supportedChains = {
     nativeCurrency: {
       name: 'ASTRONTEST',
       symbol: 'ASTRONTEST',
+      decimals: 18,
+    },
+  },
+  [CHAIN_ID.zetrixL2Testnet]: {
+    id: CHAIN_ID.zetrixL2Testnet,
+    label: 'Zetrix L2 Testnet',
+    name: 'zetrixL2Testnet',
+    type: 'test',
+    currency: 'ZETRIX2',
+    iconImage: iconZetrix,
+    explorerUrl: 'https://z2-test-explorer.zetrix.com',
+    rpcUrl: `https://z2-test-node.zetrix.com`,
+    nativeCurrency: {
+      name: 'ZETRIX2',
+      symbol: 'ZETRIX2',
       decimals: 18,
     },
   },

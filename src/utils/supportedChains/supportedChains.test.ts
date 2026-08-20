@@ -128,4 +128,16 @@ describe('supportedChains', () => {
     expect(currency).toBe('ASTRON');
     expect(explorerUrl).toBe('https://dev-astronscanl2.bitfactory.cn/');
   });
+  it('should zetrixL2Testnet chain info correctly', () => {
+    const { id, name, type, currency, explorerUrl, rpcUrl } =
+      SUPPORTED_CHAINS[CHAIN_ID.zetrixL2Testnet];
+
+    expect(id).toBe(CHAIN_ID.zetrixL2Testnet);
+    expect(id).toBe('938748');
+    expect(name).toBe('zetrixL2Testnet');
+    expect(type).toBe('test');
+    expect(currency).toBe('ZETRIX2');
+    expect(explorerUrl).toBe('https://z2-test-explorer.zetrix.com');
+    expect(rpcUrl).toBe('https://z2-test-node.zetrix.com');
+  });
 });
