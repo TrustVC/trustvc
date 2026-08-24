@@ -8,6 +8,7 @@ import {
   fetchEscrowTransfersV4,
   fetchEscrowTransfersV5,
 } from '../endorsement-chain/fetchEscrowTransfer';
+import { withRateLimitRetry } from '../endorsement-chain/fetchLogsChunked';
 import { fetchTokenTransfers } from '../endorsement-chain/fetchTokenTransfer';
 import { mergeTransfersV4, mergeTransfersV5 } from '../endorsement-chain/helpers';
 import { getEndorsementChain } from '../endorsement-chain/retrieveEndorsementChain';
@@ -28,7 +29,7 @@ const getTitleEscrowFactoryAddress = async (
   const tokenRegistryAbi = ['function titleEscrowFactory() external view returns (address)'];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tokenRegistry = new Contract(tokenRegistryAddress, tokenRegistryAbi, provider as any);
-  return await tokenRegistry.titleEscrowFactory();
+  return await withRateLimitRetry(() => tokenRegistry.titleEscrowFactory());
 };
 
 // Interact with contract using calldata
@@ -43,10 +44,9 @@ const calldata = async (
   const functionSelector = ethers.utils.id(functionSignature).slice(0, 10);
   const encodedParams = ethers.utils.defaultAbiCoder.encode(functionTypes, [...params]);
   const calldata = functionSelector + encodedParams.slice(2);
-  const result = await provider.call({
-    to: contractAddress,
-    data: calldata,
-  });
+  const result = await withRateLimitRetry(() =>
+    provider.call({ to: contractAddress, data: calldata }),
+  );
   // Decode the returned hex string into an address format
   return ethers.utils.getAddress(ethers.utils.hexDataSlice(result, 12));
 };
@@ -141,7 +141,7 @@ export const getDocumentOwner = async (
   const tokenRegistryAbi = ['function ownerOf(uint256 tokenId) view returns (address)'];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tokenRegistry = new Contract(tokenRegistryAddress, tokenRegistryAbi, provider as any);
-  return await tokenRegistry.ownerOf(tokenId);
+  return await withRateLimitRetry(() => tokenRegistry.ownerOf(tokenId));
 };
 
 // Check Title Escrow Interface Support
