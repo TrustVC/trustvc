@@ -300,6 +300,15 @@ export const scanLogsBackward = async (
   };
 };
 
+export interface ScanForMintEventOptions {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  isMintLog: (log: any) => boolean;
+  notFoundInBudgetMessage: string;
+  notFoundMessage: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  topics?: any[];
+}
+
 /**
  * Shared by both chunked-scan fallbacks (V4 title escrow's TokenReceived mint,
  * token registry's INITIAL Transfer): resolve the block budget, scan backward for
@@ -313,10 +322,7 @@ export const scanLogsBackward = async (
  * @param {string} address - Contract address to scan
  * @param {number} scanFloor - Earliest block to stop at (0 if unknown)
  * @param {number} latestBlock - Latest block, already resolved by the caller
- * @param {(log: any) => boolean} isMintLog - Mint detector to stop the scan early
- * @param {string} notFoundInBudgetMessage - Thrown when the scan is truncated before finding the mint
- * @param {string} notFoundMessage - Thrown when the scan completes without ever finding the mint
- * @param {any[]} [topics] - Optional topic filter (e.g. to scan only one tokenId's events)
+ * @param {ScanForMintEventOptions} options - Mint detector, caller-specific error messages, and optional topic filter
  * @returns {Promise<any[]>} The mint's log and any same-tx companion logs, oldest first
  */
 export async function scanForMintEvent(
@@ -324,14 +330,11 @@ export async function scanForMintEvent(
   address: string,
   scanFloor: number,
   latestBlock: number,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  isMintLog: (log: any) => boolean,
-  notFoundInBudgetMessage: string,
-  notFoundMessage: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  topics?: any[],
+  options: ScanForMintEventOptions,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<any[]> {
+  const { isMintLog, notFoundInBudgetMessage, notFoundMessage, topics } = options;
+
   // When a floor is known (mintBlock or contract creation), cover the full span to latest.
   // Otherwise keep the default backward budget as a last resort.
   const maxBlocksToScan =

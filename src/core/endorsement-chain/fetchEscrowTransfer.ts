@@ -359,15 +359,13 @@ const fetchLogsChunked = async (
     }
   };
 
-  return scanForMintEvent(
-    provider,
-    titleEscrowAddress,
-    scanFloor,
-    latestBlock,
+  return scanForMintEvent(provider, titleEscrowAddress, scanFloor, latestBlock, {
     isMintLog,
-    'Unable to locate TokenReceived (mint) within the scan budget; refusing incomplete endorsement chain',
-    'Unable to locate TokenReceived (mint) before the escrow scan floor; refusing incomplete endorsement chain',
-  );
+    notFoundInBudgetMessage:
+      'Unable to locate TokenReceived (mint) within the scan budget; refusing incomplete endorsement chain',
+    notFoundMessage:
+      'Unable to locate TokenReceived (mint) before the escrow scan floor; refusing incomplete endorsement chain',
+  });
 };
 
 const fetchEscrowLogs = async (

@@ -97,16 +97,13 @@ async function fetchLogsChunked(
     }
   };
 
-  const logs = await scanForMintEvent(
-    provider,
-    tokenRegistryAddress,
-    scanFloor,
-    latestBlock,
+  const logs = await scanForMintEvent(provider, tokenRegistryAddress, scanFloor, latestBlock, {
     isMintLog,
-    'Unable to locate mint Transfer event within the scan budget; refusing incomplete endorsement chain',
-    'Unminted Title Escrow',
+    notFoundInBudgetMessage:
+      'Unable to locate mint Transfer event within the scan budget; refusing incomplete endorsement chain',
+    notFoundMessage: 'Unminted Title Escrow',
     topics,
-  );
+  });
 
   return logs as Event[] | ethersV6.EventLog[];
 }
