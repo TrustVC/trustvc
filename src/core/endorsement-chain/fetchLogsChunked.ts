@@ -71,6 +71,21 @@ export async function withRateLimitRetry<T>(fn: () => Promise<T>): Promise<T> {
 export const getLatestBlockWithRetry = (provider: Provider | ethersV6.Provider): Promise<number> =>
   withRateLimitRetry(() => provider.getBlockNumber());
 
+// ethers v5's contract.filters.X(...) resolves topics synchronously (plain {address, topics}).
+// ethers v6's returns a DeferredTopicFilter — topics only exist behind the async
+// getTopicFilter(), so reading `.topics` directly on a v6 filter silently yields undefined
+// and the chunked fallback would scan every event on the contract instead of just this one.
+export async function resolveFilterTopics(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  filter: any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<any[] | undefined> {
+  if (typeof filter?.getTopicFilter === 'function') {
+    return filter.getTopicFilter();
+  }
+  return filter?.topics;
+}
+
 interface ScanLogsBackwardResult {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   logs: any[];

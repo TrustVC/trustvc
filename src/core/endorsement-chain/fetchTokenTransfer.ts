@@ -11,6 +11,7 @@ import { resolveContractCreationBlock } from './fetchEscrowTransfer';
 import {
   getLatestBlockWithRetry,
   isLogsRetryableError,
+  resolveFilterTopics,
   scanForMintEvent,
 } from './fetchLogsChunked';
 
@@ -67,12 +68,8 @@ async function fetchLogs(
     return logs as Event[] | ethersV6.EventLog[];
   } catch (err) {
     if (!isLogsRetryableError(err)) throw err;
-    return fetchLogsChunked(
-      provider,
-      tokenRegistry,
-      tokenRegistryAddress,
-      transferLogFilter.topics,
-    );
+    const topics = await resolveFilterTopics(transferLogFilter);
+    return fetchLogsChunked(provider, tokenRegistry, tokenRegistryAddress, topics);
   }
 }
 

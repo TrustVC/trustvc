@@ -8,7 +8,7 @@ import {
   fetchEscrowTransfersV4,
   fetchEscrowTransfersV5,
 } from '../endorsement-chain/fetchEscrowTransfer';
-import { withRateLimitRetry } from '../endorsement-chain/fetchLogsChunked';
+import { isLogsRetryableError, withRateLimitRetry } from '../endorsement-chain/fetchLogsChunked';
 import { fetchTokenTransfers } from '../endorsement-chain/fetchTokenTransfer';
 import { mergeTransfersV4, mergeTransfersV5 } from '../endorsement-chain/helpers';
 import { getEndorsementChain } from '../endorsement-chain/retrieveEndorsementChain';
@@ -78,7 +78,10 @@ const resolveTitleEscrowAddress = async (
       ['address', 'uint256'],
       [tokenRegistryAddress, tokenId],
     );
-  } catch {
+  } catch (err) {
+    // A rate-limit/range error means the call never genuinely resolved — retrying with the
+    // other ABI selector would just double the retry budget and latency, not fix anything.
+    if (isLogsRetryableError(err)) throw err;
     if (options?.titleEscrowVersion === 'v4') {
       // If 'v4' option fails, try searching with 'v5' function getEscrowAddress
       return await calldata(

@@ -15,6 +15,7 @@ import { getEthersContractFromProvider } from '../../utils/ethers';
 import {
   getLatestBlockWithRetry,
   isLogsRetryableError,
+  resolveFilterTopics,
   scanForMintEvent,
   scanLogsBackward,
 } from './fetchLogsChunked';
@@ -146,6 +147,7 @@ const queryEscrowFilterWithFallback = async (
     const latestBlock = await getLatestBlockWithRetry(provider);
     const scanFloor = await resolveContractCreationBlock(provider, address, latestBlock);
     const maxBlocksToScan = Math.max(DEFAULT_MAX_BLOCKS_TO_SCAN, latestBlock - scanFloor);
+    const topics = await resolveFilterTopics(filter);
     const result = await scanLogsBackward(
       provider,
       address,
@@ -153,7 +155,7 @@ const queryEscrowFilterWithFallback = async (
       scanFloor,
       undefined,
       maxBlocksToScan,
-      filter.topics,
+      topics,
     );
     return result.logs;
   }
