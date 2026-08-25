@@ -113,6 +113,12 @@ export const mergeTransfersV5 = (transferEvents: TransferBaseEvent[]): TransferB
   return mergedTransaction;
 };
 
+const OBLIGATION_STATUS_TYPES = new Set<TransferEventType>([
+  'STATUS_ACCEPTED',
+  'STATUS_REJECTED',
+  'STATUS_DISCHARGED',
+]);
+
 const identifyEventTypeFromLogs = (groupedEvents: TransferBaseEvent[]): TransferEventType => {
   // Obligation mint emits StatusInitialized before TokenReceived(INITIAL) in log order.
   // Prefer INITIAL so owner/holder/remarks match classic ETR mint display.
@@ -120,22 +126,23 @@ const identifyEventTypeFromLogs = (groupedEvents: TransferBaseEvent[]): Transfer
     return 'INITIAL';
   }
 
-  // Reject/discharge auto-shred in the same tx as StatusRejected/Discharged.
-  // Prefer Shred so the chain row is RETURN_TO_ISSUER_ACCEPTED with last parties + reason.
+  // Obligation accept/reject/discharge must keep their status type.
+  // Reject/discharge auto-shred in the same tx — do not let Shred win as
+  // RETURN_TO_ISSUER_ACCEPTED (that type is classic ETR shred only).
+  const obligationStatus = groupedEvents.find((event) => OBLIGATION_STATUS_TYPES.has(event.type));
+  if (obligationStatus) {
+    return obligationStatus.type;
+  }
+
   if (groupedEvents.some((event) => event.type === 'RETURN_TO_ISSUER_ACCEPTED')) {
     return 'RETURN_TO_ISSUER_ACCEPTED';
   }
 
   for (const event of groupedEvents) {
     if (
-      [
-        'RETURNED_TO_ISSUER',
-        'RETURN_TO_ISSUER_REJECTED',
-        'STATUS_INITIALIZED',
-        'STATUS_ACCEPTED',
-        'STATUS_REJECTED',
-        'STATUS_DISCHARGED',
-      ].includes(event.type) ||
+      ['RETURNED_TO_ISSUER', 'RETURN_TO_ISSUER_REJECTED', 'STATUS_INITIALIZED'].includes(
+        event.type,
+      ) ||
       event.type.startsWith('REJECT_')
     ) {
       return event.type;
