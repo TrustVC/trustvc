@@ -1,3 +1,10 @@
+## [2.16.0-beta.7](https://github.com/TrustVC/trustvc/compare/v2.16.0-beta.6...v2.16.0-beta.7) (2026-08-26)
+
+
+### Features
+
+* enhance log fetching and error handling in endorsement chain ([#168](https://github.com/TrustVC/trustvc/issues/168)) ([accf85f](https://github.com/TrustVC/trustvc/commit/accf85f94177d7148e4e18ffddca55bf5bef7907))
+
 ## [2.16.0-beta.6](https://github.com/TrustVC/trustvc/compare/v2.16.0-beta.5...v2.16.0-beta.6) (2026-08-17)
 
 
