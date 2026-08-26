@@ -27,7 +27,7 @@ export interface TransferBaseEvent {
   transactionHash: string;
   blockNumber: number;
   remark?: string;
-  /** Present on shred (RETURN_TO_ISSUER_ACCEPTED) for ObligationEscrow */
+  /** Present on obligation shred: Rejected/Discharged (status row) or ReturnToIssuer */
   terminationReason?: TerminationReasonLabel;
 }
 

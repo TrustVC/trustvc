@@ -908,6 +908,8 @@ Escrow calls accept `{ obligationRegistryAddress, tokenId }` or `{ obligationEsc
 import { fetchEndorsementChain } from '@trustvc/trustvc';
 
 const chain = await fetchEndorsementChain(obligationRegistry, tokenId, provider, encryptionKeyId);
+// Accept / reject / discharge rows use STATUS_ACCEPTED, STATUS_REJECTED, STATUS_DISCHARGED.
+// RETURN_TO_ISSUER_ACCEPTED is classic ETR shred (or obligation shred after an actual return-to-issuer).
 ```
 
 Obligation / BoE titles use the same functions as Token Registry V5 (`fetchEndorsementChain` auto-detects `ObligationEscrow`). These public aliases were removed:
