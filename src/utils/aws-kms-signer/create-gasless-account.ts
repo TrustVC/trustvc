@@ -15,7 +15,7 @@ export type GaslessAccountConfig =
  */
 export async function createGaslessAccount(config: GaslessAccountConfig): Promise<LocalAccount> {
   if (config.type === 'privateKey') return privateKeyToAccount(config.privateKey);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { type, ...kmsConfig } = config;
-  void type;
   return kmsToAccount(kmsConfig);
 }
