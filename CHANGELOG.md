@@ -1,3 +1,10 @@
+## [2.16.0-beta.8](https://github.com/TrustVC/trustvc/compare/v2.16.0-beta.7...v2.16.0-beta.8) (2026-08-28)
+
+
+### Bug Fixes
+
+* snyk errors ([#169](https://github.com/TrustVC/trustvc/issues/169)) ([daa240f](https://github.com/TrustVC/trustvc/commit/daa240f2bb84ee3fde17a45567fbfdfc1561bc78))
+
 ## [2.16.0-beta.7](https://github.com/TrustVC/trustvc/compare/v2.16.0-beta.6...v2.16.0-beta.7) (2026-08-26)
 
 
