@@ -52,7 +52,12 @@ function fakeKmsPublicKeyDer(): Buffer {
 
 mockSend.mockImplementation(async (command: { input: { Message?: Uint8Array } }) => {
   if (!('Message' in command.input)) {
-    return { PublicKey: fakeKmsPublicKeyDer() };
+    return {
+      PublicKey: fakeKmsPublicKeyDer(),
+      KeySpec: 'ECC_SECG_P256K1',
+      KeyUsage: 'SIGN_VERIFY',
+      SigningAlgorithms: ['ECDSA_SHA_256'],
+    };
   }
   const digest = command.input.Message as Uint8Array;
   const sig = secp256k1.sign(digest, privateKeyBytes, { lowS: true });

@@ -45,6 +45,12 @@ function fakeKmsPublicKeyDer(): Buffer {
   return Buffer.concat([prefixWithDecoyMarkerBytes, point]);
 }
 
+const VALID_KEY_METADATA = {
+  KeySpec: 'ECC_SECG_P256K1',
+  KeyUsage: 'SIGN_VERIFY',
+  SigningAlgorithms: ['ECDSA_SHA_256'],
+};
+
 function kmsDerSignature(digest: Uint8Array): Buffer {
   const sig = secp256k1.sign(digest, privateKeyBytes, { lowS: true });
   return Buffer.from(sig.toDERRawBytes());
@@ -54,7 +60,7 @@ beforeEach(() => {
   mockSend.mockReset();
   mockSend.mockImplementation(async (command: { input: { Message?: Uint8Array } }) => {
     if (!('Message' in command.input)) {
-      return { PublicKey: fakeKmsPublicKeyDer() };
+      return { PublicKey: fakeKmsPublicKeyDer(), ...VALID_KEY_METADATA };
     }
     const digest = command.input.Message as Uint8Array;
     return { Signature: kmsDerSignature(digest) };
@@ -124,7 +130,7 @@ describe('kmsToAccount', () => {
   it('rejects when no candidate recovery bit matches the derived address', async () => {
     mockSend.mockImplementation(async (command: { input: { Message?: Uint8Array } }) => {
       if (!('Message' in command.input)) {
-        return { PublicKey: fakeKmsPublicKeyDer() };
+        return { PublicKey: fakeKmsPublicKeyDer(), ...VALID_KEY_METADATA };
       }
       const otherKey = Buffer.from('11'.repeat(32), 'hex');
       const digest = command.input.Message as Uint8Array;
@@ -145,5 +151,41 @@ describe('kmsToAccount', () => {
         nonce: 0,
       }),
     ).rejects.toThrow('Could not recover a signature matching address');
+  });
+
+  it('rejects a key whose KeySpec is not ECC_SECG_P256K1', async () => {
+    mockSend.mockImplementation(async () => ({
+      PublicKey: fakeKmsPublicKeyDer(),
+      ...VALID_KEY_METADATA,
+      KeySpec: 'ECC_NIST_P256',
+    }));
+
+    await expect(kmsToAccount({ keyId: 'test-key' })).rejects.toThrow(
+      'has KeySpec "ECC_NIST_P256", expected "ECC_SECG_P256K1"',
+    );
+  });
+
+  it('rejects a key whose KeyUsage is not SIGN_VERIFY', async () => {
+    mockSend.mockImplementation(async () => ({
+      PublicKey: fakeKmsPublicKeyDer(),
+      ...VALID_KEY_METADATA,
+      KeyUsage: 'ENCRYPT_DECRYPT',
+    }));
+
+    await expect(kmsToAccount({ keyId: 'test-key' })).rejects.toThrow(
+      'has KeyUsage "ENCRYPT_DECRYPT", expected "SIGN_VERIFY"',
+    );
+  });
+
+  it('rejects a key that does not support ECDSA_SHA_256', async () => {
+    mockSend.mockImplementation(async () => ({
+      PublicKey: fakeKmsPublicKeyDer(),
+      ...VALID_KEY_METADATA,
+      SigningAlgorithms: ['ECDSA_SHA_384'],
+    }));
+
+    await expect(kmsToAccount({ keyId: 'test-key' })).rejects.toThrow(
+      'does not support the ECDSA_SHA_256 signing algorithm',
+    );
   });
 });

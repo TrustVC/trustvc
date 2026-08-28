@@ -18,8 +18,16 @@ export type AwsKmsViemAccountConfig = KMSClientConfig & {
 };
 
 async function getKmsPublicKeyHex(kms: KMSClient, keyId: string): Promise<Hex> {
-  const { PublicKey } = await kms.send(new GetPublicKeyCommand({ KeyId: keyId }));
+  const { PublicKey, KeySpec, KeyUsage, SigningAlgorithms } = await kms.send(
+    new GetPublicKeyCommand({ KeyId: keyId }),
+  );
   if (!PublicKey) throw new Error(`AWS KMS returned no PublicKey for key "${keyId}"`);
+  if (KeySpec !== 'ECC_SECG_P256K1')
+    throw new Error(`AWS KMS key "${keyId}" has KeySpec "${KeySpec}", expected "ECC_SECG_P256K1"`);
+  if (KeyUsage !== 'SIGN_VERIFY')
+    throw new Error(`AWS KMS key "${keyId}" has KeyUsage "${KeyUsage}", expected "SIGN_VERIFY"`);
+  if (!SigningAlgorithms?.includes('ECDSA_SHA_256'))
+    throw new Error(`AWS KMS key "${keyId}" does not support the ECDSA_SHA_256 signing algorithm`);
 
   // PublicKey is a DER-encoded SubjectPublicKeyInfo (RFC 5480): a SEQUENCE of
   // algorithm OIDs followed by a BIT STRING whose content is `0x00 || 0x04 || X || Y`
