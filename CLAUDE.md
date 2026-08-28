@@ -164,6 +164,13 @@ Do **not** re-add the removed aliases. User-facing docs also live in `README.md`
   for tests, but it means "different DID" ≠ "different key" in fixtures.
 - **`VerificationFragment` is a union** — `reason`/`data` aren't on every member; narrow or
   cast when asserting on them in tests.
+- **AWS KMS `GetPublicKey` responses can't be parsed by scanning for a `0x04` marker
+  byte.** The DER `SubjectPublicKeyInfo` wraps the raw uncompressed secp256k1 point
+  (`0x04 || X || Y`) as the trailing bytes of the structure, but the 64-byte `X || Y`
+  coordinates can themselves contain the byte value `0x04` — a `lastIndexOf(0x04)` scan
+  can find a false marker inside the coordinates instead of the real prefix. The point is
+  reliably the **last 65 bytes** of the DER blob; slice from the end, not by searching for
+  a marker byte. See `src/utils/aws-kms-signer/viem-kms-account.ts`.
 
 ## Relationship to the w3c monorepo
 
