@@ -8,6 +8,7 @@ import {
   fetchEscrowTransfersV4,
   fetchEscrowTransfersV5,
 } from '../endorsement-chain/fetchEscrowTransfer';
+import { isLogsRetryableError, withRateLimitRetry } from '../endorsement-chain/fetchLogsChunked';
 import { fetchTokenTransfers } from '../endorsement-chain/fetchTokenTransfer';
 import { mergeTransfersV4, mergeTransfersV5 } from '../endorsement-chain/helpers';
 import { getEndorsementChain } from '../endorsement-chain/retrieveEndorsementChain';
@@ -28,7 +29,7 @@ const getTitleEscrowFactoryAddress = async (
   const tokenRegistryAbi = ['function titleEscrowFactory() external view returns (address)'];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tokenRegistry = new Contract(tokenRegistryAddress, tokenRegistryAbi, provider as any);
-  return await tokenRegistry.titleEscrowFactory();
+  return await withRateLimitRetry(() => tokenRegistry.titleEscrowFactory());
 };
 
 // Interact with contract using calldata
@@ -43,10 +44,9 @@ const calldata = async (
   const functionSelector = ethers.utils.id(functionSignature).slice(0, 10);
   const encodedParams = ethers.utils.defaultAbiCoder.encode(functionTypes, [...params]);
   const calldata = functionSelector + encodedParams.slice(2);
-  const result = await provider.call({
-    to: contractAddress,
-    data: calldata,
-  });
+  const result = await withRateLimitRetry(() =>
+    provider.call({ to: contractAddress, data: calldata }),
+  );
   // Decode the returned hex string into an address format
   return ethers.utils.getAddress(ethers.utils.hexDataSlice(result, 12));
 };
@@ -78,7 +78,10 @@ const resolveTitleEscrowAddress = async (
       ['address', 'uint256'],
       [tokenRegistryAddress, tokenId],
     );
-  } catch {
+  } catch (err) {
+    // A rate-limit/range error means the call never genuinely resolved — retrying with the
+    // other ABI selector would just double the retry budget and latency, not fix anything.
+    if (isLogsRetryableError(err)) throw err;
     if (options?.titleEscrowVersion === 'v4') {
       // If 'v4' option fails, try searching with 'v5' function getEscrowAddress
       return await calldata(
@@ -141,7 +144,7 @@ export const getDocumentOwner = async (
   const tokenRegistryAbi = ['function ownerOf(uint256 tokenId) view returns (address)'];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tokenRegistry = new Contract(tokenRegistryAddress, tokenRegistryAbi, provider as any);
-  return await tokenRegistry.ownerOf(tokenId);
+  return await withRateLimitRetry(() => tokenRegistry.ownerOf(tokenId));
 };
 
 // Check Title Escrow Interface Support
@@ -193,6 +196,22 @@ export const isTitleEscrowVersion = async ({
   }
 };
 
+/**
+ * Fetch the endorsement chain for Token Registry V4/V5 or Obligation/BoE titles.
+ *
+ * Auto-detects Title Escrow V4/V5 and ObligationEscrow via supportsInterface.
+ *
+ * Migration — these public aliases were removed; use this function instead:
+ * - fetchObligationEndorsementChain → fetchEndorsementChain
+ * - fetchEscrowTransfersObligation → fetchEscrowTransfersV5
+ * - ObligationEscrowInterface → supportInterfaceIdsV5.ObligationEscrow
+ * @param {string} tokenRegistryAddress - Token registry or obligation registry address
+ * @param {string} tokenId - Token ID
+ * @param {Provider | ethersV6.Provider} provider - Ethers provider
+ * @param {string} [keyId] - Encryption key ID for decrypting remarks (V5/Obligation)
+ * @param {string} [titleEscrowAddress] - Pre-resolved escrow address (optional)
+ * @returns {Promise<EndorsementChain>} Endorsement chain events
+ */
 export const fetchEndorsementChain = async (
   tokenRegistryAddress: string,
   tokenId: string,
@@ -206,7 +225,7 @@ export const fetchEndorsementChain = async (
   const resolvedTitleEscrowAddress =
     titleEscrowAddress ?? (await getTitleEscrowAddress(tokenRegistryAddress, tokenId, provider));
 
-  const [isV4, isV5] = await Promise.all([
+  const [isV4, isV5, isObligation] = await Promise.all([
     isTitleEscrowVersion({
       titleEscrowAddress: resolvedTitleEscrowAddress,
       versionInterface: TitleEscrowInterface.V4,
@@ -217,10 +236,16 @@ export const fetchEndorsementChain = async (
       versionInterface: TitleEscrowInterface.V5,
       provider,
     }),
+    // ObligationEscrow detection (replaces removed ObligationEscrowInterface alias).
+    isTitleEscrowVersion({
+      titleEscrowAddress: resolvedTitleEscrowAddress,
+      versionInterface: supportInterfaceIdsV5.ObligationEscrow,
+      provider,
+    }),
   ]);
 
-  if (!isV4 && !isV5) {
-    throw new Error('Only Token Registry V4/V5 is supported');
+  if (!isV4 && !isV5 && !isObligation) {
+    throw new Error('Only Token Registry V4/V5 or Obligation Registry is supported');
   }
 
   let transferEvents: TransferBaseEvent[] = [];
@@ -232,11 +257,12 @@ export const fetchEndorsementChain = async (
     ]);
 
     transferEvents = mergeTransfersV4([...titleEscrowLogs, ...tokenLogs]);
-  } else if (isV5) {
+  } else if (isV5 || isObligation) {
     const titleEscrowLogs = await fetchEscrowTransfersV5(
       provider,
       resolvedTitleEscrowAddress,
       tokenRegistryAddress,
+      isObligation,
     );
     transferEvents = mergeTransfersV5(titleEscrowLogs);
   }

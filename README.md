@@ -2,7 +2,7 @@
 
 ## About
 
-TrustVC is a comprehensive wrapper library designed to simplify the signing and verification processes for TrustVC W3C [Verifiable Credentials (VC)](https://github.com/TrustVC/w3c) and OpenAttestation Verifiable Documents (VD), including OpenCert Verifiable Documents, adhering to the W3C [VC](https://www.w3.org/TR/vc-data-model/) Data Model v2.0 (W3C Standard). It ensures compatibility and interoperability for Verifiable Credentials while supporting OpenAttestation [Verifiable Documents (VD)](https://github.com/Open-Attestation/open-attestation) v6.9.5. TrustVC seamlessly integrates functionalities for handling W3C Verifiable Credentials and OpenAttestation Verifiable Documents, leveraging existing TradeTrust libraries and smart contracts for [Token Registry](https://github.com/TradeTrust/token-registry) (V4 and V5). For W3C credentials it supports both [`did:web`](https://w3c-ccg.github.io/did-method-web/) (**recommended for production**; host a DID document on a domain you control, which acts as the trust anchor) and [`did:key`](https://w3c-ccg.github.io/did-key-spec/) (self-certifying, no hosting required; best for ad-hoc or ephemeral issuers, but requires an out-of-band trust binding) issuers across the `ecdsa-sd-2023` and `bbs-2023` cryptosuites. Additionally, it includes essential utility functions for strings, networks, and chains, making it a versatile tool for developers working with decentralized identity and verifiable data solutions.
+TrustVC is a comprehensive wrapper library designed to simplify the signing and verification processes for TrustVC W3C [Verifiable Credentials (VC)](https://github.com/TrustVC/w3c) and OpenAttestation Verifiable Documents (VD), including OpenCert Verifiable Documents, adhering to the W3C [VC](https://www.w3.org/TR/vc-data-model/) Data Model v2.0 (W3C Standard). It ensures compatibility and interoperability for Verifiable Credentials while supporting OpenAttestation [Verifiable Documents (VD)](https://github.com/Open-Attestation/open-attestation) v6.9.5. TrustVC seamlessly integrates functionalities for handling W3C Verifiable Credentials and OpenAttestation Verifiable Documents, leveraging existing TradeTrust libraries and smart contracts for [Token Registry](https://github.com/TradeTrust/token-registry) (V4 and V5) and for **Obligation Registry** (electronic Bill of Exchange / BoE via `TrustVCToken` + `ObligationEscrow`). For W3C credentials it supports both [`did:web`](https://w3c-ccg.github.io/did-method-web/) (**recommended for production**; host a DID document on a domain you control, which acts as the trust anchor) and [`did:key`](https://w3c-ccg.github.io/did-key-spec/) (self-certifying, no hosting required; best for ad-hoc or ephemeral issuers, but requires an out-of-band trust binding) issuers across the `ecdsa-sd-2023` and `bbs-2023` cryptosuites. Additionally, it includes essential utility functions for strings, networks, and chains, making it a versatile tool for developers working with decentralized identity and verifiable data solutions.
 
 ## Table of Contents
 
@@ -19,6 +19,7 @@ TrustVC is a comprehensive wrapper library designed to simplify the signing and 
     - [3. **Deriving (Selective Disclosure)**](#3-deriving-selective-disclosure)
     - [4. **Verifiable Presentations (VP)**](#4-verifiable-presentations-vp)
     - [5. **Verifying**](#5-verifying)
+      - [Obligation / BoE (`verifyDocument`)](#obligation--boe-verifydocument)
     - [6. **Encryption**](#6-encryption)
     - [7. **Decryption**](#7-decryption)
     - [8. **TradeTrust Token Registry**](#8-tradetrust-token-registry)
@@ -26,9 +27,19 @@ TrustVC is a comprehensive wrapper library designed to simplify the signing and 
       - [TradeTrustToken](#tradetrusttoken)
       - [a) Token Registry v4](#a-token-registry-v4)
       - [b) Token Registry V5](#b-token-registry-v5)
+      - [c) Obligation Registry (BoE)](#c-obligation-registry-boe)
     - [9. **Document Builder**](#9-document-builder)
     - [10. **Document Store**](#10-document-store)
     - [11. **Transaction Cancel**](#11-transaction-cancel)
+    - [12. **Gasless Operations (EIP-7702)**](#12-gasless-operations-eip-7702)
+      - [Overview](#overview-1)
+      - [deployPlatformPaymaster](#deployplatformpaymaster)
+      - [deployTokenRegistryGasless](#deploytokenregistrygasless)
+      - [mintGasless](#mintgasless)
+      - [Transfer Functions](#transfer-functions)
+      - [Reject Transfer Functions](#reject-transfer-functions)
+      - [Return to Issuer Functions](#return-to-issuer-functions)
+      - [Admin Functions](#admin-functions)
 
 ## Installation
 
@@ -432,6 +443,30 @@ const signedDocument = {
 const resultFragments = await verifyDocument(signedDocument);
 ```
 
+#### Obligation / BoE (`verifyDocument`)
+
+Use the same `verifyDocument` entry point for Bill of Exchange credentials. The pipeline routes by `credentialStatus`:
+
+| Fragment | When it runs |
+|----------|----------------|
+| `TransferableRecords` | Classic ETR (`credentialStatus.tokenRegistry`) |
+| `ObligationRecords` | BoE (`credentialStatus.obligationRegistry`) |
+
+Classic ETR documents get `ObligationRecords` **SKIPPED**; BoE documents get `TransferableRecords` **SKIPPED**. Pass `rpcProviderUrl` or `provider` for on-chain checks.
+
+```ts
+import { verifyDocument, isObligationRecord } from '@trustvc/trustvc';
+
+const fragments = await verifyDocument(signedBoeVc, {
+  rpcProviderUrl: 'https://rpc-amoy.polygon.technology',
+});
+
+// ObligationRecords fragment: VALID | INVALID | SKIPPED
+isObligationRecord(signedBoeVc); // true when obligationRegistry is present
+```
+
+After on-chain **reject**, **discharge**, or **`acceptReturnedObligationRegistry`**, the token is burned (`0xdEaD`). Verify still treats the title as minted (same as classic ETR shredded titles); the website surfaces “Taken Out of Circulation”. See [§7c](#c-obligation-registry-boe) for the on-chain SDK.
+
 ---
 
 ### 6. **Encryption**
@@ -784,8 +819,120 @@ function rejectTransferOwners(bytes calldata _remark) external;
 
 For more information on Token Registry and Title Escrow contracts **version v5**, please visit the readme of [TradeTrust Token Registry V5](https://github.com/TradeTrust/token-registry/blob/master/README.md)
 
+#### c) Obligation Registry (BoE)
+
+> **New:** Obligation Registry supports electronic Bill of Exchange (BoE). It mirrors the classic Transferable Records pattern using **`TrustVCToken`** + **`ObligationEscrow`** (v5 only — no Obligation v4 path).
+>
+> Import on-chain helpers from `@trustvc/trustvc` (same as Token Registry helpers). Functions use the `*ObligationRegistry` suffix (e.g. `mintObligationRegistry`) so they never clash with classic ETR exports (`mint`, `transferHolder`, …).
+
+**Lifecycle**
+
+1. Deploy factory + obligation registry  
+2. Mint → status **Issued**  
+3. Holder **accept** → **Accepted**, or holder **reject** → **Rejected** (burns / takes out of circulation)  
+4. Optional transfers / nominate / endorse (same pattern as Title Escrow)  
+5. Beneficiary **discharge** (from **Accepted**) → **Discharged** (burns)  
+
+> [!NOTE]
+> **Return to issuer** uses the same rules as classic ETR: the caller must be both beneficiary and holder; then the issuer runs **accept-return** (burn) or **reject-return** (restore). Status does **not** need to be Rejected or Discharged first.
+
+**Role rules**
+
+| Action | Who |
+|--------|-----|
+| `accept` / `reject` | Holder, with `beneficiary != holder` |
+| `discharge` | Beneficiary, with `beneficiary != holder` |
+| `returnToIssuerObligationRegistry` | Dual role (`beneficiary == holder`) — same as classic ETR `returnToIssuer` |
+| `acceptReturnedObligationRegistry` / `rejectReturnedObligationRegistry` | Issuer (registry accepter / restorer roles) |
+
+**Status enums** (from `@trustvc/trustvc`):
+
+| Enum | Values |
+|------|--------|
+| `ObligationDocumentStatus` | `Issued=0`, `Accepted=1`, `Rejected=2`, `Discharged=3` |
+| `ObligationEscrowTerminationReason` | `None=0`, `ReturnToIssuer=1`, `Rejected=2`, `Discharged=3` |
+
+```ts
+import {
+  deployObligationEscrowFactory,
+  deployObligationRegistry,
+  mintObligationRegistry,
+  acceptObligationRegistry,
+  rejectObligationRegistry,
+  dischargeObligationRegistry,
+  nominateObligationRegistry,
+  transferHolderObligationRegistry,
+  transferBeneficiaryObligationRegistry,
+  transferOwnersObligationRegistry,
+  rejectTransferHolderObligationRegistry,
+  rejectTransferBeneficiaryObligationRegistry,
+  rejectTransferOwnersObligationRegistry,
+  returnToIssuerObligationRegistry,
+  acceptReturnedObligationRegistry,
+  rejectReturnedObligationRegistry,
+  getObligationRegistryStatus,
+  getObligationEscrowTerminationReason,
+  ownerOfObligationRegistry,
+} from '@trustvc/trustvc';
+
+// Deploy
+const { obligationRegistry, obligationEscrowFactoryAddress } =
+  await deployObligationRegistry('My BoE Registry', 'BOE', signer, { chainId });
+
+// Mint (separate from W3C DocumentBuilder sign)
+await (
+  await mintObligationRegistry(
+    { obligationRegistryAddress: obligationRegistry },
+    issuerSigner,
+    { beneficiaryAddress, holderAddress, tokenId: '1', remarks: 'issued' },
+    { chainId, id: encryptionKeyId },
+  )
+).wait();
+
+// Holder accepts
+await (
+  await acceptObligationRegistry(
+    { obligationRegistryAddress: obligationRegistry, tokenId: '1' },
+    holderSigner,
+    { remarks: 'accepted' },
+    { chainId, id: encryptionKeyId },
+  )
+).wait();
+```
+
+Escrow calls accept `{ obligationRegistryAddress, tokenId }` or `{ obligationEscrowAddress }`. Remarks are encrypted when `options.id` is set (same as Token Registry v5).
+
+**Endorsement chain** — pass the `TrustVCToken` address to existing helpers:
+
+```ts
+import { fetchEndorsementChain } from '@trustvc/trustvc';
+
+const chain = await fetchEndorsementChain(obligationRegistry, tokenId, provider, encryptionKeyId);
+// Accept / reject / discharge rows use STATUS_ACCEPTED, STATUS_REJECTED, STATUS_DISCHARGED.
+// RETURN_TO_ISSUER_ACCEPTED is classic ETR shred (or obligation shred after an actual return-to-issuer).
+```
+
+Obligation / BoE titles use the same functions as Token Registry V5 (`fetchEndorsementChain` auto-detects `ObligationEscrow`). These public aliases were removed:
+
+| Removed | Use instead |
+| --- | --- |
+| `fetchObligationEndorsementChain` | `fetchEndorsementChain` |
+| `fetchEscrowTransfersObligation` | `fetchEscrowTransfersV5` (auto-detects obligation status events) |
+| `ObligationEscrowInterface` | `v5SupportInterfaceIds.ObligationEscrow` |
+
+**Low-level contracts** (`@trustvc/trustvc/token-registry-v5/contracts`):
+
+```ts
+import { v5Contracts } from '@trustvc/trustvc';
+
+const token = v5Contracts.TrustVCToken__factory.connect(obligationRegistry, signer);
+const escrow = v5Contracts.ObligationEscrow__factory.connect(escrowAddress, signer);
+```
+
+Unit tests: `src/__tests__/obligation-registry-functions/`. E2E: `npm run test:e2e` (see `src/__tests__/e2e/README.md`).
+
 ### 9. **Document Builder**
-> The `DocumentBuilder` class helps build and manage W3C Verifiable Credentials (VCs) with credential status features, implementing the **W3C VC Data Model 2.0** specification. It supports creating documents with two types of credential statuses: `transferableRecords` and `verifiableDocument`. It can sign the document using modern cryptographic signature schemes including **ECDSA-SD-2023** (default) and **BBS-2023**, verify its signature, and serialize the document to a JSON format. Additionally, it allows for configuration of document rendering methods and expiration dates.
+> The `DocumentBuilder` class helps build and manage W3C Verifiable Credentials (VCs) with credential status features, implementing the **W3C VC Data Model 2.0** specification. It supports creating documents with credential statuses for classic transferable records (`tokenRegistry`), obligation records (`obligationRegistry`), and revocable verifiable documents. It can sign the document using modern cryptographic signature schemes including **ECDSA-SD-2023** (default) and **BBS-2023**, verify its signature, and serialize the document to a JSON format. Additionally, it allows for configuration of document rendering methods and expiration dates.
 
 #### Usage
 
@@ -813,9 +960,9 @@ builder.credentialSubject({
 ```
 
 ##### Configure Credential Status
-You can configure the credential status as either `transferableRecords` or `verifiableDocument`.
+You can configure the credential status as `transferableRecords`, `obligationRecords`, or `verifiableDocument`.
 
-**Transferable Records**
+**Transferable Records (classic Token Registry)**
 ```ts
 builder.credentialStatus({
   // Refers to the supported network.
@@ -827,9 +974,32 @@ builder.credentialStatus({
 });
 ```
 
+Verify with `verifyDocument` (TransferableRecords fragment).
+
+**Obligation Records (BoE / Obligation Registry)**
+
+```ts
+import { DocumentBuilder } from '@trustvc/trustvc';
+
+const boeBuilder = new DocumentBuilder({
+  '@context': 'https://trustvc.io/context/bill-of-exchange.json',
+}).credentialSubject({
+  electronicDocumentIdentifier: 'urn:uuid:e6f4b2a1-9c3d-4e8f-a7b0-1d2e3f4a5b6c',
+});
+
+boeBuilder.obligationCredentialStatus({
+  chain: 'amoy',
+  chainId: 80002,
+  obligationRegistry: '0x1234567890abcdef...',
+  rpcProviderUrl: 'https://rpc-amoy.polygon.technology',
+});
+```
+
+This sets `credentialStatus.type` to `TransferableRecords` with an `obligationRegistry` field (not `tokenRegistry`). On-chain minting is separate — use `mintObligationRegistry` from `@trustvc/trustvc` (see [§7c](#c-obligation-registry-boe)). Verify with `verifyDocument` (ObligationRecords fragment) — see [§4](#obligation--boe-verifydocument).
+
 > ⚠️ **Disclaimer:**  
-> This builder **does not mint** documents on-chain. If you're using `transferableRecords`, you'll need to mint the document.  
-> [See the minting guide here](https://docs.tradetrust.io/docs/how-tos/credential-status#2-minting-the-credential)
+> These builders **do not mint** on-chain. Mint separately via `mint` (ETR) or `mintObligationRegistry` (BoE).  
+> Classic ETR: [TradeTrust minting guide](https://docs.tradetrust.io/docs/how-tos/credential-status#2-minting-the-credential).
 
 
 **Verifiable Document**
@@ -1249,4 +1419,298 @@ const replacementHash2 = await cancelTransaction(signer, {
   nonce: '5',
   gasPrice: '25000000000', // 25 gwei in wei
 });
+```
+
+---
+
+## 12. **Gasless Operations (EIP-7702)**
+
+> **Beta:** Gasless transactions are currently in beta. APIs and contract addresses may change before the stable release. Use on testnet only.
+
+### Overview
+
+TrustVC supports gasless trade document operations via **EIP-7702** (smart account delegation) and **ERC-4337** (account abstraction). Users can deploy token registries, mint documents, and perform all title escrow operations without holding ETH — gas is sponsored by a **PlatformPaymaster** deployed per platform.
+
+**How it works:**
+
+1. An EOA signs an EIP-7702 authorization, delegating to the `EIP7702Implementation` contract. Its bytecode becomes `0xef0100 || impl_address` while keeping the same address and private key.
+2. The platform deploys a `PlatformPaymaster` clone via `PlatformAccountFactory`.
+3. Users submit `UserOperation`s through a bundler (Pimlico). The paymaster validates and sponsors gas for authorized operations.
+
+All gasless functions accept a `smartAccountClient` built with [permissionless](https://docs.pimlico.io/permissionless) and return `Promise<string>` (transaction hash).
+
+```ts
+import { buildSmartAccountClient } from './your-pimlico-setup';
+
+const { smartAccountClient } = await buildSmartAccountClient(
+  ownerAddress,     // delegated EOA
+  paymasterAddress, // platform's PlatformPaymaster
+);
+```
+
+---
+
+### deployPlatformPaymaster
+
+Deploys a new `PlatformPaymaster` clone for your platform via `PlatformAccountFactory`. Accepts a viem `WalletClient` or ethers v5/v6 signer.
+
+```ts
+import { deployPlatformPaymaster } from '@trustvc/trustvc';
+import { createWalletClient, createPublicClient, http } from 'viem';
+import { sepolia } from 'viem/chains';
+
+const { txHash, paymasterAddress } = await deployPlatformPaymaster(
+  walletClient,
+  {
+    platformAddress: '0xYourPlatformOwner...',
+    dailyLimit: 0n,                    // 0n = unlimited; set in wei to cap per-user daily spend
+    salt: `0x${'ab'.repeat(32)}`,      // bytes32 CREATE2 salt — must be unique per platform
+  },
+  publicClient,
+);
+
+console.log('Paymaster deployed at:', paymasterAddress);
+```
+
+---
+
+### deployTokenRegistryGasless
+
+Deploys a new `TradeTrustToken` registry clone through the paymaster. The caller must have at least 1 deployment credit (`setUserWhitelist`). Emits `RegistryDeployed(user, deployed, creditsLeft)`.
+
+```ts
+import { deployTokenRegistryGasless } from '@trustvc/trustvc';
+
+const txHash = await deployTokenRegistryGasless(
+  'My Shipping Line',  // registry name
+  'MSL',               // registry symbol
+  smartAccountClient,
+  {
+    paymasterAddress:         '0xYourPaymaster...',
+    tokenRegistryImplAddress: '0x64bc665056DC8bE4092e569ED13a7F273Be28cD2', // TDocDeployer on Sepolia
+  },
+);
+```
+
+---
+
+### mintGasless
+
+Mints a new trade document on an authorized registry. Automatically authorizes the beneficiary, holder, and the new `TitleEscrow` on the paymaster. Emits `TitleEscrowLinked(titleEscrow, registry)`.
+
+```ts
+import { mintGasless } from '@trustvc/trustvc';
+
+const txHash = await mintGasless(
+  {
+    paymasterAddress:     '0xYourPaymaster...',
+    tokenRegistryAddress: '0xYourRegistry...',
+  },
+  smartAccountClient,
+  {
+    beneficiaryAddress: '0xBeneficiary...',
+    holderAddress:      '0xHolder...',
+    tokenId:            '0xdeadbeef',
+    remarks:            'Initial issuance',  // optional — encrypted on-chain with options.id
+  },
+  { id: 'document-uuid' },
+);
+```
+
+---
+
+### Transfer Functions
+
+All transfer functions target the `TitleEscrow` contract. Remarks are automatically encrypted with `options.id` before being sent on-chain.
+
+#### transferHolderGasless
+
+Transfers the **holder** role. Caller must be the current holder.
+
+```ts
+import { transferHolderGasless } from '@trustvc/trustvc';
+
+const txHash = await transferHolderGasless(
+  { titleEscrowAddress: '0xTitleEscrow...' },
+  smartAccountClient,
+  { holderAddress: '0xNewHolder...', remarks: 'Transferring to forwarder' },
+  { id: 'document-uuid' },
+);
+```
+
+#### transferBeneficiaryGasless
+
+Transfers the **beneficiary** role. Caller must be the current beneficiary.
+
+```ts
+import { transferBeneficiaryGasless } from '@trustvc/trustvc';
+
+const txHash = await transferBeneficiaryGasless(
+  { titleEscrowAddress: '0xTitleEscrow...' },
+  smartAccountClient,
+  { newBeneficiaryAddress: '0xNewBeneficiary...', remarks: 'Endorsing to buyer' },
+  { id: 'document-uuid' },
+);
+```
+
+#### transferOwnersGasless
+
+Transfers both holder and beneficiary in one transaction. Caller must be both.
+
+```ts
+import { transferOwnersGasless } from '@trustvc/trustvc';
+
+const txHash = await transferOwnersGasless(
+  { titleEscrowAddress: '0xTitleEscrow...' },
+  smartAccountClient,
+  {
+    newBeneficiaryAddress: '0xNewBeneficiary...',
+    newHolderAddress:      '0xNewHolder...',
+    remarks:               'Full transfer',
+  },
+  { id: 'document-uuid' },
+);
+```
+
+#### nominateGasless
+
+Nominates a new beneficiary without immediately completing the transfer.
+
+```ts
+import { nominateGasless } from '@trustvc/trustvc';
+
+const txHash = await nominateGasless(
+  { titleEscrowAddress: '0xTitleEscrow...' },
+  smartAccountClient,
+  { newBeneficiaryAddress: '0xNominated...', remarks: 'Nomination' },
+  { id: 'document-uuid' },
+);
+```
+
+---
+
+### Reject Transfer Functions
+
+Mirror of Token Registry v5's rejection methods — see [section 7](#b-token-registry-v5) for the on-chain rules.
+
+```ts
+import {
+  rejectTransferHolderGasless,
+  rejectTransferBeneficiaryGasless,
+  rejectTransferOwnersGasless,
+} from '@trustvc/trustvc';
+
+// Reject a pending holder transfer (caller = current holder)
+await rejectTransferHolderGasless(
+  { titleEscrowAddress: '0xTitleEscrow...' },
+  smartAccountClient,
+  { remarks: 'Rejecting transfer' },
+  { id: 'document-uuid' },
+);
+
+// Reject a pending beneficiary nomination (caller = current beneficiary)
+await rejectTransferBeneficiaryGasless(
+  { titleEscrowAddress: '0xTitleEscrow...' },
+  smartAccountClient,
+  { remarks: 'Rejecting nomination' },
+  { id: 'document-uuid' },
+);
+
+// Reject a combined transfer (caller = both holder and beneficiary)
+await rejectTransferOwnersGasless(
+  { titleEscrowAddress: '0xTitleEscrow...' },
+  smartAccountClient,
+  { remarks: 'Rejecting combined transfer' },
+  { id: 'document-uuid' },
+);
+```
+
+---
+
+### Return to Issuer Functions
+
+#### returnToIssuerGasless
+
+Returns the document to the issuer. Caller must be both holder and beneficiary.
+
+```ts
+import { returnToIssuerGasless } from '@trustvc/trustvc';
+
+await returnToIssuerGasless(
+  { titleEscrowAddress: '0xTitleEscrow...' },
+  smartAccountClient,
+  { remarks: 'Surrendering document' },
+  { id: 'document-uuid' },
+);
+```
+
+#### rejectReturnedGasless
+
+Restores the document back to the title escrow (registry admin rejects the return).
+
+```ts
+import { rejectReturnedGasless } from '@trustvc/trustvc';
+
+await rejectReturnedGasless(
+  { tokenRegistryAddress: '0xYourRegistry...' },
+  smartAccountClient,
+  { tokenId: '0xdeadbeef', remarks: 'Return rejected' },
+  { id: 'document-uuid' },
+);
+```
+
+#### acceptReturnedGasless
+
+Burns the document (registry admin accepts the return).
+
+```ts
+import { acceptReturnedGasless } from '@trustvc/trustvc';
+
+await acceptReturnedGasless(
+  { tokenRegistryAddress: '0xYourRegistry...' },
+  smartAccountClient,
+  { tokenId: '0xdeadbeef', remarks: 'Document accepted and destroyed' },
+  { id: 'document-uuid' },
+);
+```
+
+---
+
+### Admin Functions
+
+`onlyOwner` functions for managing the `PlatformPaymaster`. All accept a viem `WalletClient` or ethers v5/v6 signer and return `Promise<string>` (tx hash).
+
+```ts
+import {
+  setUserWhitelist,
+  removeUserFromWhitelist,
+  addRegistry,
+  removeRegistry,
+  addTitleEscrow,
+  removeTitleEscrow,
+  addAuthorizedCaller,
+  removeAuthorizedCaller,
+  setDailyLimit,
+} from '@trustvc/trustvc';
+
+// Grant a user 2 registry deployment credits (max 3)
+await setUserWhitelist(ownerSigner, paymasterAddress, '0xUser...', 2n);
+
+// Remove a user from the whitelist
+await removeUserFromWhitelist(ownerSigner, paymasterAddress, '0xUser...');
+
+// Authorize a registry so the paymaster will sponsor its calls
+await addRegistry(ownerSigner, paymasterAddress, '0xRegistry...');
+await removeRegistry(ownerSigner, paymasterAddress, '0xRegistry...');
+
+// Authorize a title escrow
+await addTitleEscrow(ownerSigner, paymasterAddress, '0xTitleEscrow...');
+await removeTitleEscrow(ownerSigner, paymasterAddress, '0xTitleEscrow...');
+
+// Manage authorized callers (beneficiary / holder addresses for Path A)
+await addAuthorizedCaller(ownerSigner, paymasterAddress, '0xCaller...');
+await removeAuthorizedCaller(ownerSigner, paymasterAddress, '0xCaller...');
+
+// Update the per-user daily gas spend cap (0n = unlimited)
+await setDailyLimit(ownerSigner, paymasterAddress, 0n);
 ```

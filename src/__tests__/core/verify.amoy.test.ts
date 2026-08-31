@@ -9,7 +9,7 @@ import {
   w3cTransferableRecordMintedTests,
 } from './verify.polygon-network.helpers';
 
-const AMOY_RPC_URL = process.env.AMOY_RPC || 'https://polygon-amoy-bor-rpc.publicnode.com/';
+const AMOY_RPC_URL = process.env.AMOY_RPC || 'https://polygon-amoy-bor-rpc.publicnode.com';
 
 describe('Polygon Amoy (testnet) network support', () => {
   describe('CHAIN_ID and SUPPORTED_CHAINS', () => {

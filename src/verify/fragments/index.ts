@@ -37,3 +37,8 @@ export {
   w3cSignatureIntegrity,
   ecdsaW3CSignatureIntegrity,
 };
+
+export {
+  credentialStatusObligationRecordVerifier,
+  OBLIGATION_RECORDS_TYPE,
+} from './document-status/obligationRecords/obligationRecordVerifier';

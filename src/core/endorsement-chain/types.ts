@@ -17,6 +17,8 @@ export type TradeTrustTokenEventType =
 
 export type TransferEventType = TokenTransferEventType | TitleEscrowTransferEventType;
 
+export type TerminationReasonLabel = 'None' | 'ReturnToIssuer' | 'Rejected' | 'Discharged';
+
 export interface TransferBaseEvent {
   type: TransferEventType;
   transactionIndex: number;
@@ -25,6 +27,8 @@ export interface TransferBaseEvent {
   transactionHash: string;
   blockNumber: number;
   remark?: string;
+  /** Present on obligation shred: Rejected/Discharged (status row) or ReturnToIssuer */
+  terminationReason?: TerminationReasonLabel;
 }
 
 export type TokenTransferEventType =
@@ -46,7 +50,11 @@ export type TitleEscrowTransferEventType =
   | 'TRANSFER_OWNERS'
   | 'REJECT_TRANSFER_BENEFICIARY' // V5
   | 'REJECT_TRANSFER_HOLDER' // V5
-  | 'REJECT_TRANSFER_OWNERS'; // V5
+  | 'REJECT_TRANSFER_OWNERS' // V5
+  | 'STATUS_INITIALIZED' // ObligationEscrow
+  | 'STATUS_ACCEPTED' // ObligationEscrow
+  | 'STATUS_REJECTED' // ObligationEscrow
+  | 'STATUS_DISCHARGED'; // ObligationEscrow
 
 export interface TokenTransferEvent extends TransferBaseEvent {
   type: TokenTransferEventType;

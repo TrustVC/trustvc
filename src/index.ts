@@ -34,6 +34,8 @@ import { cancelTransaction } from './transaction';
 export type { TypedContractMethod } from './token-registry-v5/typedContractMethod';
 export type { CancelTransactionSigner } from './transaction';
 export * from './token-registry-functions';
+export * from './obligation-registry-functions';
+export * from './eip7702-functions';
 export * from './core';
 export * from './open-attestation';
 export * from './verify';

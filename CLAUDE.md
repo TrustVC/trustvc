@@ -29,6 +29,7 @@ Source map (`src/`):
 | Path | What |
 | --- | --- |
 | `src/core/verify.ts` | **`verifyDocument()`** — the unified verify entry point (OA + W3C). |
+| `src/core/endorsement-chain/useEndorsementChain.ts` | **`fetchEndorsementChain()`** — unified V4/V5/Obligation escrow path (auto-detects contract type). |
 | `src/verify/verify.ts` | `verificationBuilder`, `openAttestationVerifiers`, `w3cVerifiers`. |
 | `src/verify/fragments/` | Verifier fragments by dimension: `document-integrity`, `document-status`, `issuer-identity`, `presentation`. |
 | `src/w3c/` | The W3C surface: `sign`, `derive`, `verify`, **`presentation`** (VP wrappers), `types`. |
@@ -113,8 +114,42 @@ so an unsigned VP is still routed in and then judged INVALID by the integrity fr
 aligned to both enforce proof-presence + holder binding. If you touch one, keep the other
 in step.
 
+## Endorsement chain (`src/core/endorsement-chain/useEndorsementChain.ts`)
+
+**`fetchEndorsementChain()`** is the single public path for Token Registry V4/V5 and
+Obligation/BoE titles. It auto-detects the escrow contract via `supportsInterface`
+(including `v5SupportInterfaceIds.ObligationEscrow` around the obligation check).
+
+These public aliases were removed:
+
+| Removed | Use instead |
+| --- | --- |
+| `fetchObligationEndorsementChain` | `fetchEndorsementChain` |
+| `fetchEscrowTransfersObligation` | `fetchEscrowTransfersV5` (auto-detects obligation status events) |
+| `ObligationEscrowInterface` | `v5SupportInterfaceIds.ObligationEscrow` |
+
+Do **not** re-add the removed aliases. User-facing docs also live in `README.md`
+(Obligation Registry section).
+
 ## Gotchas (hard-won — add to this list)
 
+- **Endorsement chain has one public path.** See
+  [Endorsement chain](#endorsement-chain-srccoreendorsement-chainuseendorsementchaints)
+  — do not re-add `fetchObligationEndorsementChain`, `fetchEscrowTransfersObligation`,
+  or `ObligationEscrowInterface`.
+- **Obligation mint merges to INITIAL.** ObligationEscrow emits `StatusInitialized`
+  in the same tx as `TokenReceived(isMinting)` (often *before* it in log order).
+  `mergeTransfersV5` must prefer `INITIAL` so owner/holder/remarks match classic ETR
+  mint rows. Do not let `STATUS_INITIALIZED` win that merge.
+- **eBoE shred last parties + reason come from the contract.** ObligationEscrow
+  persists `lastBeneficiary` / `lastHolder` in `_deactivate` and emits them on
+  `Shred` with `TerminationReason`. Reject/discharge auto-shred in the same tx —
+  `mergeTransfersV5` must keep `STATUS_REJECTED` / `STATUS_DISCHARGED` (not
+  `RETURN_TO_ISSUER_ACCEPTED`, which is classic ETR shred only). Still copy
+  `owner`/`holder`/`terminationReason` from `Shred`. Do not reconstruct parties
+  from transfer history as the primary source of truth. Classic ETR shred UI still
+  blanks parties (no reason field). **ABI break:** redeploy or upgrade obligation
+  registries / escrow impl before validating against live docs.
 - **Selective disclosure keeps the subject `id`.** If a credential was issued *with* a
   `credentialSubject.id`, deriving it (even revealing only other fields) **retains that
   id**. To test/produce a credential with *no* subject id, it must be issued without one.
@@ -129,6 +164,13 @@ in step.
   for tests, but it means "different DID" ≠ "different key" in fixtures.
 - **`VerificationFragment` is a union** — `reason`/`data` aren't on every member; narrow or
   cast when asserting on them in tests.
+- **AWS KMS `GetPublicKey` responses can't be parsed by scanning for a `0x04` marker
+  byte.** The DER `SubjectPublicKeyInfo` wraps the raw uncompressed secp256k1 point
+  (`0x04 || X || Y`) as the trailing bytes of the structure, but the 64-byte `X || Y`
+  coordinates can themselves contain the byte value `0x04` — a `lastIndexOf(0x04)` scan
+  can find a false marker inside the coordinates instead of the real prefix. The point is
+  reliably the **last 65 bytes** of the DER blob; slice from the end, not by searching for
+  a marker byte. See `src/utils/aws-kms-signer/viem-kms-account.ts`.
 
 ## Relationship to the w3c monorepo
 
