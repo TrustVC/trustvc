@@ -103,14 +103,18 @@ const documentStoreRevoke = async (
     signer as any,
   );
 
-  // Check callStatic (dry run) to ensure transaction will succeed
+  // Check callStatic (dry run) to ensure transaction will succeed.
+  // Called via the full signature, not the bare name: DocumentStore's ABI overloads
+  // `revoke` (single-hash vs. batch merkle-proof), and ethers does not expose a bare
+  // `.revoke` shorthand for an ambiguous function name — `contract.revoke(...)` /
+  // `contract.callStatic.revoke(...)` throw `TypeError: ... is not a function` for it.
   try {
     const isV6 = isV6EthersProvider(signer.provider);
 
     if (isV6) {
-      await (documentStoreContract as ContractV6).revoke.staticCall(documentHash);
+      await (documentStoreContract as ContractV6)['revoke(bytes32)'].staticCall(documentHash);
     } else {
-      await (documentStoreContract as ContractV5).callStatic.revoke(documentHash);
+      await (documentStoreContract as ContractV5).callStatic['revoke(bytes32)'](documentHash);
     }
   } catch (e) {
     console.error('callStatic failed:', e);
@@ -120,7 +124,7 @@ const documentStoreRevoke = async (
   // Get transaction options (gas settings)
   const txOptions = await getTxOptions(signer, chainId, maxFeePerGas, maxPriorityFeePerGas);
   // Send the actual transaction
-  return await documentStoreContract.revoke(documentHash, txOptions);
+  return await documentStoreContract['revoke(bytes32)'](documentHash, txOptions);
 };
 
 export { documentStoreRevoke };
