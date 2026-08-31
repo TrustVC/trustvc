@@ -1,3 +1,10 @@
+## [2.15.3](https://github.com/TrustVC/trustvc/compare/v2.15.2...v2.15.3) (2026-08-31)
+
+
+### Bug Fixes
+
+* update document store revoke handling to support ABI overloads ([#170](https://github.com/TrustVC/trustvc/issues/170)) ([7b531e4](https://github.com/TrustVC/trustvc/commit/7b531e417f3f62de5cd4da63578d1bac82cba7b4))
+
 ## [2.15.2](https://github.com/TrustVC/trustvc/compare/v2.15.1...v2.15.2) (2026-08-13)
 
 
