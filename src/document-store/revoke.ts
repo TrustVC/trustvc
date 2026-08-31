@@ -44,6 +44,12 @@ export interface RevokeOptions {
   isTransferable?: boolean;
 }
 
+// DocumentStore's ABI overloads `revoke` (single-hash vs. batch merkle-proof). Ethers v5
+// does not expose a bare `.revoke` shorthand for an ambiguous function name — v6 can
+// resolve it by argument count, but both are called via the full signature here for
+// consistent behaviour across versions.
+const REVOKE_SIGNATURE = 'revoke(bytes32)';
+
 const documentStoreRevoke = async (
   documentStoreAddress: string,
   documentHash: string,
@@ -103,18 +109,14 @@ const documentStoreRevoke = async (
     signer as any,
   );
 
-  // Check callStatic (dry run) to ensure transaction will succeed.
-  // Called via the full signature, not the bare name: DocumentStore's ABI overloads
-  // `revoke` (single-hash vs. batch merkle-proof), and ethers does not expose a bare
-  // `.revoke` shorthand for an ambiguous function name — `contract.revoke(...)` /
-  // `contract.callStatic.revoke(...)` throw `TypeError: ... is not a function` for it.
+  // Check callStatic (dry run) to ensure transaction will succeed
   try {
     const isV6 = isV6EthersProvider(signer.provider);
 
     if (isV6) {
-      await (documentStoreContract as ContractV6)['revoke(bytes32)'].staticCall(documentHash);
+      await (documentStoreContract as ContractV6)[REVOKE_SIGNATURE].staticCall(documentHash);
     } else {
-      await (documentStoreContract as ContractV5).callStatic['revoke(bytes32)'](documentHash);
+      await (documentStoreContract as ContractV5).callStatic[REVOKE_SIGNATURE](documentHash);
     }
   } catch (e) {
     console.error('callStatic failed:', e);
@@ -124,7 +126,7 @@ const documentStoreRevoke = async (
   // Get transaction options (gas settings)
   const txOptions = await getTxOptions(signer, chainId, maxFeePerGas, maxPriorityFeePerGas);
   // Send the actual transaction
-  return await documentStoreContract['revoke(bytes32)'](documentHash, txOptions);
+  return await documentStoreContract[REVOKE_SIGNATURE](documentHash, txOptions);
 };
 
 export { documentStoreRevoke };
