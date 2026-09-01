@@ -122,12 +122,26 @@ vi.mock('@trustvc/document-store', () => ({
 }));
 const promiseResolveTrue = vi.fn(() => Promise.resolve(true));
 const promiseResolveFalse = vi.fn(() => Promise.resolve(false));
+// `revoke` is ambiguous on the real ABI (single-hash vs. batch merkle-proof overloads),
+// so `documentStoreRevoke` calls it via the full signature `revoke(bytes32)`. Each mock
+// below aliases that key to the same function as the plain `.revoke` one, so tests can
+// keep configuring/asserting via `.revoke` while the implementation calls the aliased key.
+const callStaticRevokeFxn = vi.fn();
 const callStaticFxn = {
   issue: vi.fn(),
-  revoke: vi.fn(),
+  revoke: callStaticRevokeFxn,
+  'revoke(bytes32)': callStaticRevokeFxn,
   grantRole: vi.fn(),
   revokeRole: vi.fn(),
 };
+const documentStoreRevokeFxn = Object.assign(
+  // Direct call returns transaction response
+  vi.fn(() => Promise.resolve('document_store_revoke_tx_hash')),
+  {
+    // Static call returns boolean
+    staticCall: promiseResolveTrue,
+  },
+);
 export const mockDocumentStoreContract = {
   callStatic: callStaticFxn,
   issue: Object.assign(
@@ -138,14 +152,8 @@ export const mockDocumentStoreContract = {
       staticCall: promiseResolveTrue,
     },
   ),
-  revoke: Object.assign(
-    // Direct call returns transaction response
-    vi.fn(() => Promise.resolve('document_store_revoke_tx_hash')),
-    {
-      // Static call returns boolean
-      staticCall: promiseResolveTrue,
-    },
-  ),
+  revoke: documentStoreRevokeFxn,
+  'revoke(bytes32)': documentStoreRevokeFxn,
   grantRole: Object.assign(
     // Direct call returns transaction response
     vi.fn(() => Promise.resolve('document_store_grant_role_tx_hash')),
@@ -168,6 +176,14 @@ export const mockDocumentStoreContract = {
   name: vi.fn(() => Promise.resolve('Test Document Store')),
 };
 
+const transferableDocumentStoreRevokeFxn = Object.assign(
+  // Direct call returns transaction response
+  vi.fn(() => Promise.resolve('transferable_document_store_revoke_tx_hash')),
+  {
+    // Static call returns boolean
+    staticCall: promiseResolveTrue,
+  },
+);
 export const mockTransferableDocumentStoreContract = {
   callStatic: callStaticFxn,
   issue: Object.assign(
@@ -178,14 +194,8 @@ export const mockTransferableDocumentStoreContract = {
       staticCall: promiseResolveTrue,
     },
   ),
-  revoke: Object.assign(
-    // Direct call returns transaction response
-    vi.fn(() => Promise.resolve('transferable_document_store_revoke_tx_hash')),
-    {
-      // Static call returns boolean
-      staticCall: promiseResolveTrue,
-    },
-  ),
+  revoke: transferableDocumentStoreRevokeFxn,
+  'revoke(bytes32)': transferableDocumentStoreRevokeFxn,
   grantRole: Object.assign(
     // Direct call returns transaction response
     vi.fn(() => Promise.resolve('transferable_document_store_grant_role_tx_hash')),
@@ -208,6 +218,14 @@ export const mockTransferableDocumentStoreContract = {
   name: vi.fn(() => Promise.resolve('Test Transferable Document Store')),
 };
 
+const ttDocumentStoreRevokeFxn = Object.assign(
+  // Direct call returns transaction response
+  vi.fn(() => Promise.resolve('tt_document_store_revoke_tx_hash')),
+  {
+    // Static call returns boolean
+    staticCall: promiseResolveFalse,
+  },
+);
 export const mockTTDocumentStoreContract = {
   callStatic: callStaticFxn,
   issue: Object.assign(
@@ -218,14 +236,8 @@ export const mockTTDocumentStoreContract = {
       staticCall: promiseResolveFalse,
     },
   ),
-  revoke: Object.assign(
-    // Direct call returns transaction response
-    vi.fn(() => Promise.resolve('tt_document_store_revoke_tx_hash')),
-    {
-      // Static call returns boolean
-      staticCall: promiseResolveFalse,
-    },
-  ),
+  revoke: ttDocumentStoreRevokeFxn,
+  'revoke(bytes32)': ttDocumentStoreRevokeFxn,
   grantRole: Object.assign(
     // Direct call returns transaction response
     vi.fn(() => Promise.resolve('tt_document_store_grant_role_tx_hash')),
