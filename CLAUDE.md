@@ -150,6 +150,15 @@ Do **not** re-add the removed aliases. User-facing docs also live in `README.md`
   from transfer history as the primary source of truth. Classic ETR shred UI still
   blanks parties (no reason field). **ABI break:** redeploy or upgrade obligation
   registries / escrow impl before validating against live docs.
+- **`rejectTransferHolderObligationRegistry` can legitimately revert right after an
+  `accept`, then work again later.** `ObligationEscrow.accept()` clears `prevHolder`,
+  closing only the *current* holder's own reject window for the transfer that
+  appointed them (`rejectTransferHolder` requires `prevHolder != 0`). It does **not**
+  block future holders: `transferHolder()` unconditionally overwrites `prevHolder` on
+  every handoff, so the next holder — even the same address, reappointed via a fresh
+  transfer — gets a clean window again. Don't read a revert here as "this bill can
+  never have holdership rejected again"; check who the *current* holder is and
+  whether they've been reappointed since the accept.
 - **Selective disclosure keeps the subject `id`.** If a credential was issued *with* a
   `credentialSubject.id`, deriving it (even revealing only other fields) **retains that
   id**. To test/produce a credential with *no* subject id, it must be issued without one.

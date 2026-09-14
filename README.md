@@ -845,6 +845,9 @@ For more information on Token Registry and Title Escrow contracts **version v5**
 | `returnToIssuerObligationRegistry` | Dual role (`beneficiary == holder`) — same as classic ETR `returnToIssuer` |
 | `acceptReturnedObligationRegistry` / `rejectReturnedObligationRegistry` | Issuer (registry accepter / restorer roles) |
 
+> [!NOTE]
+> `rejectTransferHolderObligationRegistry` follows the same "next action only" rule as classic ETR (see [Reject Transfer Functions](#reject-transfer-functions) above) — but for BoE, `accept` is itself one of those actions. It closes only the *current* holder's reject window for the transfer that appointed them; a later `transferHolderObligationRegistry` call re-opens a fresh window for whoever receives it next, regardless of address history.
+
 **Status enums** (from `@trustvc/trustvc`):
 
 | Enum | Values |

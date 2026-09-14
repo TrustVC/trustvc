@@ -63,6 +63,25 @@ describe.each(providers)(
       expect(result).toEqual('reject_transfer_holder_tx_hash');
     });
 
+    it('should throw error when callStatic fails because the holder already accepted', async () => {
+      // ObligationEscrow.accept() clears prevHolder, so a subsequent rejectTransferHolder
+      // reverts with InvalidTransferToZeroAddress — the same error as "no pending transfer".
+      const acceptedError = Object.assign(new Error('InvalidTransferToZeroAddress()'), {
+        errorName: 'InvalidTransferToZeroAddress',
+      });
+      mockObligationEscrowContract.callStatic.rejectTransferHolder.mockRejectedValue(acceptedError);
+      mockObligationEscrowContract.rejectTransferHolder.staticCall.mockRejectedValue(acceptedError);
+
+      await expect(
+        rejectTransferHolderObligationRegistry(
+          { obligationEscrowAddress: MOCK_OBLIGATION_ESCROW_ADDRESS },
+          wallet,
+          { remarks: 'reject' },
+          { chainId: mockChainId, id: 'encryption-id' },
+        ),
+      ).rejects.toThrow('Pre-check (callStatic) for rejectTransferHolder failed');
+    });
+
     it('rejectTransferBeneficiaryObligationRegistry resolves escrow', async () => {
       const result = await rejectTransferBeneficiaryObligationRegistry(
         { obligationRegistryAddress: MOCK_OBLIGATION_REGISTRY_ADDRESS, tokenId: '1' },
