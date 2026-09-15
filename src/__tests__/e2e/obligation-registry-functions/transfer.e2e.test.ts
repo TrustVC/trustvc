@@ -6,6 +6,7 @@ import 'chai-as-promised';
 import {
   acceptObligationRegistry,
   nominateObligationRegistry,
+  rejectTransferHolderObligationRegistry,
   transferBeneficiaryObligationRegistry,
   transferHolderObligationRegistry,
   transferOwnersObligationRegistry,
@@ -190,6 +191,134 @@ obligationE2EProviders.forEach(({ ethersVersion }) => {
           setup.txOptions,
         ),
       ).to.be.rejectedWith(/transferOwners failed/);
+    });
+
+    it('E16: rejectTransferHolder fails once that holder has accepted the appointment', async function () {
+      const tokenId = '16';
+
+      await mintObligationE2EToken(setup, tokenId, setup.holder.address, setup.beneficiary.address);
+
+      await (
+        await transferHolderObligationRegistry(
+          { obligationRegistryAddress: setup.obligationRegistry, tokenId },
+          setup.holder,
+          { holderAddress: setup.other.address, remarks: 'transfer holder' },
+          setup.txOptions,
+        )
+      ).wait();
+
+      await (
+        await acceptObligationRegistry(
+          { obligationRegistryAddress: setup.obligationRegistry, tokenId },
+          setup.other,
+          {},
+          setup.txOptions,
+        )
+      ).wait();
+
+      await expect(
+        rejectTransferHolderObligationRegistry(
+          { obligationRegistryAddress: setup.obligationRegistry, tokenId },
+          setup.other,
+          {},
+          setup.txOptions,
+        ),
+      ).to.be.rejectedWith(/rejectTransferHolder failed/);
+    });
+
+    it('E17: rejectTransferHolder succeeds for a holder appointed after an earlier holder accepted', async function () {
+      const tokenId = '17';
+
+      await mintObligationE2EToken(setup, tokenId, setup.holder.address, setup.beneficiary.address);
+
+      await (
+        await acceptObligationRegistry(
+          { obligationRegistryAddress: setup.obligationRegistry, tokenId },
+          setup.holder,
+          {},
+          setup.txOptions,
+        )
+      ).wait();
+
+      // The accepter transfers holdership onward — a fresh appointment, unrelated to their accept.
+      await (
+        await transferHolderObligationRegistry(
+          { obligationRegistryAddress: setup.obligationRegistry, tokenId },
+          setup.holder,
+          { holderAddress: setup.other.address, remarks: 'transfer holder' },
+          setup.txOptions,
+        )
+      ).wait();
+
+      const tx = await rejectTransferHolderObligationRegistry(
+        { obligationRegistryAddress: setup.obligationRegistry, tokenId },
+        setup.other,
+        { remarks: 'reject holdership' },
+        setup.txOptions,
+      );
+      await tx.wait();
+
+      const escrowAddress = await getObligationE2EEscrowAddress(setup, tokenId);
+      const escrow = createObligationContract(
+        escrowAddress,
+        'ObligationEscrow',
+        ethersVersion,
+        setup.deployer,
+      );
+
+      expect(await escrow.holder()).to.equal(setup.holder.address);
+    });
+
+    it('E18: a holder reappointed via a fresh transfer can reject, even if they are the original accepter', async function () {
+      const tokenId = '18';
+
+      await mintObligationE2EToken(setup, tokenId, setup.holder.address, setup.beneficiary.address);
+
+      await (
+        await acceptObligationRegistry(
+          { obligationRegistryAddress: setup.obligationRegistry, tokenId },
+          setup.holder,
+          {},
+          setup.txOptions,
+        )
+      ).wait();
+
+      await (
+        await transferHolderObligationRegistry(
+          { obligationRegistryAddress: setup.obligationRegistry, tokenId },
+          setup.holder,
+          { holderAddress: setup.other.address, remarks: 'transfer holder' },
+          setup.txOptions,
+        )
+      ).wait();
+
+      // A fresh transfer back to the original accepter — not a reject — re-opens their window.
+      await (
+        await transferHolderObligationRegistry(
+          { obligationRegistryAddress: setup.obligationRegistry, tokenId },
+          setup.other,
+          { holderAddress: setup.holder.address, remarks: 'transfer holder back' },
+          setup.txOptions,
+        )
+      ).wait();
+
+      const tx = await rejectTransferHolderObligationRegistry(
+        { obligationRegistryAddress: setup.obligationRegistry, tokenId },
+        setup.holder,
+        { remarks: 'reject holdership again' },
+        setup.txOptions,
+      );
+      await tx.wait();
+
+      const escrowAddress = await getObligationE2EEscrowAddress(setup, tokenId);
+      const escrow = createObligationContract(
+        escrowAddress,
+        'ObligationEscrow',
+        ethersVersion,
+        setup.deployer,
+      );
+
+      expect(await escrow.holder()).to.equal(setup.other.address);
     });
   });
 });
