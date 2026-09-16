@@ -59,6 +59,13 @@ async function getEscrow(setup: ObligationE2ESetup, tokenId: string, ethersVersi
   return createObligationContract(escrowAddress, 'ObligationEscrow', ethersVersion, setup.deployer);
 }
 
+/** Mints with setup.holder / setup.beneficiary, then has the holder accept — the common
+ * starting point for tests that only care about behaviour once status is Accepted. */
+async function mintAndAccept(setup: ObligationE2ESetup, tokenId: string): Promise<void> {
+  await mintObligationE2EToken(setup, tokenId, setup.holder.address, setup.beneficiary.address);
+  await acceptAsHolder(setup, tokenId, setup.holder);
+}
+
 obligationE2EProviders.forEach(({ ethersVersion }) => {
   describe(`Obligation transfer E2E (ethers ${ethersVersion})`, function () {
     let setup: ObligationE2ESetup;
@@ -80,8 +87,7 @@ obligationE2EProviders.forEach(({ ethersVersion }) => {
     it('E10: transferHolder after accept', async function () {
       const tokenId = '10';
 
-      await mintObligationE2EToken(setup, tokenId, setup.holder.address, setup.beneficiary.address);
-      await acceptAsHolder(setup, tokenId, setup.holder);
+      await mintAndAccept(setup, tokenId);
 
       const tx = await transferHolderObligationRegistry(
         { obligationRegistryAddress: setup.obligationRegistry, tokenId },
@@ -97,8 +103,7 @@ obligationE2EProviders.forEach(({ ethersVersion }) => {
     it('E11: non-holder cannot transferHolder', async function () {
       const tokenId = '11';
 
-      await mintObligationE2EToken(setup, tokenId, setup.holder.address, setup.beneficiary.address);
-      await acceptAsHolder(setup, tokenId, setup.holder);
+      await mintAndAccept(setup, tokenId);
 
       await expect(
         transferHolderObligationRegistry(
@@ -113,8 +118,7 @@ obligationE2EProviders.forEach(({ ethersVersion }) => {
     it('E12: nominate + transferBeneficiary', async function () {
       const tokenId = '12';
 
-      await mintObligationE2EToken(setup, tokenId, setup.holder.address, setup.beneficiary.address);
-      await acceptAsHolder(setup, tokenId, setup.holder);
+      await mintAndAccept(setup, tokenId);
 
       await (
         await nominateObligationRegistry(
