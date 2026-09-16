@@ -6,6 +6,7 @@ import 'chai-as-promised';
 import {
   acceptObligationRegistry,
   nominateObligationRegistry,
+  rejectTransferHolderObligationRegistry,
   transferBeneficiaryObligationRegistry,
   transferHolderObligationRegistry,
   transferOwnersObligationRegistry,
@@ -190,6 +191,39 @@ obligationE2EProviders.forEach(({ ethersVersion }) => {
           setup.txOptions,
         ),
       ).to.be.rejectedWith(/transferOwners failed/);
+    });
+
+    it('E16: rejectTransferHolder fails once that holder has accepted the bill', async function () {
+      const tokenId = '16';
+
+      await mintObligationE2EToken(setup, tokenId, setup.holder.address, setup.beneficiary.address);
+
+      await (
+        await transferHolderObligationRegistry(
+          { obligationRegistryAddress: setup.obligationRegistry, tokenId },
+          setup.holder,
+          { holderAddress: setup.other.address, remarks: 'transfer holder' },
+          setup.txOptions,
+        )
+      ).wait();
+
+      await (
+        await acceptObligationRegistry(
+          { obligationRegistryAddress: setup.obligationRegistry, tokenId },
+          setup.other,
+          {},
+          setup.txOptions,
+        )
+      ).wait();
+
+      await expect(
+        rejectTransferHolderObligationRegistry(
+          { obligationRegistryAddress: setup.obligationRegistry, tokenId },
+          setup.other,
+          {},
+          setup.txOptions,
+        ),
+      ).to.be.rejectedWith(/rejectTransferHolder failed/);
     });
   });
 });
