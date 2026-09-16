@@ -1,3 +1,10 @@
+## [2.15.4](https://github.com/TrustVC/trustvc/compare/v2.15.3...v2.15.4) (2026-09-16)
+
+
+### Bug Fixes
+
+* update [@tradetrust-tt](https://github.com/tradetrust-tt) packages to latest ([#174](https://github.com/TrustVC/trustvc/issues/174)) ([a5167f9](https://github.com/TrustVC/trustvc/commit/a5167f9fa21c22794f53e957a52f4d47776b564c))
+
 ## [2.15.3](https://github.com/TrustVC/trustvc/compare/v2.15.2...v2.15.3) (2026-08-31)
 
 
