@@ -2,13 +2,18 @@ import { ethers as ethersV6 } from 'ethersV6';
 import { ethers } from 'ethers';
 import { CHAIN_ID } from '../../../utils';
 import {
+  acceptObligationRegistry,
   deployObligationRegistry,
+  getObligationEscrowTerminationReason,
+  getObligationRegistryStatus,
   mintObligationRegistry,
+  transferHolderObligationRegistry,
 } from '../../../obligation-registry-functions';
 import type { TransactionOptions } from '../../../obligation-registry-functions/types';
 import { getTitleEscrowAddress } from '../../../core';
 import { getSignersV5, getSignersV6, providerV5, providerV6 } from '../fixtures';
 import { createSampleBoeTxOptions } from '../fixtures/sample-boe-credential';
+import { createObligationContract } from '../utils';
 
 export type ObligationE2EProvider = {
   Provider: typeof providerV5 | typeof providerV6;
@@ -98,4 +103,81 @@ export const getObligationE2EEscrowAddress = async (
   return getTitleEscrowAddress(setup.obligationRegistry, String(tokenId), setup.provider, {
     titleEscrowVersion: 'v5',
   });
+};
+
+export const getObligationE2EEscrow = async (
+  setup: ObligationE2ESetup,
+  tokenId: string | number,
+) => {
+  const escrowAddress = await getObligationE2EEscrowAddress(setup, tokenId);
+  return createObligationContract(
+    escrowAddress,
+    'ObligationEscrow',
+    setup.ethersVersion,
+    setup.deployer,
+  );
+};
+
+export const acceptObligationE2EAsHolder = async (
+  setup: ObligationE2ESetup,
+  tokenId: string | number,
+  holder: ObligationE2ESigner = setup.holder,
+  remarks?: string,
+): Promise<void> => {
+  await (
+    await acceptObligationRegistry(
+      { obligationRegistryAddress: setup.obligationRegistry, tokenId },
+      holder,
+      { remarks },
+      setup.txOptions,
+    )
+  ).wait();
+};
+
+export const transferObligationE2EHolderTo = async (
+  setup: ObligationE2ESetup,
+  tokenId: string | number,
+  from: ObligationE2ESigner,
+  toAddress: string,
+): Promise<void> => {
+  await (
+    await transferHolderObligationRegistry(
+      { obligationRegistryAddress: setup.obligationRegistry, tokenId },
+      from,
+      { holderAddress: toAddress, remarks: 'transfer holder' },
+      setup.txOptions,
+    )
+  ).wait();
+};
+
+// Mints with setup.holder / setup.beneficiary, then has the holder accept — the common
+// starting point for tests that only care about behaviour once status is Accepted.
+export const mintObligationE2ETokenAndAccept = async (
+  setup: ObligationE2ESetup,
+  tokenId: string | number,
+): Promise<void> => {
+  await mintObligationE2EToken(setup, tokenId, setup.holder.address, setup.beneficiary.address);
+  await acceptObligationE2EAsHolder(setup, tokenId, setup.holder);
+};
+
+export const getObligationE2EStatus = async (
+  setup: ObligationE2ESetup,
+  tokenId: string | number,
+) => {
+  return getObligationRegistryStatus(
+    { obligationRegistryAddress: setup.obligationRegistry, tokenId },
+    setup.deployer,
+    { tokenId },
+  );
+};
+
+export const getObligationE2ETerminationReason = async (
+  setup: ObligationE2ESetup,
+  tokenId: string | number,
+) => {
+  return getObligationEscrowTerminationReason(
+    { obligationRegistryAddress: setup.obligationRegistry, tokenId },
+    setup.deployer,
+    { tokenId },
+  );
 };

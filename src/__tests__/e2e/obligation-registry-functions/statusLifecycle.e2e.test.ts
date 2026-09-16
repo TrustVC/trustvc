@@ -5,19 +5,18 @@ import {
   acceptObligationRegistry,
   rejectObligationRegistry,
   dischargeObligationRegistry,
-  getObligationRegistryStatus,
-  getObligationEscrowTerminationReason,
   isObligationRegistryRegistered,
   mintObligationRegistry,
   ObligationDocumentStatus,
   ObligationEscrowTerminationReason,
 } from '../../../obligation-registry-functions';
-import { createObligationContract } from '../utils';
 import {
   buildObligationE2ESetup,
   createObligationE2ESigners,
   deployObligationE2ERegistry,
-  getObligationE2EEscrowAddress,
+  getObligationE2EEscrow,
+  getObligationE2EStatus,
+  getObligationE2ETerminationReason,
   mintObligationE2EToken,
   obligationE2EProviders,
   type ObligationE2ESetup,
@@ -73,21 +72,13 @@ obligationE2EProviders.forEach(({ ethersVersion }) => {
         'issued',
       );
 
-      const status = await getObligationRegistryStatus(
-        { obligationRegistryAddress: setup.obligationRegistry, tokenId },
-        setup.deployer,
-        { tokenId },
-      );
+      const status = await getObligationE2EStatus(setup, tokenId);
       const registered = await isObligationRegistryRegistered(
         { obligationRegistryAddress: setup.obligationRegistry, tokenId },
         setup.deployer,
         { tokenId },
       );
-      const reason = await getObligationEscrowTerminationReason(
-        { obligationRegistryAddress: setup.obligationRegistry, tokenId },
-        setup.deployer,
-        { tokenId },
-      );
+      const reason = await getObligationE2ETerminationReason(setup, tokenId);
 
       assert.equal(status, ObligationDocumentStatus.Issued);
       assert.equal(registered, true);
@@ -143,11 +134,7 @@ obligationE2EProviders.forEach(({ ethersVersion }) => {
         )
       ).wait();
 
-      const status = await getObligationRegistryStatus(
-        { obligationRegistryAddress: setup.obligationRegistry, tokenId },
-        setup.deployer,
-        { tokenId },
-      );
+      const status = await getObligationE2EStatus(setup, tokenId);
 
       assert.equal(status, ObligationDocumentStatus.Accepted);
     });
@@ -182,23 +169,9 @@ obligationE2EProviders.forEach(({ ethersVersion }) => {
         )
       ).wait();
 
-      const status = await getObligationRegistryStatus(
-        { obligationRegistryAddress: setup.obligationRegistry, tokenId },
-        setup.deployer,
-        { tokenId },
-      );
-      const reason = await getObligationEscrowTerminationReason(
-        { obligationRegistryAddress: setup.obligationRegistry, tokenId },
-        setup.deployer,
-        { tokenId },
-      );
-      const escrowAddress = await getObligationE2EEscrowAddress(setup, tokenId);
-      const escrow = createObligationContract(
-        escrowAddress,
-        'ObligationEscrow',
-        ethersVersion,
-        setup.deployer,
-      );
+      const status = await getObligationE2EStatus(setup, tokenId);
+      const reason = await getObligationE2ETerminationReason(setup, tokenId);
+      const escrow = await getObligationE2EEscrow(setup, tokenId);
 
       assert.equal(status, ObligationDocumentStatus.Rejected);
       assert.equal(reason, ObligationEscrowTerminationReason.Rejected);
@@ -227,16 +200,8 @@ obligationE2EProviders.forEach(({ ethersVersion }) => {
         )
       ).wait();
 
-      const status = await getObligationRegistryStatus(
-        { obligationRegistryAddress: setup.obligationRegistry, tokenId },
-        setup.deployer,
-        { tokenId },
-      );
-      const reason = await getObligationEscrowTerminationReason(
-        { obligationRegistryAddress: setup.obligationRegistry, tokenId },
-        setup.deployer,
-        { tokenId },
-      );
+      const status = await getObligationE2EStatus(setup, tokenId);
+      const reason = await getObligationE2ETerminationReason(setup, tokenId);
 
       assert.equal(status, ObligationDocumentStatus.Discharged);
       assert.equal(reason, ObligationEscrowTerminationReason.Discharged);
@@ -274,11 +239,7 @@ obligationE2EProviders.forEach(({ ethersVersion }) => {
         )
       ).wait();
 
-      const status = await getObligationRegistryStatus(
-        { obligationRegistryAddress: setup.obligationRegistry, tokenId },
-        setup.deployer,
-        { tokenId },
-      );
+      const status = await getObligationE2EStatus(setup, tokenId);
 
       assert.equal(status, ObligationDocumentStatus.Issued);
     });
