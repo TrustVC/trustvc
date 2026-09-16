@@ -1,3 +1,25 @@
+## [2.16.0-beta.9](https://github.com/TrustVC/trustvc/compare/v2.16.0-beta.8...v2.16.0-beta.9) (2026-09-16)
+
+
+### Bug Fixes
+
+* merge conflict ([#172](https://github.com/TrustVC/trustvc/issues/172)) ([7ceaa82](https://github.com/TrustVC/trustvc/commit/7ceaa824d658fb77cfe6e607b2ab7b6c66116f88)), closes [#170](https://github.com/TrustVC/trustvc/issues/170) [#170](https://github.com/TrustVC/trustvc/issues/170)
+* update [@tradetrust-tt](https://github.com/tradetrust-tt) packages to latest ([#174](https://github.com/TrustVC/trustvc/issues/174)) ([a5167f9](https://github.com/TrustVC/trustvc/commit/a5167f9fa21c22794f53e957a52f4d47776b564c))
+* update document store revoke handling to support ABI overloads ([#170](https://github.com/TrustVC/trustvc/issues/170)) ([7b531e4](https://github.com/TrustVC/trustvc/commit/7b531e417f3f62de5cd4da63578d1bac82cba7b4))
+
+
+### Miscellaneous Chores
+
+* **release:** 2.15.3 [skip ci] ([6399389](https://github.com/TrustVC/trustvc/commit/63993892822850434954ddac295d819f4ea1fcc1)), closes [#170](https://github.com/TrustVC/trustvc/issues/170)
+* **release:** 2.15.4 [skip ci] ([2500796](https://github.com/TrustVC/trustvc/commit/25007968939db4c40231fcfea8b426e33892e6d9)), closes [#174](https://github.com/TrustVC/trustvc/issues/174)
+
+## [2.15.4](https://github.com/TrustVC/trustvc/compare/v2.15.3...v2.15.4) (2026-09-16)
+
+
+### Bug Fixes
+
+* update [@tradetrust-tt](https://github.com/tradetrust-tt) packages to latest ([#174](https://github.com/TrustVC/trustvc/issues/174)) ([a5167f9](https://github.com/TrustVC/trustvc/commit/a5167f9fa21c22794f53e957a52f4d47776b564c))
+
 ## [2.16.0-beta.8](https://github.com/TrustVC/trustvc/compare/v2.16.0-beta.7...v2.16.0-beta.8) (2026-08-28)
 
 

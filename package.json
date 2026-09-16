@@ -1,6 +1,6 @@
 {
   "name": "@trustvc/trustvc",
-  "version": "2.16.0-beta.8",
+  "version": "2.16.0-beta.9",
   "description": "TrustVC library",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
@@ -122,13 +122,13 @@
   "dependencies": {
     "@aws-sdk/client-kms": "^3.940.0",
     "@noble/curves": "^1.9.1",
-    "@tradetrust-tt/dnsprove": "^2.18.0",
+    "@tradetrust-tt/dnsprove": "^2.21.1",
     "@tradetrust-tt/ethers-aws-kms-signer": "^2.1.4",
     "@tradetrust-tt/token-registry": "^5.6.0-beta.5",
     "@tradetrust-tt/token-registry-v4": "npm:@tradetrust-tt/token-registry@^4.16.0",
     "@tradetrust-tt/token-registry-v5": "npm:@tradetrust-tt/token-registry@^5.6.0-beta.5",
     "@tradetrust-tt/tradetrust": "^6.10.4",
-    "@tradetrust-tt/tt-verify": "^9.7.5",
+    "@tradetrust-tt/tt-verify": "^9.7.6",
     "@trustvc/document-store": "^1.0.3",
     "@trustvc/eip7702": "^1.1.0-beta.2",
     "@trustvc/w3c": "^2.4.2",
