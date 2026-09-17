@@ -1,3 +1,10 @@
+## [2.16.0-beta.10](https://github.com/TrustVC/trustvc/compare/v2.16.0-beta.9...v2.16.0-beta.10) (2026-09-17)
+
+
+### Features
+
+* update package ([#175](https://github.com/TrustVC/trustvc/issues/175)) ([2e73248](https://github.com/TrustVC/trustvc/commit/2e73248ccf87af36a913b6924f406d082388dd79))
+
 ## [2.16.0-beta.9](https://github.com/TrustVC/trustvc/compare/v2.16.0-beta.8...v2.16.0-beta.9) (2026-09-16)
 
 
