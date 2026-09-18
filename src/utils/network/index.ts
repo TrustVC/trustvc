@@ -11,10 +11,11 @@ export const networks = [
   'stability',
   'astron',
   'astrontestnet',
+  'zetrixL2Testnet',
 ] as const;
 
 export type networkName = (typeof networks)[number];
 
 export type networkType = 'production' | 'test' | 'development';
 
-export type networkCurrency = 'ETH' | 'MATIC' | 'POL' | 'XDC' | 'FREE' | 'ASTRON';
+export type networkCurrency = 'ETH' | 'MATIC' | 'POL' | 'XDC' | 'FREE' | 'ASTRON' | 'ZETRIX2';
