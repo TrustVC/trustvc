@@ -7,12 +7,12 @@ import { getEthersContractFromProvider } from '../../utils/ethers';
 import { isZeroAddress, sortLogChain } from '../endorsement-chain/helpers';
 import { TokenTransferEvent, TokenTransferEventType, TypedEvent } from '../endorsement-chain/types';
 import { Provider } from '@ethersproject/abstract-provider';
-import { resolveContractCreationBlock } from './fetchEscrowTransfer';
 import {
   getLatestBlockWithRetry,
   isLogsRetryableError,
   resolveFilterTopics,
   scanForMintEvent,
+  warmProviderNetwork,
 } from './fetchLogsChunked';
 
 export const fetchTokenTransfers = async (
@@ -42,8 +42,8 @@ export const fetchTokenTransfers = async (
 
 /**
  * Fetches transfer logs from token registry.
- * Ladder: unranged 0→latest (enterprise) → on range/rate error, chunked scan at 10k
- * (paid) → free-tier fingerprint jumps to 10-block windows.
+ * One topic-scoped queryFilter 0→latest (enterprise); on range/rate error, mint-seeking
+ * backward chunks from tip (10k → 10). Single-filter path — no parallel doomed burst.
  * @param {Provider | ethersV6.Provider} provider - Ethers provider
  * @param {ethersV6.Contract | ethers.Contract} tokenRegistry - Token Registry contract
  * @param {string} tokenRegistryAddress - Token Registry contract address
@@ -79,8 +79,9 @@ async function fetchLogsChunked(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   topics: any[],
 ): Promise<Event[] | ethersV6.EventLog[]> {
+  await warmProviderNetwork(provider);
   const latestBlock = await getLatestBlockWithRetry(provider);
-  const scanFloor = await resolveContractCreationBlock(provider, tokenRegistryAddress, latestBlock);
+  // Floor 0 — mint is near tip for live titles; avoid eth_getCode binary search on the registry.
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const isMintLog = (log: any): boolean => {
@@ -93,7 +94,7 @@ async function fetchLogsChunked(
     }
   };
 
-  const logs = await scanForMintEvent(provider, tokenRegistryAddress, scanFloor, latestBlock, {
+  const logs = await scanForMintEvent(provider, tokenRegistryAddress, 0, latestBlock, {
     isMintLog,
     notFoundOnFailureMessage:
       'Unable to locate mint Transfer event; scan stopped after an RPC failure; refusing incomplete endorsement chain',

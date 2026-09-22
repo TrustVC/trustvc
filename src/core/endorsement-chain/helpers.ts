@@ -3,13 +3,29 @@ import { Dictionary, groupBy } from 'lodash';
 import { TransferBaseEvent, TransferEventType } from '../endorsement-chain/types';
 import { Provider } from '@ethersproject/abstract-provider';
 
+// Deduplicate getBlock RPCs when several events share a block.
+const blockTimestampCache = new WeakMap<object, Map<number, Promise<number>>>();
+
 export const fetchEventTime = async (
   blockNumber: number,
   provider: Provider | ethersV6.Provider,
 ): Promise<number> => {
-  const msecToSec = 1000;
-  const eventTimestamp = (await provider.getBlock(blockNumber))!.timestamp * msecToSec;
-  return eventTimestamp;
+  const cacheKey = provider as object;
+  let byBlock = blockTimestampCache.get(cacheKey);
+  if (!byBlock) {
+    byBlock = new Map();
+    blockTimestampCache.set(cacheKey, byBlock);
+  }
+
+  let pending = byBlock.get(blockNumber);
+  if (!pending) {
+    const msecToSec = 1000;
+    pending = Promise.resolve(provider.getBlock(blockNumber)).then(
+      (block) => block!.timestamp * msecToSec,
+    );
+    byBlock.set(blockNumber, pending);
+  }
+  return pending;
 };
 
 /*

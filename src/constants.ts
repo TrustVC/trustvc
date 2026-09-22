@@ -51,3 +51,5 @@ export const FREE_TIER_MAX_CHUNK_SIZE = 10;
 export const MIN_CHUNK_SIZE = 1;
 export const RATE_LIMIT_MAX_RETRIES = 3;
 export const RATE_LIMIT_BASE_DELAY_MS = 500;
+/** Max in-flight eth_getLogs during parallel forward scans (paid 10k-block tier). */
+export const GET_LOGS_MAX_CONCURRENCY = 10;
