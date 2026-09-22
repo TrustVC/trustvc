@@ -418,7 +418,7 @@ const fetchEscrowLogs = async (
     titleEscrowAddress,
     latestBlock,
   );
-  const fromBlock = scanFloor > 0 ? scanFloor : 0;
+  const fromBlock = Math.max(scanFloor, 0);
   const span = latestBlock - fromBlock;
 
   // Temporary debug for endorsement-chain range ladder — remove once verified.

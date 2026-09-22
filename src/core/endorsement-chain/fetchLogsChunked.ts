@@ -119,7 +119,7 @@ interface BlockWindow {
  */
 class GetLogsRateGate {
   private inFlight = 0;
-  private waiters: Array<() => void> = [];
+  private readonly waiters: Array<() => void> = [];
   private concurrencyCap = GET_LOGS_MAX_CONCURRENCY;
   private cooldownUntil = 0;
 
@@ -635,6 +635,136 @@ export interface ScanForMintEventOptions {
   topics?: any[];
 }
 
+function rethrowMintScanFailure(err: unknown, notFoundOnFailureMessage: string): never {
+  if (RATE_LIMIT_ERROR_RE.test(errorMessage(err))) {
+    throw new Error(notFoundOnFailureMessage);
+  }
+  throw err;
+}
+
+interface MintScanSharedArgs {
+  provider: Provider | ethersV6.Provider;
+  address: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  isMintLog: (log: any) => boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  topics: any[] | undefined;
+  notFoundOnFailureMessage: string;
+  notFoundMessage: string;
+}
+
+async function fetchMintTipWindow(
+  shared: MintScanSharedArgs,
+  tipStart: number,
+  latestBlock: number,
+  state: AdaptiveScanState,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<any[]> {
+  try {
+    return await fetchWindowAdaptive(
+      shared.provider,
+      shared.address,
+      tipStart,
+      latestBlock,
+      state,
+      shared.topics,
+      false,
+    );
+  } catch (err) {
+    rethrowMintScanFailure(err, shared.notFoundOnFailureMessage);
+  }
+}
+
+async function continueMintScanFreeTier(
+  shared: MintScanSharedArgs,
+  belowTip: number,
+  effectiveFloor: number,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  tipLogs: any[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<any[]> {
+  // Continue below the tip window already fetched — do not re-scan tip.
+  const result = await scanLogsBackward(
+    shared.provider,
+    shared.address,
+    belowTip,
+    effectiveFloor,
+    shared.isMintLog,
+    shared.topics,
+  );
+  if (!result.foundMint && result.truncated) {
+    throw new Error(shared.notFoundOnFailureMessage);
+  }
+  if (!result.foundMint) {
+    throw new Error(shared.notFoundMessage);
+  }
+  return [...result.logs, ...tipLogs];
+}
+
+async function continueMintScanPaidParallel(
+  shared: MintScanSharedArgs,
+  effectiveFloor: number,
+  belowTip: number,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  tipLogs: any[],
+  state: AdaptiveScanState,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<any[]> {
+  const olderWindows = buildWindows(effectiveFloor, belowTip, state.chunkSize).reverse();
+  logGetLogs(
+    'mint-parallel',
+    effectiveFloor,
+    belowTip,
+    `${olderWindows.length} window(s), concurrency≤${GET_LOGS_MAX_CONCURRENCY}`,
+  );
+
+  // Groups newer→older (tip first). Flatten reversed at the end for oldest→newest.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const newerFirstGroups: any[][] = [tipLogs];
+
+  for (let i = 0; i < olderWindows.length; i += GET_LOGS_MAX_CONCURRENCY) {
+    const batch = olderWindows.slice(i, i + GET_LOGS_MAX_CONCURRENCY);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let batchLogs: any[][];
+    try {
+      batchLogs = await mapPool(batch, GET_LOGS_MAX_CONCURRENCY, async (window) =>
+        fetchWindowAdaptive(
+          shared.provider,
+          shared.address,
+          window.fromBlock,
+          window.toBlock,
+          { chunkSize: state.chunkSize, maxChunkSize: state.maxChunkSize },
+          shared.topics,
+          true,
+        ),
+      );
+    } catch (err) {
+      rethrowMintScanFailure(err, shared.notFoundOnFailureMessage);
+    }
+
+    // batch is newest→oldest within this page; inspect in that order so we stop at mint.
+    for (let j = 0; j < batchLogs.length; j++) {
+      const chunkLogs = batchLogs[j];
+      const mintStart = findMintSliceStart(chunkLogs, shared.isMintLog);
+      if (mintStart < 0) {
+        newerFirstGroups.push(chunkLogs);
+        continue;
+      }
+      const fromMint = chunkLogs.slice(mintStart);
+      const newerOldestFirst = newerFirstGroups.toReversed().flat();
+      logGetLogs(
+        'mint-found',
+        batch[j].fromBlock,
+        batch[j].toBlock,
+        `parallel batch — ${fromMint.length + newerOldestFirst.length} log(s)`,
+      );
+      return [...fromMint, ...newerOldestFirst];
+    }
+  }
+
+  throw new Error(shared.notFoundMessage);
+}
+
 /**
  * Scan backward for mint; throw if truncated by failure or genuinely missing.
  * Paid tier: walks tip→floor in parallel batches (GET_LOGS_MAX_CONCURRENCY) so old
@@ -656,6 +786,14 @@ export async function scanForMintEvent(
 ): Promise<any[]> {
   const { isMintLog, notFoundOnFailureMessage, notFoundMessage, topics } = options;
   const effectiveFloor = Math.max(0, scanFloor);
+  const shared: MintScanSharedArgs = {
+    provider,
+    address,
+    isMintLog,
+    topics,
+    notFoundOnFailureMessage,
+    notFoundMessage,
+  };
 
   await warmProviderNetwork(provider);
 
@@ -666,114 +804,19 @@ export async function scanForMintEvent(
 
   // Learn tier on the tip window (sequential). Free-tier → fully sequential backward.
   const tipStart = Math.max(latestBlock - state.chunkSize + 1, effectiveFloor);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let tipLogs: any[];
-  try {
-    tipLogs = await fetchWindowAdaptive(
-      provider,
-      address,
-      tipStart,
-      latestBlock,
-      state,
-      topics,
-      false,
-    );
-  } catch (err) {
-    if (RATE_LIMIT_ERROR_RE.test(errorMessage(err))) {
-      throw new Error(notFoundOnFailureMessage);
-    }
-    throw err;
-  }
-
-  if (isFreeTierScan(state)) {
-    const tipMint = findMintSliceStart(tipLogs, isMintLog);
-    if (tipMint >= 0) {
-      return tipLogs.slice(tipMint);
-    }
-    if (tipStart <= effectiveFloor) {
-      throw new Error(notFoundMessage);
-    }
-    // Continue below the tip window already fetched — do not re-scan tip.
-    const result = await scanLogsBackward(
-      provider,
-      address,
-      tipStart - 1,
-      effectiveFloor,
-      isMintLog,
-      topics,
-    );
-    if (!result.foundMint && result.truncated) {
-      throw new Error(notFoundOnFailureMessage);
-    }
-    if (!result.foundMint) {
-      throw new Error(notFoundMessage);
-    }
-    return [...result.logs, ...tipLogs];
-  }
+  const tipLogs = await fetchMintTipWindow(shared, tipStart, latestBlock, state);
 
   const tipMint = findMintSliceStart(tipLogs, isMintLog);
   if (tipMint >= 0) {
     return tipLogs.slice(tipMint);
   }
-
-  // Paid: remaining windows tip→floor, fetched in parallel batches (newest batch first).
   if (tipStart <= effectiveFloor) {
     throw new Error(notFoundMessage);
   }
 
-  const olderWindows = buildWindows(effectiveFloor, tipStart - 1, state.chunkSize).reverse();
-  logGetLogs(
-    'mint-parallel',
-    effectiveFloor,
-    tipStart - 1,
-    `${olderWindows.length} window(s), concurrency≤${GET_LOGS_MAX_CONCURRENCY}`,
-  );
-
-  // Groups newer→older (tip first). Flatten reversed at the end for oldest→newest.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const newerFirstGroups: any[][] = [tipLogs];
-
-  for (let i = 0; i < olderWindows.length; i += GET_LOGS_MAX_CONCURRENCY) {
-    const batch = olderWindows.slice(i, i + GET_LOGS_MAX_CONCURRENCY);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let batchLogs: any[][];
-    try {
-      batchLogs = await mapPool(batch, GET_LOGS_MAX_CONCURRENCY, async (window) =>
-        fetchWindowAdaptive(
-          provider,
-          address,
-          window.fromBlock,
-          window.toBlock,
-          { chunkSize: state.chunkSize, maxChunkSize: state.maxChunkSize },
-          topics,
-          true,
-        ),
-      );
-    } catch (err) {
-      if (RATE_LIMIT_ERROR_RE.test(errorMessage(err))) {
-        throw new Error(notFoundOnFailureMessage);
-      }
-      throw err;
-    }
-
-    // batch is newest→oldest within this page; inspect in that order so we stop at mint.
-    for (let j = 0; j < batchLogs.length; j++) {
-      const chunkLogs = batchLogs[j];
-      const mintStart = findMintSliceStart(chunkLogs, isMintLog);
-      if (mintStart >= 0) {
-        const fromMint = chunkLogs.slice(mintStart);
-        const newerOldestFirst = newerFirstGroups.toReversed().flat();
-        logGetLogs(
-          'mint-found',
-          batch[j].fromBlock,
-          batch[j].toBlock,
-          `parallel batch — ${fromMint.length + newerOldestFirst.length} log(s)`,
-        );
-        return [...fromMint, ...newerOldestFirst];
-      }
-      newerFirstGroups.push(chunkLogs);
-    }
+  if (isFreeTierScan(state)) {
+    return continueMintScanFreeTier(shared, tipStart - 1, effectiveFloor, tipLogs);
   }
 
-  throw new Error(notFoundMessage);
+  return continueMintScanPaidParallel(shared, effectiveFloor, tipStart - 1, tipLogs, state);
 }
