@@ -137,12 +137,6 @@ class GetLogsRateGate {
       if (RATE_LIMIT_ERROR_RE.test(errorMessage(err))) {
         this.concurrencyCap = 1;
         this.cooldownUntil = Date.now() + RATE_LIMIT_BASE_DELAY_MS;
-        logGetLogs(
-          'rate-gate',
-          0,
-          0,
-          `429 → concurrency capped at 1 for ${RATE_LIMIT_BASE_DELAY_MS}ms`,
-        );
       }
       throw err;
     } finally {
@@ -179,11 +173,17 @@ class GetLogsRateGate {
 
 const getLogsGate = new GetLogsRateGate();
 
-// Ladder: free-tier → hard jump to 10; result overflow / generic → /4 (or snap to 10k).
+// Ladder: free-tier → hard jump to 10; already ≤10 → /4 (floor MIN); overflow / generic → /4.
 function shrinkForRangeLimit(state: AdaptiveScanState, message: string): void {
   if (FREE_TIER_BLOCK_RANGE_RE.test(message)) {
-    state.maxChunkSize = FREE_TIER_MAX_CHUNK_SIZE;
-    state.chunkSize = FREE_TIER_MAX_CHUNK_SIZE;
+    if (state.chunkSize > FREE_TIER_MAX_CHUNK_SIZE) {
+      state.maxChunkSize = FREE_TIER_MAX_CHUNK_SIZE;
+      state.chunkSize = FREE_TIER_MAX_CHUNK_SIZE;
+      return;
+    }
+    // Already at free-tier width — further reduce so retries make progress.
+    state.chunkSize = Math.max(Math.floor(state.chunkSize / 4), MIN_CHUNK_SIZE);
+    state.maxChunkSize = Math.min(state.maxChunkSize, state.chunkSize);
     return;
   }
 
@@ -204,17 +204,6 @@ function shrinkForRangeLimit(state: AdaptiveScanState, message: string): void {
 
 function isFreeTierScan(state: AdaptiveScanState): boolean {
   return state.chunkSize <= FREE_TIER_MAX_CHUNK_SIZE;
-}
-
-function rangeSpan(fromBlock: number, toBlock: number): number {
-  return toBlock - fromBlock + 1;
-}
-
-function logGetLogs(phase: string, fromBlock: number, toBlock: number, detail: string): void {
-  // Temporary debug for endorsement-chain range ladder — remove once verified.
-  console.log(
-    `[getLogs] ${phase} blocks ${fromBlock}→${toBlock} (span ${rangeSpan(fromBlock, toBlock)}): ${detail}`,
-  );
 }
 
 function buildWindows(fromBlock: number, toBlock: number, chunkSize: number): BlockWindow[] {
@@ -266,31 +255,21 @@ async function getLogsRange(
 ): Promise<any[]> {
   const runAttempt = async () => {
     for (let attempt = 0; ; attempt++) {
-      logGetLogs(
-        'trying',
-        fromBlock,
-        toBlock,
-        `chunkSize=${state.chunkSize} attempt=${attempt + 1}`,
-      );
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const logs = (await provider.getLogs({ address, fromBlock, toBlock, topics })) as any[];
-        logGetLogs('ok', fromBlock, toBlock, `${logs.length} log(s)`);
         return logs;
       } catch (err) {
         const message = errorMessage(err);
         if (!RATE_LIMIT_ERROR_RE.test(message)) {
-          logGetLogs('failed', fromBlock, toBlock, message);
           throw err;
         }
 
         // Free-tier 10-block windows: retrying a 429 cannot finish a deep chain.
         if (isFreeTierScan(state) || attempt >= RATE_LIMIT_MAX_RETRIES) {
-          logGetLogs('rate-limit-stop', fromBlock, toBlock, message);
           throw err;
         }
         const delayMs = RATE_LIMIT_BASE_DELAY_MS * 2 ** attempt;
-        logGetLogs('rate-limit-retry', fromBlock, toBlock, `wait ${delayMs}ms then retry`);
         await sleep(delayMs);
       }
     }
@@ -349,15 +328,8 @@ async function fetchWindowAdaptive(
     } catch (err) {
       const message = errorMessage(err);
       if (RANGE_TOO_LARGE_ERROR_RE.test(message) && local.chunkSize > MIN_CHUNK_SIZE) {
-        const prev = local.chunkSize;
         shrinkForRangeLimit(local, message);
         shrinkForRangeLimit(state, message);
-        logGetLogs(
-          'last-range',
-          cursor,
-          chunkEnd,
-          `too large → shrink chunk ${prev}→${local.chunkSize} (${message})`,
-        );
         continue;
       }
       throw err;
@@ -432,7 +404,6 @@ export const scanLogsBackward = async (
         const start = findMintSliceStart(chunkLogs, isMintLog);
         if (start >= 0) {
           chunkGroups.push(chunkLogs.slice(start));
-          logGetLogs('backward-done', chunkStart, cursor, 'mint found — stop');
           return { logs: flattenOldestFirst(chunkGroups), foundMint: true, truncated: false };
         }
       }
@@ -442,21 +413,13 @@ export const scanLogsBackward = async (
       const message = errorMessage(err);
 
       if (RANGE_TOO_LARGE_ERROR_RE.test(message) && state.chunkSize > MIN_CHUNK_SIZE) {
-        const prev = state.chunkSize;
         shrinkForRangeLimit(state, message);
-        logGetLogs(
-          'last-range',
-          chunkStart,
-          cursor,
-          `too large → shrink chunk ${prev}→${state.chunkSize} (${message})`,
-        );
         continue; // retry same cursor with smaller window
       }
 
       // Rate limit: paid path already exhausted getLogsRange retries; free-tier never retries.
       // Either way, stop — do not outer-loop retry the same 429.
       if (RATE_LIMIT_ERROR_RE.test(message)) {
-        logGetLogs('backward-stop', chunkStart, cursor, `truncated by rate limit: ${message}`);
         return { logs: flattenOldestFirst(chunkGroups), foundMint: false, truncated: true };
       }
 
@@ -464,7 +427,6 @@ export const scanLogsBackward = async (
     }
   }
 
-  logGetLogs('backward-done', effectiveFloor, fromBlock, 'reached floor — mint not found');
   return {
     logs: flattenOldestFirst(chunkGroups),
     foundMint: false,
@@ -509,12 +471,6 @@ export const scanLogsForward = async (
   // Probe already proved paid 10k cap — skip sequential learn, parallelize every window.
   if (options?.assumePaidTier) {
     const windows = buildWindows(fromBlock, toBlock, state.chunkSize);
-    logGetLogs(
-      'forward-parallel',
-      fromBlock,
-      toBlock,
-      `${windows.length} window(s), concurrency≤${GET_LOGS_MAX_CONCURRENCY} (paid assumed)`,
-    );
     const chunkGroups = await mapPool(windows, GET_LOGS_MAX_CONCURRENCY, async (window) =>
       fetchWindowAdaptive(
         provider,
@@ -527,7 +483,6 @@ export const scanLogsForward = async (
       ),
     );
     const logs = chunkGroups.flat();
-    logGetLogs('forward-done', fromBlock, toBlock, `${logs.length} total log(s) (parallel paid)`);
     return logs;
   }
 
@@ -544,7 +499,6 @@ export const scanLogsForward = async (
   );
 
   if (firstEnd >= toBlock) {
-    logGetLogs('forward-done', fromBlock, toBlock, `${firstLogs.length} total log(s)`);
     return firstLogs;
   }
 
@@ -562,22 +516,10 @@ export const scanLogsForward = async (
       false,
     );
     const logs = [...firstLogs, ...rest];
-    logGetLogs(
-      'forward-done',
-      fromBlock,
-      toBlock,
-      `${logs.length} total log(s) (sequential free-tier)`,
-    );
     return logs;
   }
 
   const windows = buildWindows(remainingFrom, toBlock, state.chunkSize);
-  logGetLogs(
-    'forward-parallel',
-    remainingFrom,
-    toBlock,
-    `${windows.length} window(s), concurrency≤${GET_LOGS_MAX_CONCURRENCY}`,
-  );
 
   const chunkGroups = await mapPool(windows, GET_LOGS_MAX_CONCURRENCY, async (window) =>
     fetchWindowAdaptive(
@@ -593,7 +535,6 @@ export const scanLogsForward = async (
   );
 
   const logs = [...firstLogs, ...chunkGroups.flat()];
-  logGetLogs('forward-done', fromBlock, toBlock, `${logs.length} total log(s) (parallel paid)`);
   return logs;
 };
 
@@ -615,14 +556,7 @@ export async function probeLogsRange(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   topics?: any[],
 ): Promise<void> {
-  logGetLogs('probe', fromBlock, toBlock, 'enterprise/full-span check');
-  try {
-    await provider.getLogs({ address, fromBlock, toBlock, topics });
-    logGetLogs('probe-ok', fromBlock, toBlock, 'full span allowed');
-  } catch (err) {
-    logGetLogs('probe-failed', fromBlock, toBlock, errorMessage(err));
-    throw err;
-  }
+  await provider.getLogs({ address, fromBlock, toBlock, topics });
 }
 
 export interface ScanForMintEventOptions {
@@ -711,12 +645,6 @@ async function continueMintScanPaidParallel(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<any[]> {
   const olderWindows = buildWindows(effectiveFloor, belowTip, state.chunkSize).reverse();
-  logGetLogs(
-    'mint-parallel',
-    effectiveFloor,
-    belowTip,
-    `${olderWindows.length} window(s), concurrency≤${GET_LOGS_MAX_CONCURRENCY}`,
-  );
 
   // Groups newer→older (tip first). Flatten reversed at the end for oldest→newest.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -752,12 +680,6 @@ async function continueMintScanPaidParallel(
       }
       const fromMint = chunkLogs.slice(mintStart);
       const newerOldestFirst = newerFirstGroups.toReversed().flat();
-      logGetLogs(
-        'mint-found',
-        batch[j].fromBlock,
-        batch[j].toBlock,
-        `parallel batch — ${fromMint.length + newerOldestFirst.length} log(s)`,
-      );
       return [...fromMint, ...newerOldestFirst];
     }
   }

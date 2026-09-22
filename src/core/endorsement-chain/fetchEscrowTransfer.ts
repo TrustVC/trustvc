@@ -71,9 +71,6 @@ export const fetchEscrowTransfersV4 = async (
   }
 
   const span = latestBlock - fromBlock;
-  console.log(
-    `[getLogs] v4-plan floor=${fromBlock} latest=${latestBlock} span=${span} (limit ${INITIAL_CHUNK_SIZE})`,
-  );
 
   // Fits in one paid window — ranged filters, no probe/chunking.
   if (span <= INITIAL_CHUNK_SIZE) {
@@ -87,7 +84,6 @@ export const fetchEscrowTransfersV4 = async (
   // Large span: one probe. Enterprise → ranged filters; paid → one shared forward-parallel scan.
   try {
     await probeLogsRange(provider, address, fromBlock, latestBlock);
-    console.log(`[getLogs] v4-path probe-ok → filters ${fromBlock}→${latestBlock}`);
     const [holderChangeLogs, ownerChangeLogs] = await Promise.all([
       fetchHolderTransfers(titleEscrowContract, fromBlock, latestBlock),
       fetchOwnerTransfers(titleEscrowContract, fromBlock, latestBlock),
@@ -95,16 +91,24 @@ export const fetchEscrowTransfersV4 = async (
     return [...holderChangeLogs, ...ownerChangeLogs];
   } catch (err) {
     if (!isLogsRetryableError(err)) throw err;
-    console.log(`[getLogs] v4-path probe failed → shared forward-chunk`);
   }
 
   // One address-wide parallel scan (not two topic scans) — owner+holder parsed from the same logs.
-  const rawLogs =
-    fromBlock > 0
-      ? await scanLogsForward(provider, address, fromBlock, latestBlock, undefined, {
-          assumePaidTier: true,
-        })
-      : (await scanLogsBackward(provider, address, latestBlock, 0)).logs;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let rawLogs: any[];
+  if (fromBlock > 0) {
+    rawLogs = await scanLogsForward(provider, address, fromBlock, latestBlock, undefined, {
+      assumePaidTier: true,
+    });
+  } else {
+    const result = await scanLogsBackward(provider, address, latestBlock, 0);
+    if (result.truncated) {
+      throw new Error(
+        'Unable to retrieve Title Escrow events; scan stopped after an RPC failure; refusing incomplete endorsement chain',
+      );
+    }
+    rawLogs = result.logs;
+  }
 
   const parsed = getParsedLogs(rawLogs, titleEscrowContract);
   const ownerChangeLogs: TitleEscrowTransferEvent[] = [];
@@ -354,7 +358,6 @@ export const resolveContractCreationBlock = async (
       if (await hasCodeAt(mid)) high = mid;
       else low = mid;
     }
-    console.log(`[getLogs] creation-floor via getCode: ${high} (binary search)`);
     return high;
   } catch {
     return 0;
@@ -372,7 +375,6 @@ const resolveEscrowScanFloor = async (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const mintBlock = Number(await (titleEscrowContract as any).mintBlock());
     if (Number.isFinite(mintBlock) && mintBlock > 0 && mintBlock <= latestBlock) {
-      console.log(`[getLogs] floor via mintBlock: ${mintBlock}`);
       return mintBlock;
     }
   } catch {
@@ -389,7 +391,6 @@ const resolveEscrowScanFloor = async (
   if (creationBlock > 0 && creationBlock <= latestBlock) {
     return creationBlock;
   }
-  console.log(`[getLogs] floor unknown → sequential backward mint scan`);
   return 0;
 };
 
@@ -421,30 +422,21 @@ const fetchEscrowLogs = async (
   const fromBlock = Math.max(scanFloor, 0);
   const span = latestBlock - fromBlock;
 
-  // Temporary debug for endorsement-chain range ladder — remove once verified.
-  console.log(
-    `[getLogs] escrow-plan floor=${fromBlock} latest=${latestBlock} span=${span} (limit ${INITIAL_CHUNK_SIZE})`,
-  );
-
   // Fits in a single paid 10k window — no probe, no chunking.
   if (span <= INITIAL_CHUNK_SIZE) {
-    console.log(`[getLogs] escrow-path single-range ${fromBlock}→${latestBlock}`);
     return fetchLogsInRange(titleEscrowContract, fromBlock, latestBlock, includeObligationStatus);
   }
 
   // Large span: one address-scoped probe. Enterprise succeeds; paid/free range-cap fails.
   try {
     await probeLogsRange(provider, titleEscrowAddress, fromBlock, latestBlock);
-    console.log(`[getLogs] escrow-path probe-ok → filters ${fromBlock}→${latestBlock}`);
     return fetchLogsInRange(titleEscrowContract, fromBlock, latestBlock, includeObligationStatus);
   } catch (err) {
     if (!isLogsRetryableError(err)) throw err;
-    console.log(`[getLogs] escrow-path last-range probe failed → chunking`);
   }
 
   // Paid 10k / free: walk floor→latest in adaptive chunks (all event types on the escrow).
   if (fromBlock > 0) {
-    console.log(`[getLogs] escrow-path forward-chunk ${fromBlock}→${latestBlock}`);
     // Probe already failed with a range cap — parallelize all 10k windows immediately.
     return scanLogsForward(provider, titleEscrowAddress, fromBlock, latestBlock, undefined, {
       assumePaidTier: true,

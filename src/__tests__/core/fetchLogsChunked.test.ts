@@ -206,10 +206,11 @@ describe('scanLogsForward', () => {
       return [];
     });
 
-    await scanLogsForward(provider as never, '0xabc', 0, 50);
+    // Span must exceed INITIAL_CHUNK_SIZE so free-tier continues past the learn window.
+    await scanLogsForward(provider as never, '0xabc', 0, 20_000);
 
     expect(maxInFlight).toBe(1);
-  });
+  }, 30_000);
 });
 
 describe('scanForMintEvent paid parallel', () => {

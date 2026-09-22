@@ -20,10 +20,15 @@ export const fetchEventTime = async (
   let pending = byBlock.get(blockNumber);
   if (!pending) {
     const msecToSec = 1000;
-    pending = Promise.resolve(provider.getBlock(blockNumber)).then(
-      (block) => block!.timestamp * msecToSec,
-    );
-    byBlock.set(blockNumber, pending);
+    const timestampsByBlock = byBlock;
+    pending = Promise.resolve(provider.getBlock(blockNumber))
+      .then((block) => block!.timestamp * msecToSec)
+      .catch((err: unknown) => {
+        // Drop failed lookup so a retry issues a fresh getBlock RPC.
+        timestampsByBlock.delete(blockNumber);
+        throw err;
+      });
+    timestampsByBlock.set(blockNumber, pending);
   }
   return pending;
 };
