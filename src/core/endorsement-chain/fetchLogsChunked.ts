@@ -671,8 +671,7 @@ async function continueMintScanPaidParallel(
     }
 
     // batch is newest→oldest within this page; inspect in that order so we stop at mint.
-    for (let j = 0; j < batchLogs.length; j++) {
-      const chunkLogs = batchLogs[j];
+    for (const chunkLogs of batchLogs) {
       const mintStart = findMintSliceStart(chunkLogs, shared.isMintLog);
       if (mintStart < 0) {
         newerFirstGroups.push(chunkLogs);
