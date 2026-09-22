@@ -1,19 +1,18 @@
 import { ethers as ethersV6 } from 'ethersV6';
 import { Provider } from '@ethersproject/abstract-provider';
 import {
-  DEFAULT_MAX_BLOCKS_TO_SCAN,
+  FREE_TIER_BLOCK_RANGE_RE,
   FREE_TIER_MAX_CHUNK_SIZE,
-  FREE_TIER_MAX_DURATION_MS,
-  FREE_TIER_MAX_REQUESTS,
-  INFURA_FREE_TIER_RANGE_RE,
   INITIAL_CHUNK_SIZE,
-  MAX_CHUNK_SIZE,
   MIN_CHUNK_SIZE,
   RANGE_TOO_LARGE_ERROR_RE,
   RATE_LIMIT_BASE_DELAY_MS,
   RATE_LIMIT_ERROR_RE,
   RATE_LIMIT_MAX_RETRIES,
 } from '../../constants';
+
+// Result/response overflow — shrink window; do not treat as free-tier.
+const RESULT_OVERFLOW_RE = /query returned more than|10,?000 results|response size|exceeds limit/i;
 
 function errorMessage(err: unknown): string {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -48,11 +47,8 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// Any single-shot provider call (getBlockNumber, ownerOf, eth_call, ...) can land on a rate
-// limit exactly like eth_getLogs does — retry it the same way getLogsRange retries, otherwise
-// callers get an uncaught raw provider error instead of a handled one.
+// Non-getLogs RPCs (getBlockNumber, ownerOf, …) still get a short rate-limit retry.
 export async function withRateLimitRetry<T>(fn: () => Promise<T>): Promise<T> {
-  const deadlineAt = Date.now() + FREE_TIER_MAX_DURATION_MS;
   for (let attempt = 0; ; attempt++) {
     try {
       return await fn();
@@ -60,21 +56,15 @@ export async function withRateLimitRetry<T>(fn: () => Promise<T>): Promise<T> {
       if (!RATE_LIMIT_ERROR_RE.test(errorMessage(err)) || attempt >= RATE_LIMIT_MAX_RETRIES) {
         throw err;
       }
-      await sleep(
-        Math.max(0, Math.min(RATE_LIMIT_BASE_DELAY_MS * 2 ** attempt, deadlineAt - Date.now())),
-      );
+      await sleep(RATE_LIMIT_BASE_DELAY_MS * 2 ** attempt);
     }
   }
 }
 
-// provider.getBlockNumber() seeds every chunked-scan fallback, so it needs the same protection.
 export const getLatestBlockWithRetry = (provider: Provider | ethersV6.Provider): Promise<number> =>
   withRateLimitRetry(() => provider.getBlockNumber());
 
-// ethers v5's contract.filters.X(...) resolves topics synchronously (plain {address, topics}).
-// ethers v6's returns a DeferredTopicFilter — topics only exist behind the async
-// getTopicFilter(), so reading `.topics` directly on a v6 filter silently yields undefined
-// and the chunked fallback would scan every event on the contract instead of just this one.
+// ethers v5 filters resolve topics sync; v6 DeferredTopicFilter needs getTopicFilter().
 export async function resolveFilterTopics(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   filter: any,
@@ -90,28 +80,44 @@ interface ScanLogsBackwardResult {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   logs: any[];
   foundMint: boolean;
+  /** True when the scan stopped early due to a rate-limit / hard failure. */
   truncated: boolean;
 }
 
 interface AdaptiveScanState {
   chunkSize: number;
   maxChunkSize: number;
-  requestsUsed: number;
-  deadlineAt: number;
 }
 
+// Ladder: free-tier → hard jump to 10; result overflow / generic → /4 (or snap to 10k).
 function shrinkForRangeLimit(state: AdaptiveScanState, message: string): void {
-  if (INFURA_FREE_TIER_RANGE_RE.test(message)) {
-    state.maxChunkSize = Math.min(state.maxChunkSize, FREE_TIER_MAX_CHUNK_SIZE);
+  if (FREE_TIER_BLOCK_RANGE_RE.test(message)) {
+    state.maxChunkSize = FREE_TIER_MAX_CHUNK_SIZE;
+    state.chunkSize = FREE_TIER_MAX_CHUNK_SIZE;
+    return;
+  }
+
+  if (RESULT_OVERFLOW_RE.test(message)) {
+    state.chunkSize = Math.max(Math.floor(state.chunkSize / 4), MIN_CHUNK_SIZE);
+    state.chunkSize = Math.min(state.chunkSize, state.maxChunkSize);
+    return;
+  }
+
+  // Unknown provider range cap.
+  if (state.chunkSize > INITIAL_CHUNK_SIZE) {
+    state.chunkSize = INITIAL_CHUNK_SIZE;
+    return;
   }
   state.chunkSize = Math.max(Math.floor(state.chunkSize / 4), MIN_CHUNK_SIZE);
   state.chunkSize = Math.min(state.chunkSize, state.maxChunkSize);
 }
 
-function isBudgetExhausted(state: AdaptiveScanState): boolean {
-  return Date.now() >= state.deadlineAt || state.requestsUsed >= FREE_TIER_MAX_REQUESTS;
+function isFreeTierScan(state: AdaptiveScanState): boolean {
+  return state.chunkSize <= FREE_TIER_MAX_CHUNK_SIZE;
 }
 
+// Single place for getLogs rate-limit retries.
+// Free-tier (≤10 blocks): never retry a 429 — hard-fail so the scan stops.
 async function getLogsRange(
   provider: Provider | ethersV6.Provider,
   address: string,
@@ -123,24 +129,18 @@ async function getLogsRange(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<any[]> {
   for (let attempt = 0; ; attempt++) {
-    if (isBudgetExhausted(state)) {
-      throw new Error('RPC scan budget exhausted');
-    }
-    state.requestsUsed += 1;
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (await provider.getLogs({ address, fromBlock, toBlock, topics })) as any[];
     } catch (err) {
-      if (RATE_LIMIT_ERROR_RE.test(errorMessage(err)) && attempt < RATE_LIMIT_MAX_RETRIES) {
-        await sleep(
-          Math.max(
-            0,
-            Math.min(RATE_LIMIT_BASE_DELAY_MS * 2 ** attempt, state.deadlineAt - Date.now()),
-          ),
-        );
-        continue;
+      const message = errorMessage(err);
+      if (!RATE_LIMIT_ERROR_RE.test(message)) throw err;
+
+      // Free-tier 10-block windows: retrying a 429 cannot finish a deep chain.
+      if (isFreeTierScan(state) || attempt >= RATE_LIMIT_MAX_RETRIES) {
+        throw err;
       }
-      throw err;
+      await sleep(RATE_LIMIT_BASE_DELAY_MS * 2 ** attempt);
     }
   }
 }
@@ -170,101 +170,15 @@ function flattenOldestFirst(chunkGroups: any[][]): any[] {
   return chunkGroups.toReversed().flat();
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function truncatedScanResult(chunkGroups: any[][]): ScanLogsBackwardResult {
-  return { logs: flattenOldestFirst(chunkGroups), foundMint: false, truncated: true };
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function mintScanResult(chunkGroups: any[][]): ScanLogsBackwardResult {
-  return { logs: flattenOldestFirst(chunkGroups), foundMint: true, truncated: false };
-}
-
-function tryCollectMintSlice(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  chunkLogs: any[],
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  isMintLog: ((log: any) => boolean) | undefined,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  chunkGroups: any[][],
-): boolean {
-  if (!isMintLog) return false;
-  const start = findMintSliceStart(chunkLogs, isMintLog);
-  if (start < 0) return false;
-  chunkGroups.push(chunkLogs.slice(start));
-  return true;
-}
-
-type ScanChunkErrorOutcome = 'truncated' | 'retry';
-
-function handleScanChunkError(err: unknown, state: AdaptiveScanState): ScanChunkErrorOutcome {
-  if (err instanceof Error && err.message === 'RPC scan budget exhausted') {
-    return 'truncated';
-  }
-  const message = errorMessage(err);
-  if (RANGE_TOO_LARGE_ERROR_RE.test(message) && state.chunkSize > MIN_CHUNK_SIZE) {
-    shrinkForRangeLimit(state, message);
-    return 'retry';
-  }
-  // getLogsRange already retried this rate limit internally and gave up — retry the same
-  // chunk at this level too, bounded by the overall scan budget (isBudgetExhausted), instead
-  // of letting a sustained rate limit escape as an uncaught error.
-  if (RATE_LIMIT_ERROR_RE.test(message)) {
-    return 'retry';
-  }
-  throw err;
-}
-
-type ScanStepResult =
-  | { kind: 'done'; result: ScanLogsBackwardResult }
-  | { kind: 'retry' }
-  | { kind: 'advance'; nextCursor: number };
-
-async function scanOneChunkBackward(
-  provider: Provider | ethersV6.Provider,
-  address: string,
-  cursor: number,
-  effectiveFloor: number,
-  state: AdaptiveScanState,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  isMintLog: ((log: any) => boolean) | undefined,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  chunkGroups: any[][],
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  topics?: any[],
-): Promise<ScanStepResult> {
-  if (isBudgetExhausted(state)) {
-    return { kind: 'done', result: truncatedScanResult(chunkGroups) };
-  }
-
-  const chunkStart = Math.max(cursor - state.chunkSize + 1, effectiveFloor);
-  try {
-    const chunkLogs = await getLogsRange(provider, address, chunkStart, cursor, state, topics);
-    if (tryCollectMintSlice(chunkLogs, isMintLog, chunkGroups)) {
-      return { kind: 'done', result: mintScanResult(chunkGroups) };
-    }
-    chunkGroups.push(chunkLogs);
-  } catch (err) {
-    const outcome = handleScanChunkError(err, state);
-    if (outcome === 'truncated') {
-      return { kind: 'done', result: truncatedScanResult(chunkGroups) };
-    }
-    return { kind: 'retry' };
-  }
-
-  return { kind: 'advance', nextCursor: chunkStart - 1 };
-}
-
 /**
- * Adaptive backward eth_getLogs scanner.
- * Starts with a large window, shrinks on provider range limits (including Infura's 10-block
- * free-tier cap), retries rate limits, and stops early when isMintLog matches.
+ * Backward eth_getLogs scanner: start at 10k, jump to 10 on free-tier,
+ * /4 on result overflow; hard-stop on 429 while at ≤10 blocks.
+ * Walks until mint, floor, or a hard failure — no time/request budget.
  * @param {Provider | ethersV6.Provider} provider - Ethers provider
  * @param {string} address - Contract address to scan
  * @param {number} fromBlock - Latest block to start from
  * @param {number} toBlockFloor - Earliest block to stop at
  * @param {(log: any) => boolean} [isMintLog] - Optional mint detector to stop early
- * @param {number} [maxBlocksToScan] - Max blocks to walk back from fromBlock
  * @param {any[]} [topics] - Optional topic filter (e.g. to scan only one tokenId's events)
  * @returns {Promise<ScanLogsBackwardResult>} Logs oldest→newest plus mint/truncation flags
  */
@@ -275,69 +189,74 @@ export const scanLogsBackward = async (
   toBlockFloor: number,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   isMintLog?: (log: any) => boolean,
-  maxBlocksToScan: number = DEFAULT_MAX_BLOCKS_TO_SCAN,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   topics?: any[],
 ): Promise<ScanLogsBackwardResult> => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const chunkGroups: any[][] = [];
   const state: AdaptiveScanState = {
-    chunkSize: Math.min(INITIAL_CHUNK_SIZE, MAX_CHUNK_SIZE),
-    maxChunkSize: MAX_CHUNK_SIZE,
-    requestsUsed: 0,
-    deadlineAt: Date.now() + FREE_TIER_MAX_DURATION_MS,
+    chunkSize: INITIAL_CHUNK_SIZE,
+    maxChunkSize: INITIAL_CHUNK_SIZE,
   };
-  const budgetFloor = Math.max(0, fromBlock - maxBlocksToScan);
-  const effectiveFloor = Math.max(toBlockFloor, budgetFloor);
-  const budgetRaisedFloor = effectiveFloor > toBlockFloor;
+  const effectiveFloor = Math.max(0, toBlockFloor);
   let cursor = fromBlock;
 
   while (cursor >= effectiveFloor) {
-    const step = await scanOneChunkBackward(
-      provider,
-      address,
-      cursor,
-      effectiveFloor,
-      state,
-      isMintLog,
-      chunkGroups,
-      topics,
-    );
-    if (step.kind === 'done') return step.result;
-    if (step.kind === 'retry') continue;
-    cursor = step.nextCursor;
+    const chunkStart = Math.max(cursor - state.chunkSize + 1, effectiveFloor);
+    try {
+      const chunkLogs = await getLogsRange(provider, address, chunkStart, cursor, state, topics);
+
+      if (isMintLog) {
+        const start = findMintSliceStart(chunkLogs, isMintLog);
+        if (start >= 0) {
+          chunkGroups.push(chunkLogs.slice(start));
+          return { logs: flattenOldestFirst(chunkGroups), foundMint: true, truncated: false };
+        }
+      }
+      chunkGroups.push(chunkLogs);
+      cursor = chunkStart - 1;
+    } catch (err) {
+      const message = errorMessage(err);
+
+      if (RANGE_TOO_LARGE_ERROR_RE.test(message) && state.chunkSize > MIN_CHUNK_SIZE) {
+        shrinkForRangeLimit(state, message);
+        continue; // retry same cursor with smaller window
+      }
+
+      // Rate limit: paid path already exhausted getLogsRange retries; free-tier never retries.
+      // Either way, stop — do not outer-loop retry the same 429.
+      if (RATE_LIMIT_ERROR_RE.test(message)) {
+        return { logs: flattenOldestFirst(chunkGroups), foundMint: false, truncated: true };
+      }
+
+      throw err;
+    }
   }
 
   return {
     logs: flattenOldestFirst(chunkGroups),
     foundMint: false,
-    truncated: Boolean(isMintLog) && budgetRaisedFloor,
+    truncated: false,
   };
 };
 
 export interface ScanForMintEventOptions {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   isMintLog: (log: any) => boolean;
-  notFoundInBudgetMessage: string;
+  /** Thrown when the scan stopped early (e.g. rate-limit) before finding mint. */
+  notFoundOnFailureMessage: string;
   notFoundMessage: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   topics?: any[];
 }
 
 /**
- * Shared by both chunked-scan fallbacks (V4 title escrow's TokenReceived mint,
- * token registry's INITIAL Transfer): resolve the block budget, scan backward for
- * the mint log, and translate the result into caller-specific errors so a truncated
- * or genuinely-missing mint is never silently reported as a complete chain.
- *
- * Takes `latestBlock` rather than resolving it itself — callers already need it up
- * front to resolve their own `scanFloor` (mintBlock / contract-creation lookup), so
- * fetching it again here would just be a redundant RPC round trip.
+ * Scan backward for mint; throw if truncated by failure or genuinely missing.
  * @param {Provider | ethersV6.Provider} provider - Ethers provider
  * @param {string} address - Contract address to scan
  * @param {number} scanFloor - Earliest block to stop at (0 if unknown)
  * @param {number} latestBlock - Latest block, already resolved by the caller
- * @param {ScanForMintEventOptions} options - Mint detector, caller-specific error messages, and optional topic filter
+ * @param {ScanForMintEventOptions} options - Mint detector, error messages, optional topics
  * @returns {Promise<any[]>} The mint's log and any same-tx companion logs, oldest first
  */
 export async function scanForMintEvent(
@@ -348,14 +267,7 @@ export async function scanForMintEvent(
   options: ScanForMintEventOptions,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<any[]> {
-  const { isMintLog, notFoundInBudgetMessage, notFoundMessage, topics } = options;
-
-  // When a floor is known (mintBlock or contract creation), cover the full span to latest.
-  // Otherwise keep the default backward budget as a last resort.
-  const maxBlocksToScan =
-    scanFloor > 0
-      ? Math.max(DEFAULT_MAX_BLOCKS_TO_SCAN, latestBlock - scanFloor)
-      : DEFAULT_MAX_BLOCKS_TO_SCAN;
+  const { isMintLog, notFoundOnFailureMessage, notFoundMessage, topics } = options;
 
   const result = await scanLogsBackward(
     provider,
@@ -363,12 +275,11 @@ export async function scanForMintEvent(
     latestBlock,
     scanFloor,
     isMintLog,
-    maxBlocksToScan,
     topics,
   );
 
   if (!result.foundMint && result.truncated) {
-    throw new Error(notFoundInBudgetMessage);
+    throw new Error(notFoundOnFailureMessage);
   }
   if (!result.foundMint) {
     throw new Error(notFoundMessage);

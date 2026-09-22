@@ -10,7 +10,6 @@ import {
   ObligationEscrow__factory,
 } from '../../token-registry-v5/contracts';
 import { supportInterfaceIds as supportInterfaceIdsV5 } from '../../token-registry-v5/supportInterfaceIds';
-import { DEFAULT_MAX_BLOCKS_TO_SCAN } from '../../constants';
 import { getEthersContractFromProvider } from '../../utils/ethers';
 import {
   getLatestBlockWithRetry,
@@ -129,9 +128,7 @@ const getParsedLogs = (
   });
 };
 
-// Shared by fetchOwnerTransfers/fetchHolderTransfers: falls back to a chunked scan on a
-// range/rate-limit error, filtered to this filter's own topics (never the unfiltered
-// address — this contract emits other event types under the same ABI).
+// V4 owner/holder filters: 0→latest first, then topic-scoped chunked scan (10k→10 ladder).
 const queryEscrowFilterWithFallback = async (
   provider: Provider | ethersV6.Provider,
   titleEscrowContract: TitleEscrowV4,
@@ -140,13 +137,11 @@ const queryEscrowFilterWithFallback = async (
   filter: any,
 ): Promise<ethers.providers.Log[] | ethersV6.Log[]> => {
   try {
-    // exiting function put under try/catch to handle rate limit errors
     return await titleEscrowContract.queryFilter(filter, 0, 'latest');
   } catch (err) {
     if (!isLogsRetryableError(err)) throw err;
     const latestBlock = await getLatestBlockWithRetry(provider);
     const scanFloor = await resolveContractCreationBlock(provider, address, latestBlock);
-    const maxBlocksToScan = Math.max(DEFAULT_MAX_BLOCKS_TO_SCAN, latestBlock - scanFloor);
     const topics = await resolveFilterTopics(filter);
     const result = await scanLogsBackward(
       provider,
@@ -154,7 +149,6 @@ const queryEscrowFilterWithFallback = async (
       latestBlock,
       scanFloor,
       undefined,
-      maxBlocksToScan,
       topics,
     );
     return result.logs;
@@ -363,8 +357,8 @@ const fetchLogsChunked = async (
 
   return scanForMintEvent(provider, titleEscrowAddress, scanFloor, latestBlock, {
     isMintLog,
-    notFoundInBudgetMessage:
-      'Unable to locate TokenReceived (mint) within the scan budget; refusing incomplete endorsement chain',
+    notFoundOnFailureMessage:
+      'Unable to locate TokenReceived (mint); scan stopped after an RPC failure; refusing incomplete endorsement chain',
     notFoundMessage:
       'Unable to locate TokenReceived (mint) before the escrow scan floor; refusing incomplete endorsement chain',
   });

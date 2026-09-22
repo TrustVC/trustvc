@@ -2,7 +2,7 @@ import type { Event } from 'ethers';
 import { ethers } from 'ethers';
 import { LogDescription } from 'ethers/lib/utils';
 import { ethers as ethersV6 } from 'ethersV6';
-import { TradeTrustToken, TradeTrustToken__factory } from '../../token-registry-v4/contracts';
+import { TradeTrustToken__factory } from '../../token-registry-v4/contracts';
 import { getEthersContractFromProvider } from '../../utils/ethers';
 import { isZeroAddress, sortLogChain } from '../endorsement-chain/helpers';
 import { TokenTransferEvent, TokenTransferEventType, TypedEvent } from '../endorsement-chain/types';
@@ -42,11 +42,10 @@ export const fetchTokenTransfers = async (
 
 /**
  * Fetches transfer logs from token registry.
- * Tries a single unranged query first; if the provider rejects the range (e.g. Infura's
- * 10,000-block eth_getLogs cap on a chain deep enough to exceed it), falls back to an
- * adaptive backward chunked scan filtered to this tokenId's own Transfer events.
+ * Ladder: unranged 0→latest (enterprise) → on range/rate error, chunked scan at 10k
+ * (paid) → free-tier fingerprint jumps to 10-block windows.
  * @param {Provider | ethersV6.Provider} provider - Ethers provider
- * @param {TradeTrustToken} tokenRegistry - Token Registry contract
+ * @param {ethersV6.Contract | ethers.Contract} tokenRegistry - Token Registry contract
  * @param {string} tokenRegistryAddress - Token Registry contract address
  * @param {string} tokenId - Token ID
  * @returns {Promise<Event[] | ethersV6.EventLog[]>} - Transfer Event logs
@@ -96,8 +95,8 @@ async function fetchLogsChunked(
 
   const logs = await scanForMintEvent(provider, tokenRegistryAddress, scanFloor, latestBlock, {
     isMintLog,
-    notFoundInBudgetMessage:
-      'Unable to locate mint Transfer event within the scan budget; refusing incomplete endorsement chain',
+    notFoundOnFailureMessage:
+      'Unable to locate mint Transfer event; scan stopped after an RPC failure; refusing incomplete endorsement chain',
     notFoundMessage: 'Unminted Title Escrow',
     topics,
   });
