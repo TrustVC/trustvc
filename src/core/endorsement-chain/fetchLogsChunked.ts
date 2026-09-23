@@ -342,13 +342,7 @@ async function fetchWindowAdaptive(
 // Keep mint and any same-tx companion logs that precede it (e.g. StatusInitialized).
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function findMintSliceStart(logs: any[], isMintLog: (log: any) => boolean): number {
-  let mintIndex = -1;
-  for (let i = 0; i < logs.length; i++) {
-    if (isMintLog(logs[i])) {
-      mintIndex = i;
-      break;
-    }
-  }
+  const mintIndex = logs.findIndex(isMintLog);
   if (mintIndex < 0) return -1;
 
   const txHash = logs[mintIndex].transactionHash;
@@ -650,8 +644,10 @@ async function continueMintScanPaidParallel(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const newerFirstGroups: any[][] = [tipLogs];
 
-  for (let i = 0; i < olderWindows.length; i += GET_LOGS_MAX_CONCURRENCY) {
-    const batch = olderWindows.slice(i, i + GET_LOGS_MAX_CONCURRENCY);
+  let offset = 0;
+  while (offset < olderWindows.length) {
+    const batch = olderWindows.slice(offset, offset + GET_LOGS_MAX_CONCURRENCY);
+    offset += GET_LOGS_MAX_CONCURRENCY;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let batchLogs: any[][];
     try {
