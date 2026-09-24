@@ -137,6 +137,14 @@ Do **not** re-add the removed aliases. User-facing docs also live in `README.md`
   [Endorsement chain](#endorsement-chain-srccoreendorsement-chainuseendorsementchaints)
   — do not re-add `fetchObligationEndorsementChain`, `fetchEscrowTransfersObligation`,
   or `ObligationEscrowInterface`.
+- **`eth_getLogs` is capability-learned, never assume-paid.** After a full-span probe
+  fails, classify the error (`learnCapabilityFromProbeError`) and scan with that
+  capability — free stays sequential at 10 blocks; do **not** set `assumePaidTier` /
+  open parallel 10k storms. Sparse escrows: large-first (result/timeout caps), not a
+  fixed 10k-block default. Timeout → bisect; overflow → `/4` or provider suggested range.
+- **Obligation scan bounds come from the contract.** Use `mintBlock()` as `fromBlock`
+  and `shredBlock()` as `toBlock` when shredded (`shredBlock > 0`); active docs still
+  scan through `latest`. Do not scan past shred into empty tip history.
 - **Obligation mint merges to INITIAL.** ObligationEscrow emits `StatusInitialized`
   in the same tx as `TokenReceived(isMinting)` (often *before* it in log order).
   `mergeTransfersV5` must prefer `INITIAL` so owner/holder/remarks match classic ETR

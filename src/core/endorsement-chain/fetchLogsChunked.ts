@@ -5,7 +5,9 @@ import {
   FREE_TIER_MAX_CHUNK_SIZE,
   GET_LOGS_MAX_CONCURRENCY,
   INITIAL_CHUNK_SIZE,
+  LARGE_CHUNK_SIZE,
   MIN_CHUNK_SIZE,
+  QUERY_TIMEOUT_ERROR_RE,
   RANGE_TOO_LARGE_ERROR_RE,
   RATE_LIMIT_BASE_DELAY_MS,
   RATE_LIMIT_ERROR_RE,
@@ -14,6 +16,29 @@ import {
 
 // Result/response overflow — shrink window; do not treat as free-tier.
 const RESULT_OVERFLOW_RE = /query returned more than|10,?000 results|response size|exceeds limit/i;
+
+/** Explicit block-range caps (Alchemy other chains / “10k blocks”) — not free-tier, not log-count. */
+const BLOCK_RANGE_CAP_RE =
+  /block range|10,?000 block|up to a \d+\s*block|blocks? (?:limit|range)|range (?:is|of) (?:at most )?\d+/i;
+
+export type GetLogsFailureClass =
+  | 'FREE_TIER'
+  | 'RESULT_OVERFLOW'
+  | 'TIMEOUT'
+  | 'RANGE_CAP'
+  | 'RATE_LIMIT'
+  | 'UNKNOWN';
+
+export type LogsCapability =
+  | { mode: 'free'; maxSpan: number; parallel: false }
+  | { mode: 'block_capped'; maxSpan: number; parallel: true }
+  | { mode: 'result_capped'; maxSpan: number; parallel: true };
+
+export type GetLogsFailure = {
+  class: GetLogsFailureClass;
+  /** Provider-suggested inclusive span size, when present. */
+  suggestedSpan?: number;
+};
 
 function errorMessage(err: unknown): string {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -39,9 +64,142 @@ function errorMessage(err: unknown): string {
   }
 }
 
-export function isLogsRetryableError(err: unknown): boolean {
+function parseHexBlock(value: unknown): number | undefined {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value !== 'string') return undefined;
+  const parsed = Number.parseInt(value, value.startsWith('0x') || value.startsWith('0X') ? 16 : 10);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+/**
+ * Infura error.data.{from,to} or Alchemy “this block range should work: [0x…, 0x…]”.
+ * @param {unknown} err - RPC error
+ * @returns {{ from: number; to: number } | undefined} Suggested inclusive block range
+ */
+function parseSuggestedRange(err: unknown): { from: number; to: number } | undefined {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const anyErr = err as any;
+  const data = anyErr?.data ?? anyErr?.error?.data ?? anyErr?.info?.error?.data;
+  if (data && typeof data === 'object') {
+    const from = parseHexBlock(data.from);
+    const to = parseHexBlock(data.to);
+    if (from !== undefined && to !== undefined && to >= from) {
+      return { from, to };
+    }
+  }
+
   const message = errorMessage(err);
-  return RATE_LIMIT_ERROR_RE.test(message) || RANGE_TOO_LARGE_ERROR_RE.test(message);
+  const match = message.match(
+    /(?:block range should work|try with this block range)\s*:?\s*\[\s*(0x[0-9a-fA-F]+|\d+)\s*,\s*(0x[0-9a-fA-F]+|\d+)\s*\]/i,
+  );
+  if (!match) return undefined;
+  const from = parseHexBlock(match[1]);
+  const to = parseHexBlock(match[2]);
+  if (from === undefined || to === undefined || to < from) return undefined;
+  return { from, to };
+}
+
+/**
+ * Classify a getLogs failure. Message content wins over bare RPC codes
+ * (Infura uses -32005 for overflow, timeout, and rate limits).
+ * @param {unknown} err - RPC error from provider.getLogs
+ * @returns {GetLogsFailure} Failure class plus optional suggested span
+ */
+export function classifyGetLogsFailure(err: unknown): GetLogsFailure {
+  const message = errorMessage(err);
+  const suggested = parseSuggestedRange(err);
+  const suggestedSpan = suggested !== undefined ? suggested.to - suggested.from + 1 : undefined;
+
+  if (FREE_TIER_BLOCK_RANGE_RE.test(message)) {
+    return { class: 'FREE_TIER', suggestedSpan };
+  }
+  if (RESULT_OVERFLOW_RE.test(message)) {
+    return { class: 'RESULT_OVERFLOW', suggestedSpan };
+  }
+  if (QUERY_TIMEOUT_ERROR_RE.test(message)) {
+    return { class: 'TIMEOUT', suggestedSpan };
+  }
+  // Rate limit only when not already classified as range/overflow/timeout via message.
+  if (
+    /rate[\s-]?limit|too many requests|could not coalesce/i.test(message) ||
+    /(?:^|[^0-9A-Za-z+-])429(?![0-9A-Za-z])/.test(message)
+  ) {
+    return { class: 'RATE_LIMIT', suggestedSpan };
+  }
+  if (BLOCK_RANGE_CAP_RE.test(message) || RANGE_TOO_LARGE_ERROR_RE.test(message)) {
+    return { class: 'RANGE_CAP', suggestedSpan };
+  }
+  // Bare -32005 without a more specific message — treat as rate-limit-ish retryable.
+  if (RATE_LIMIT_ERROR_RE.test(message)) {
+    return { class: 'RATE_LIMIT', suggestedSpan };
+  }
+  return { class: 'UNKNOWN', suggestedSpan };
+}
+
+/**
+ * Map a probe/queryFilter failure to the scan strategy for the rest of this call.
+ * @param {unknown} err - Probe or queryFilter error
+ * @returns {LogsCapability} Scan-local capability (free / block_capped / result_capped)
+ */
+export function learnCapabilityFromProbeError(err: unknown): LogsCapability {
+  const failure = classifyGetLogsFailure(err);
+
+  if (failure.class === 'FREE_TIER') {
+    return { mode: 'free', maxSpan: FREE_TIER_MAX_CHUNK_SIZE, parallel: false };
+  }
+
+  if (failure.class === 'RANGE_CAP') {
+    const maxSpan = Math.min(
+      failure.suggestedSpan && failure.suggestedSpan > 0
+        ? failure.suggestedSpan
+        : INITIAL_CHUNK_SIZE,
+      INITIAL_CHUNK_SIZE,
+    );
+    return {
+      mode: 'block_capped',
+      maxSpan: Math.max(maxSpan, FREE_TIER_MAX_CHUNK_SIZE),
+      parallel: true,
+    };
+  }
+
+  // TIMEOUT / RESULT_OVERFLOW / RATE_LIMIT / UNKNOWN: large-first (sparse escrows).
+  const maxSpan =
+    failure.suggestedSpan && failure.suggestedSpan > FREE_TIER_MAX_CHUNK_SIZE
+      ? failure.suggestedSpan
+      : LARGE_CHUNK_SIZE;
+  return { mode: 'result_capped', maxSpan, parallel: true };
+}
+
+function isRateLimitOnly(err: unknown): boolean {
+  return classifyGetLogsFailure(err).class === 'RATE_LIMIT';
+}
+
+export function isLogsRetryableError(err: unknown): boolean {
+  const failure = classifyGetLogsFailure(err);
+  return (
+    failure.class === 'RATE_LIMIT' ||
+    failure.class === 'FREE_TIER' ||
+    failure.class === 'RESULT_OVERFLOW' ||
+    failure.class === 'TIMEOUT' ||
+    failure.class === 'RANGE_CAP' ||
+    RANGE_TOO_LARGE_ERROR_RE.test(errorMessage(err))
+  );
+}
+
+function stateFromCapability(capability?: LogsCapability): AdaptiveScanState {
+  if (!capability) {
+    return { chunkSize: LARGE_CHUNK_SIZE, maxChunkSize: LARGE_CHUNK_SIZE };
+  }
+  if (capability.mode === 'free') {
+    return {
+      chunkSize: FREE_TIER_MAX_CHUNK_SIZE,
+      maxChunkSize: FREE_TIER_MAX_CHUNK_SIZE,
+    };
+  }
+  return {
+    chunkSize: capability.maxSpan,
+    maxChunkSize: capability.maxSpan,
+  };
 }
 
 function sleep(ms: number): Promise<void> {
@@ -134,7 +292,7 @@ class GetLogsRateGate {
       }
       return result;
     } catch (err) {
-      if (RATE_LIMIT_ERROR_RE.test(errorMessage(err))) {
+      if (isRateLimitOnly(err)) {
         this.concurrencyCap = 1;
         this.cooldownUntil = Date.now() + RATE_LIMIT_BASE_DELAY_MS;
       }
@@ -173,29 +331,53 @@ class GetLogsRateGate {
 
 const getLogsGate = new GetLogsRateGate();
 
-// Ladder: free-tier → hard jump to 10; already ≤10 → /4 (floor MIN); overflow / generic → /4.
-function shrinkForRangeLimit(state: AdaptiveScanState, message: string): void {
-  if (FREE_TIER_BLOCK_RANGE_RE.test(message)) {
+/**
+ * Shrink window from a range/timeout/overflow failure.
+ * FREE → 10; TIMEOUT → bisect; OVERFLOW → /4 or suggested; RANGE_CAP → clamp to 10k.
+ * @param {AdaptiveScanState} state - Mutable adaptive chunk state
+ * @param {unknown} err - Range/timeout/overflow error
+ * @returns {void}
+ */
+function shrinkForRangeLimit(state: AdaptiveScanState, err: unknown): void {
+  const failure = classifyGetLogsFailure(err);
+  const suggested =
+    failure.suggestedSpan && failure.suggestedSpan >= MIN_CHUNK_SIZE
+      ? failure.suggestedSpan
+      : undefined;
+
+  if (failure.class === 'FREE_TIER') {
     if (state.chunkSize > FREE_TIER_MAX_CHUNK_SIZE) {
       state.maxChunkSize = FREE_TIER_MAX_CHUNK_SIZE;
       state.chunkSize = FREE_TIER_MAX_CHUNK_SIZE;
       return;
     }
-    // Already at free-tier width — further reduce so retries make progress.
     state.chunkSize = Math.max(Math.floor(state.chunkSize / 4), MIN_CHUNK_SIZE);
     state.maxChunkSize = Math.min(state.maxChunkSize, state.chunkSize);
     return;
   }
 
-  if (RESULT_OVERFLOW_RE.test(message)) {
+  if (suggested !== undefined && suggested < state.chunkSize) {
+    state.chunkSize = suggested;
+    state.maxChunkSize = Math.min(state.maxChunkSize, suggested);
+    return;
+  }
+
+  if (failure.class === 'TIMEOUT') {
+    state.chunkSize = Math.max(Math.floor(state.chunkSize / 2), MIN_CHUNK_SIZE);
+    state.chunkSize = Math.min(state.chunkSize, state.maxChunkSize);
+    return;
+  }
+
+  if (failure.class === 'RESULT_OVERFLOW') {
     state.chunkSize = Math.max(Math.floor(state.chunkSize / 4), MIN_CHUNK_SIZE);
     state.chunkSize = Math.min(state.chunkSize, state.maxChunkSize);
     return;
   }
 
-  // Unknown provider range cap.
+  // RANGE_CAP / UNKNOWN: clamp to paid block window, then /4.
   if (state.chunkSize > INITIAL_CHUNK_SIZE) {
     state.chunkSize = INITIAL_CHUNK_SIZE;
+    state.maxChunkSize = Math.min(state.maxChunkSize, INITIAL_CHUNK_SIZE);
     return;
   }
   state.chunkSize = Math.max(Math.floor(state.chunkSize / 4), MIN_CHUNK_SIZE);
@@ -260,8 +442,7 @@ async function getLogsRange(
         const logs = (await provider.getLogs({ address, fromBlock, toBlock, topics })) as any[];
         return logs;
       } catch (err) {
-        const message = errorMessage(err);
-        if (!RATE_LIMIT_ERROR_RE.test(message)) {
+        if (!isRateLimitOnly(err)) {
           throw err;
         }
 
@@ -327,9 +508,12 @@ async function fetchWindowAdaptive(
       state.maxChunkSize = Math.min(state.maxChunkSize, local.maxChunkSize);
     } catch (err) {
       const message = errorMessage(err);
-      if (RANGE_TOO_LARGE_ERROR_RE.test(message) && local.chunkSize > MIN_CHUNK_SIZE) {
-        shrinkForRangeLimit(local, message);
-        shrinkForRangeLimit(state, message);
+      const attemptedSize = chunkEnd - cursor + 1;
+      if (RANGE_TOO_LARGE_ERROR_RE.test(message) && attemptedSize > MIN_CHUNK_SIZE) {
+        local.chunkSize = Math.min(local.chunkSize, attemptedSize);
+        state.chunkSize = Math.min(state.chunkSize, attemptedSize);
+        shrinkForRangeLimit(local, err);
+        shrinkForRangeLimit(state, err);
         continue;
       }
       throw err;
@@ -359,8 +543,8 @@ function flattenOldestFirst(chunkGroups: any[][]): any[] {
 }
 
 /**
- * Backward eth_getLogs scanner: start at 10k, jump to 10 on free-tier,
- * /4 on result overflow; hard-stop on 429 while at ≤10 blocks.
+ * Backward eth_getLogs scanner: large-first, jump to 10 on free-tier,
+ * bisect on timeout, /4 on result overflow; hard-stop on 429 while at ≤10 blocks.
  * Walks until mint, floor, or a hard failure — no time/request budget.
  * @param {Provider | ethersV6.Provider} provider - Ethers provider
  * @param {string} address - Contract address to scan
@@ -383,8 +567,8 @@ export const scanLogsBackward = async (
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const chunkGroups: any[][] = [];
   const state: AdaptiveScanState = {
-    chunkSize: INITIAL_CHUNK_SIZE,
-    maxChunkSize: INITIAL_CHUNK_SIZE,
+    chunkSize: LARGE_CHUNK_SIZE,
+    maxChunkSize: LARGE_CHUNK_SIZE,
   };
   const effectiveFloor = Math.max(0, toBlockFloor);
   let cursor = fromBlock;
@@ -405,15 +589,18 @@ export const scanLogsBackward = async (
       cursor = chunkStart - 1;
     } catch (err) {
       const message = errorMessage(err);
+      const attemptedSize = cursor - chunkStart + 1;
 
-      if (RANGE_TOO_LARGE_ERROR_RE.test(message) && state.chunkSize > MIN_CHUNK_SIZE) {
-        shrinkForRangeLimit(state, message);
+      if (RANGE_TOO_LARGE_ERROR_RE.test(message) && attemptedSize > MIN_CHUNK_SIZE) {
+        // Shrink from the window we actually tried (chunkSize may exceed remaining span).
+        state.chunkSize = Math.min(state.chunkSize, attemptedSize);
+        shrinkForRangeLimit(state, err);
         continue; // retry same cursor with smaller window
       }
 
       // Rate limit: paid path already exhausted getLogsRange retries; free-tier never retries.
       // Either way, stop — do not outer-loop retry the same 429.
-      if (RATE_LIMIT_ERROR_RE.test(message)) {
+      if (isRateLimitOnly(err)) {
         return { logs: flattenOldestFirst(chunkGroups), foundMint: false, truncated: true };
       }
 
@@ -430,17 +617,16 @@ export const scanLogsBackward = async (
 
 /**
  * Forward eth_getLogs over [fromBlock, toBlock].
- * Learns the tier on the first window (sequential), then:
- * - free-tier (≤10): stays sequential (parallel would trip 429s)
- * - paid: remaining windows in parallel, capped at GET_LOGS_MAX_CONCURRENCY;
- *   dials to 1 in-flight after any 429 and backs off before retrying.
+ * With capability (from probe failure): apply learned strategy immediately.
+ * Without: learn on the first window (sequential), then free stays sequential /
+ * paid remaining windows parallel.
  * @param {Provider | ethersV6.Provider} provider - Ethers provider
  * @param {string} address - Contract address to scan
  * @param {number} fromBlock - Earliest block (inclusive)
  * @param {number} toBlock - Latest block (inclusive)
  * @param {any[]} [topics] - Optional topic filter
  * @param {object} [options] - Forward-scan options
- * @param {boolean} [options.assumePaidTier] - When true (probe already hit 10k cap), parallelize all windows immediately
+ * @param {LogsCapability} [options.capability] - Learned from probe/queryFilter failure
  * @returns {Promise<any[]>} Logs oldest→newest
  */
 export const scanLogsForward = async (
@@ -450,20 +636,18 @@ export const scanLogsForward = async (
   toBlock: number,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   topics?: any[],
-  options?: { assumePaidTier?: boolean },
+  options?: { capability?: LogsCapability },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<any[]> => {
   if (toBlock < fromBlock) return [];
 
   await warmProviderNetwork(provider);
 
-  const state: AdaptiveScanState = {
-    chunkSize: INITIAL_CHUNK_SIZE,
-    maxChunkSize: INITIAL_CHUNK_SIZE,
-  };
+  const capability = options?.capability;
+  const state = stateFromCapability(capability);
 
-  // Probe already proved paid 10k cap — skip sequential learn, parallelize every window.
-  if (options?.assumePaidTier) {
+  // Known non-free capability — parallelize all windows at the learned span.
+  if (capability && capability.parallel) {
     const windows = buildWindows(fromBlock, toBlock, state.chunkSize);
     const chunkGroups = await mapPool(windows, GET_LOGS_MAX_CONCURRENCY, async (window) =>
       fetchWindowAdaptive(
@@ -476,8 +660,12 @@ export const scanLogsForward = async (
         true,
       ),
     );
-    const logs = chunkGroups.flat();
-    return logs;
+    return chunkGroups.flat();
+  }
+
+  // Known free-tier — sequential only (parallel 10-block windows hammer rate limits).
+  if (capability?.mode === 'free') {
+    return fetchWindowAdaptive(provider, address, fromBlock, toBlock, state, topics, false);
   }
 
   // First window sequential: learn free-tier / overflow before opening parallelism.
@@ -509,8 +697,7 @@ export const scanLogsForward = async (
       topics,
       false,
     );
-    const logs = [...firstLogs, ...rest];
-    return logs;
+    return [...firstLogs, ...rest];
   }
 
   const windows = buildWindows(remainingFrom, toBlock, state.chunkSize);
@@ -528,9 +715,33 @@ export const scanLogsForward = async (
     ),
   );
 
-  const logs = [...firstLogs, ...chunkGroups.flat()];
-  return logs;
+  return [...firstLogs, ...chunkGroups.flat()];
 };
+
+/**
+ * After a full-span probe fails, learn capability from the error and scan adaptively.
+ * Callers must not assume paid — free keys stay sequential at 10 blocks.
+ * @param {Provider | ethersV6.Provider} provider - Ethers provider
+ * @param {string} address - Contract address
+ * @param {number} fromBlock - Earliest block (inclusive)
+ * @param {number} toBlock - Latest block (inclusive)
+ * @param {unknown} probeErr - Error from the failed full-span probe
+ * @param {any[]} [topics] - Optional topic filter
+ * @returns {Promise<any[]>} Logs oldest→newest
+ */
+export async function scanAfterProbeFailure(
+  provider: Provider | ethersV6.Provider,
+  address: string,
+  fromBlock: number,
+  toBlock: number,
+  probeErr: unknown,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  topics?: any[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<any[]> {
+  const capability = learnCapabilityFromProbeError(probeErr);
+  return scanLogsForward(provider, address, fromBlock, toBlock, topics, { capability });
+}
 
 /**
  * One getLogs over the full span. Succeeds on enterprise/unlimited;
@@ -561,10 +772,12 @@ export interface ScanForMintEventOptions {
   notFoundMessage: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   topics?: any[];
+  /** Learned from a prior probe/queryFilter failure — skips a doomed large first window. */
+  capability?: LogsCapability;
 }
 
 function rethrowMintScanFailure(err: unknown, notFoundOnFailureMessage: string): never {
-  if (RATE_LIMIT_ERROR_RE.test(errorMessage(err))) {
+  if (isRateLimitOnly(err)) {
     throw new Error(notFoundOnFailureMessage);
   }
   throw err;
@@ -701,7 +914,7 @@ export async function scanForMintEvent(
   options: ScanForMintEventOptions,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<any[]> {
-  const { isMintLog, notFoundOnFailureMessage, notFoundMessage, topics } = options;
+  const { isMintLog, notFoundOnFailureMessage, notFoundMessage, topics, capability } = options;
   const effectiveFloor = Math.max(0, scanFloor);
   const shared: MintScanSharedArgs = {
     provider,
@@ -714,10 +927,7 @@ export async function scanForMintEvent(
 
   await warmProviderNetwork(provider);
 
-  const state: AdaptiveScanState = {
-    chunkSize: INITIAL_CHUNK_SIZE,
-    maxChunkSize: INITIAL_CHUNK_SIZE,
-  };
+  const state = stateFromCapability(capability);
 
   // Learn tier on the tip window (sequential). Free-tier → fully sequential backward.
   const tipStart = Math.max(latestBlock - state.chunkSize + 1, effectiveFloor);

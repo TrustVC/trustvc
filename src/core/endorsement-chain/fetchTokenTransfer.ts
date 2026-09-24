@@ -10,6 +10,8 @@ import { Provider } from '@ethersproject/abstract-provider';
 import {
   getLatestBlockWithRetry,
   isLogsRetryableError,
+  learnCapabilityFromProbeError,
+  type LogsCapability,
   resolveFilterTopics,
   scanForMintEvent,
   warmProviderNetwork,
@@ -43,7 +45,8 @@ export const fetchTokenTransfers = async (
 /**
  * Fetches transfer logs from token registry.
  * One topic-scoped queryFilter 0→latest (enterprise); on range/rate error, mint-seeking
- * backward chunks from tip (10k → 10). Single-filter path — no parallel doomed burst.
+ * chunks from tip using capability learned from that error (large-first → free 10).
+ * Single-filter path — no parallel doomed burst on free keys.
  * @param {Provider | ethersV6.Provider} provider - Ethers provider
  * @param {ethersV6.Contract | ethers.Contract} tokenRegistry - Token Registry contract
  * @param {string} tokenRegistryAddress - Token Registry contract address
@@ -68,7 +71,13 @@ async function fetchLogs(
   } catch (err) {
     if (!isLogsRetryableError(err)) throw err;
     const topics = await resolveFilterTopics(transferLogFilter);
-    return fetchLogsChunked(provider, tokenRegistry, tokenRegistryAddress, topics);
+    return fetchLogsChunked(
+      provider,
+      tokenRegistry,
+      tokenRegistryAddress,
+      topics,
+      learnCapabilityFromProbeError(err),
+    );
   }
 }
 
@@ -78,6 +87,7 @@ async function fetchLogsChunked(
   tokenRegistryAddress: string,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   topics: any[],
+  capability?: LogsCapability,
 ): Promise<Event[] | ethersV6.EventLog[]> {
   await warmProviderNetwork(provider);
   const latestBlock = await getLatestBlockWithRetry(provider);
@@ -100,6 +110,7 @@ async function fetchLogsChunked(
       'Unable to locate mint Transfer event; scan stopped after an RPC failure; refusing incomplete endorsement chain',
     notFoundMessage: 'Unminted Title Escrow',
     topics,
+    capability,
   });
 
   return logs as Event[] | ethersV6.EventLog[];

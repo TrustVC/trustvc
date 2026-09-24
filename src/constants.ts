@@ -15,7 +15,13 @@ export const FREE_TIER_BLOCK_RANGE_RE = new RegExp(
   'i',
 );
 
-/** Window must shrink: free-tier, generic block-range, or result/response overflow. */
+/** Infura-style query duration exceeded — shrink by bisect, not free-tier jump. */
+export const QUERY_TIMEOUT_ERROR_RE = new RegExp(
+  ['query timeout', 'timeout exceeded', 'request timed out', 'context deadline'].join('|'),
+  'i',
+);
+
+/** Window must shrink: free-tier, generic block-range, result/response overflow, or timeout. */
 export const RANGE_TOO_LARGE_ERROR_RE = new RegExp(
   [
     'query returned more than',
@@ -28,6 +34,10 @@ export const RANGE_TOO_LARGE_ERROR_RE = new RegExp(
     'free tier',
     'block difference',
     'Upgrade to PAYG',
+    'query timeout',
+    'timeout exceeded',
+    'request timed out',
+    'context deadline',
     rpcCode('-32012'),
   ].join('|'),
   'i',
@@ -44,12 +54,20 @@ export const RATE_LIMIT_ERROR_RE = new RegExp(
   'i',
 );
 
-/** Paid / default chunk window after unranged 0→latest fails. */
+/**
+ * Paid block-range fallback (Alchemy “other chains” / explicit 10k block caps).
+ * Not the default start for Infura-like result/time caps — those use LARGE_CHUNK_SIZE.
+ */
 export const INITIAL_CHUNK_SIZE = 10_000;
+/**
+ * Post-probe start when free is ruled out and the error is not an explicit block-range cap
+ * (sparse escrows: few logs → much wider than 10k blocks is safe until timeout/overflow).
+ */
+export const LARGE_CHUNK_SIZE = 1_000_000;
 /** Free-tier max eth_getLogs block span (Infura / Alchemy free). */
 export const FREE_TIER_MAX_CHUNK_SIZE = 10;
 export const MIN_CHUNK_SIZE = 1;
 export const RATE_LIMIT_MAX_RETRIES = 3;
 export const RATE_LIMIT_BASE_DELAY_MS = 500;
-/** Max in-flight eth_getLogs during parallel forward scans (paid 10k-block tier). */
+/** Max in-flight eth_getLogs during parallel forward scans (non-free tiers). */
 export const GET_LOGS_MAX_CONCURRENCY = 10;

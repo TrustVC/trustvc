@@ -3,9 +3,13 @@ import {
   FREE_TIER_MAX_CHUNK_SIZE,
   GET_LOGS_MAX_CONCURRENCY,
   INITIAL_CHUNK_SIZE,
+  LARGE_CHUNK_SIZE,
   RATE_LIMIT_MAX_RETRIES,
 } from '../../constants';
 import {
+  classifyGetLogsFailure,
+  learnCapabilityFromProbeError,
+  scanAfterProbeFailure,
   scanForMintEvent,
   scanLogsBackward,
   scanLogsForward,
@@ -27,13 +31,64 @@ function mockProvider(getLogs: (filter: GetLogsCall) => Promise<unknown[]>) {
   };
 }
 
+describe('classifyGetLogsFailure / learnCapabilityFromProbeError', () => {
+  it('classifies free-tier and learns sequential maxSpan 10', () => {
+    const err = new Error(
+      'Log response size exceeded. You can make eth_getLogs requests with up to a 10 block range on the Free tier plan. Upgrade to PAYG for greater limits.',
+    );
+    expect(classifyGetLogsFailure(err).class).toBe('FREE_TIER');
+    expect(learnCapabilityFromProbeError(err)).toEqual({
+      mode: 'free',
+      maxSpan: FREE_TIER_MAX_CHUNK_SIZE,
+      parallel: false,
+    });
+  });
+
+  it('classifies result overflow separately from free-tier', () => {
+    const err = Object.assign(new Error('query returned more than 10000 results'), {
+      code: -32005,
+    });
+    expect(classifyGetLogsFailure(err).class).toBe('RESULT_OVERFLOW');
+    expect(learnCapabilityFromProbeError(err).mode).toBe('result_capped');
+  });
+
+  it('classifies timeout and learns large result_capped windows', () => {
+    const err = Object.assign(new Error('query timeout exceeded'), { code: -32005 });
+    expect(classifyGetLogsFailure(err).class).toBe('TIMEOUT');
+    const cap = learnCapabilityFromProbeError(err);
+    expect(cap.mode).toBe('result_capped');
+    expect(cap.maxSpan).toBe(LARGE_CHUNK_SIZE);
+    expect(cap.parallel).toBe(true);
+  });
+
+  it('parses Infura suggested range from error.data', () => {
+    const err = Object.assign(new Error('query returned more than 10000 results'), {
+      code: -32005,
+      data: { from: '0x1000', to: '0x14FF', limit: 10000 },
+    });
+    const failure = classifyGetLogsFailure(err);
+    expect(failure.class).toBe('RESULT_OVERFLOW');
+    expect(failure.suggestedSpan).toBe(0x14ff - 0x1000 + 1);
+  });
+
+  it('parses Alchemy suggested range from message', () => {
+    const err = new Error(
+      'Log response size exceeded. Based on your parameters and the response size limit, this block range should work: [0x0, 0x270f]',
+    );
+    // Free-tier fingerprint wins when "10 block" is absent; this message is RANGE via suggested.
+    // Without free-tier wording this is overflow/response size → RESULT_OVERFLOW.
+    expect(classifyGetLogsFailure(err).class).toBe('RESULT_OVERFLOW');
+    expect(classifyGetLogsFailure(err).suggestedSpan).toBe(0x270f - 0x0 + 1);
+  });
+});
+
 describe('scanLogsBackward tier ladder', () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
-  it('jumps from 10000 to 10 on a free-tier block-range error', async () => {
+  it('jumps from large-first window to 10 on a free-tier block-range error', async () => {
     const windows: number[] = [];
     const provider = mockProvider(async (filter) => {
       const size = windowSize(filter);
@@ -46,10 +101,10 @@ describe('scanLogsBackward tier ladder', () => {
       return [];
     });
 
-    // Floor low enough that the first paid window is a full 10k blocks.
+    // Floor low enough that the first attempt covers the full [90k, 100k] span.
     await scanLogsBackward(provider as never, '0xabc', 100_000, 90_000);
 
-    expect(windows[0]).toBe(INITIAL_CHUNK_SIZE);
+    expect(windows[0]).toBeGreaterThan(FREE_TIER_MAX_CHUNK_SIZE);
     expect(windows[1]).toBe(FREE_TIER_MAX_CHUNK_SIZE);
     expect(windows.slice(1).every((s) => s <= FREE_TIER_MAX_CHUNK_SIZE)).toBe(true);
   });
@@ -67,7 +122,7 @@ describe('scanLogsBackward tier ladder', () => {
 
     const result = await scanLogsBackward(provider as never, '0xabc', 100_000, 0);
 
-    // One failed 10k (free-tier shrink) + one 10-block 429 → stop with no further retries.
+    // One failed large window (free-tier shrink) + one 10-block 429 → stop with no further retries.
     expect(getLogsCalls).toBe(2);
     expect(result.truncated).toBe(true);
     expect(result.foundMint).toBe(false);
@@ -78,7 +133,7 @@ describe('scanLogsBackward tier ladder', () => {
     const provider = mockProvider(async (filter) => {
       const size = windowSize(filter);
       windows.push(size);
-      if (size === INITIAL_CHUNK_SIZE) {
+      if (size > 5_000) {
         throw new Error('query returned more than 10000 results');
       }
       return [];
@@ -86,16 +141,56 @@ describe('scanLogsBackward tier ladder', () => {
 
     await scanLogsBackward(provider as never, '0xabc', 100_000, 90_000);
 
-    expect(windows[0]).toBe(INITIAL_CHUNK_SIZE);
+    expect(windows[0]).toBeGreaterThan(5_000);
+    // /4 from the attempted span (full 10_001 → 2500).
     expect(windows[1]).toBe(2_500);
     expect(windows[1]).toBeGreaterThan(FREE_TIER_MAX_CHUNK_SIZE);
   });
 
-  it('retries rate limits at the paid 10000 window before giving up', async () => {
+  it('bisects on query timeout without jumping to free-tier 10', async () => {
+    const windows: number[] = [];
+    const provider = mockProvider(async (filter) => {
+      const size = windowSize(filter);
+      windows.push(size);
+      if (size > 5_000) {
+        throw new Error('query timeout exceeded');
+      }
+      return [];
+    });
+
+    await scanLogsBackward(provider as never, '0xabc', 100_000, 90_000);
+
+    expect(windows[0]).toBe(10_001);
+    // Bisect: floor(10001/2) = 5000.
+    expect(windows[1]).toBe(5_000);
+    expect(windows[1]).toBeGreaterThan(FREE_TIER_MAX_CHUNK_SIZE);
+  });
+
+  it('uses Infura suggested span when present on overflow', async () => {
+    const windows: number[] = [];
+    const provider = mockProvider(async (filter) => {
+      const size = windowSize(filter);
+      windows.push(size);
+      if (size > 2_000) {
+        throw Object.assign(new Error('query returned more than 10000 results'), {
+          code: -32005,
+          data: { from: '0x0', to: '0x7CF', limit: 10000 }, // 0x7CF+1 = 2000
+        });
+      }
+      return [];
+    });
+
+    await scanLogsBackward(provider as never, '0xabc', 100_000, 90_000);
+
+    expect(windows[0]).toBeGreaterThan(2_000);
+    expect(windows[1]).toBe(2_000);
+  });
+
+  it('retries rate limits at a paid window before giving up', async () => {
     vi.useFakeTimers();
-    let attemptsAt10k = 0;
+    let attempts = 0;
     const provider = mockProvider(async () => {
-      attemptsAt10k += 1;
+      attempts += 1;
       throw Object.assign(new Error('Too Many Requests'), { code: 429 });
     });
 
@@ -104,7 +199,7 @@ describe('scanLogsBackward tier ladder', () => {
     await vi.runAllTimersAsync();
     const result = await resultPromise;
 
-    expect(attemptsAt10k).toBe(RATE_LIMIT_MAX_RETRIES + 1);
+    expect(attempts).toBe(RATE_LIMIT_MAX_RETRIES + 1);
     expect(result.truncated).toBe(true);
   });
 });
@@ -114,7 +209,7 @@ describe('scanLogsForward', () => {
     vi.restoreAllMocks();
   });
 
-  it('walks floor→latest in adaptive 10k windows (first sequential, rest parallel)', async () => {
+  it('large-first without capability covers a moderate span in one sequential window', async () => {
     const windows: GetLogsCall[] = [];
     const provider = mockProvider(async (filter) => {
       windows.push({ fromBlock: filter.fromBlock, toBlock: filter.toBlock });
@@ -123,22 +218,16 @@ describe('scanLogsForward', () => {
 
     const logs = await scanLogsForward(provider as never, '0xabc', 1_000, 25_000);
 
-    expect([...windows].sort((a, b) => a.fromBlock - b.fromBlock)).toEqual([
-      { fromBlock: 1_000, toBlock: 10_999 },
-      { fromBlock: 11_000, toBlock: 20_999 },
-      { fromBlock: 21_000, toBlock: 25_000 },
-    ]);
-    expect(logs).toHaveLength(3);
-    // Oldest→newest regardless of parallel completion order.
-    expect(logs.map((l) => (l as { blockNumber: number }).blockNumber)).toEqual([
-      1_000, 11_000, 21_000,
-    ]);
+    expect(windows).toEqual([{ fromBlock: 1_000, toBlock: 25_000 }]);
+    expect(logs).toHaveLength(1);
   });
 
-  it('parallelizes all windows immediately when assumePaidTier is set', async () => {
+  it('parallelizes immediately for block_capped capability at 10k', async () => {
     let inFlight = 0;
     let maxInFlight = 0;
-    const provider = mockProvider(async () => {
+    const windows: number[] = [];
+    const provider = mockProvider(async (filter) => {
+      windows.push(windowSize(filter));
       inFlight += 1;
       maxInFlight = Math.max(maxInFlight, inFlight);
       await new Promise((r) => setTimeout(r, 15));
@@ -147,14 +236,43 @@ describe('scanLogsForward', () => {
     });
 
     await scanLogsForward(provider as never, '0xabc', 0, 50_000, undefined, {
-      assumePaidTier: true,
+      capability: { mode: 'block_capped', maxSpan: INITIAL_CHUNK_SIZE, parallel: true },
     });
 
     expect(maxInFlight).toBeGreaterThan(1);
     expect(maxInFlight).toBeLessThanOrEqual(GET_LOGS_MAX_CONCURRENCY);
+    expect(windows.every((s) => s <= INITIAL_CHUNK_SIZE)).toBe(true);
   });
 
-  it('never exceeds GET_LOGS_MAX_CONCURRENCY in-flight getLogs', async () => {
+  it('stays sequential for free capability after probe (no parallel 10k storm)', async () => {
+    let inFlight = 0;
+    let maxInFlight = 0;
+    const windows: number[] = [];
+    const provider = mockProvider(async (filter) => {
+      const size = windowSize(filter);
+      windows.push(size);
+      inFlight += 1;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      await new Promise((r) => setTimeout(r, 1));
+      inFlight -= 1;
+      return [];
+    });
+
+    // Short span so free-tier 10-block walk finishes quickly under the default timeout.
+    await scanAfterProbeFailure(
+      provider as never,
+      '0xabc',
+      0,
+      50,
+      new Error('free tier plan: 10 block difference'),
+    );
+
+    expect(maxInFlight).toBe(1);
+    expect(windows.every((s) => s <= FREE_TIER_MAX_CHUNK_SIZE)).toBe(true);
+    expect(windows.length).toBeGreaterThan(1);
+  });
+
+  it('never exceeds GET_LOGS_MAX_CONCURRENCY for block_capped parallel scans', async () => {
     let inFlight = 0;
     let maxInFlight = 0;
     const provider = mockProvider(async () => {
@@ -165,8 +283,9 @@ describe('scanLogsForward', () => {
       return [];
     });
 
-    // 1 sequential + remaining parallel windows → peak should be ≤ concurrency cap.
-    await scanLogsForward(provider as never, '0xabc', 0, 60_000);
+    await scanLogsForward(provider as never, '0xabc', 0, 60_000, undefined, {
+      capability: { mode: 'block_capped', maxSpan: INITIAL_CHUNK_SIZE, parallel: true },
+    });
 
     expect(maxInFlight).toBeLessThanOrEqual(GET_LOGS_MAX_CONCURRENCY);
     expect(maxInFlight).toBeGreaterThan(1);
@@ -183,12 +302,11 @@ describe('scanLogsForward', () => {
       return [];
     });
 
-    // Span wide enough that the first attempt is a full 10k window.
     await scanLogsForward(provider as never, '0xabc', 0, 20_000);
 
-    expect(windows[0]).toBe(INITIAL_CHUNK_SIZE);
-    expect(windows[1]).toBe(2_500);
-    expect(windows.slice(1).every((s) => s <= 2_500)).toBe(true);
+    expect(windows[0]).toBe(20_001);
+    expect(windows[1]).toBe(5_000); // /4 from 20001 → 5000
+    expect(windows.slice(1).every((s) => s <= 5_000)).toBe(true);
   });
 
   it('stays sequential on free-tier after the first window learns the 10-block cap', async () => {
@@ -206,11 +324,32 @@ describe('scanLogsForward', () => {
       return [];
     });
 
-    // Span must exceed INITIAL_CHUNK_SIZE so free-tier continues past the learn window.
     await scanLogsForward(provider as never, '0xabc', 0, 20_000);
 
     expect(maxInFlight).toBe(1);
   }, 30_000);
+
+  it('result_capped capability parallelizes large windows', async () => {
+    let inFlight = 0;
+    let maxInFlight = 0;
+    const windows: number[] = [];
+    const provider = mockProvider(async (filter) => {
+      windows.push(windowSize(filter));
+      inFlight += 1;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      await new Promise((r) => setTimeout(r, 10));
+      inFlight -= 1;
+      return [];
+    });
+
+    await scanLogsForward(provider as never, '0xabc', 0, 2_500_000, undefined, {
+      capability: { mode: 'result_capped', maxSpan: LARGE_CHUNK_SIZE, parallel: true },
+    });
+
+    expect(maxInFlight).toBeGreaterThan(1);
+    expect(windows.some((s) => s > INITIAL_CHUNK_SIZE)).toBe(true);
+    expect(windows.every((s) => s <= LARGE_CHUNK_SIZE)).toBe(true);
+  });
 });
 
 describe('scanForMintEvent paid parallel', () => {
@@ -218,31 +357,26 @@ describe('scanForMintEvent paid parallel', () => {
     vi.restoreAllMocks();
   });
 
-  it('finds mint below tip and returns oldest→newest through tip', async () => {
-    const mintBlock = 5_000;
+  it('finds mint in tip window without scanning older blocks', async () => {
     const provider = mockProvider(async (filter) => {
-      if (filter.fromBlock <= mintBlock && filter.toBlock >= mintBlock) {
-        return [
-          {
-            blockNumber: mintBlock,
-            transactionHash: '0xmint',
-            isMint: true,
-          },
-        ];
-      }
-      if (filter.fromBlock > mintBlock) {
-        return [{ blockNumber: filter.fromBlock, transactionHash: '0xlater', isMint: false }];
-      }
-      return [];
+      if (filter.toBlock < 90_000) return [];
+      return [
+        {
+          blockNumber: 95_000,
+          transactionHash: '0xmint',
+          topics: ['0x'],
+          data: '0x',
+        },
+      ];
     });
 
-    const logs = await scanForMintEvent(provider as never, '0xabc', 0, 25_000, {
-      isMintLog: (log) => Boolean(log.isMint),
+    const logs = await scanForMintEvent(provider as never, '0xabc', 0, 100_000, {
+      isMintLog: (log) => log.transactionHash === '0xmint',
       notFoundOnFailureMessage: 'fail',
       notFoundMessage: 'missing',
     });
 
-    expect(logs[0]).toMatchObject({ blockNumber: mintBlock, isMint: true });
-    expect(logs[logs.length - 1].blockNumber).toBeGreaterThanOrEqual(mintBlock);
+    expect(logs).toHaveLength(1);
+    expect((logs[0] as { transactionHash: string }).transactionHash).toBe('0xmint');
   });
 });
