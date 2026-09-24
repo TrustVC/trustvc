@@ -14,7 +14,6 @@ import {
   type LogsCapability,
   resolveFilterTopics,
   scanForMintEvent,
-  warmProviderNetwork,
 } from './fetchLogsChunked';
 
 export const fetchTokenTransfers = async (
@@ -89,7 +88,6 @@ async function fetchLogsChunked(
   topics: any[],
   capability?: LogsCapability,
 ): Promise<Event[] | ethersV6.EventLog[]> {
-  await warmProviderNetwork(provider);
   const latestBlock = await getLatestBlockWithRetry(provider);
   // Floor 0 — mint is near tip for live titles; avoid eth_getCode binary search on the registry.
 

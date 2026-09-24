@@ -139,9 +139,11 @@ Do **not** re-add the removed aliases. User-facing docs also live in `README.md`
   or `ObligationEscrowInterface`.
 - **`eth_getLogs` is capability-learned, never assume-paid.** After a full-span probe
   fails, classify the error (`learnCapabilityFromProbeError`) and scan with that
-  capability — free stays sequential at 10 blocks; do **not** set `assumePaidTier` /
-  open parallel 10k storms. Sparse escrows: large-first (result/timeout caps), not a
-  fixed 10k-block default. Timeout → bisect; overflow → `/4` or provider suggested range.
+  capability — free stays sequential at 10 blocks; do **not** open parallel 10k
+  storms on free keys. Sparse escrows: large-first (result/timeout caps), not a
+  fixed 10k-block default. Timeout → bisect; overflow → `/4` or provider suggested
+  range. Parallelism is `mapPool` only (no process-global rate gate). Mint hunts
+  are tip + sequential backward — prefer mint/creation floors so deep hunts are rare.
 - **Obligation scan bounds come from the contract.** Use `mintBlock()` as `fromBlock`
   and `shredBlock()` as `toBlock` when shredded (`shredBlock > 0`); active docs still
   scan through `latest`. Do not scan past shred into empty tip history.

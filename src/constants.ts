@@ -21,23 +21,23 @@ export const QUERY_TIMEOUT_ERROR_RE = new RegExp(
   'i',
 );
 
-/** Window must shrink: free-tier, generic block-range, result/response overflow, or timeout. */
-export const RANGE_TOO_LARGE_ERROR_RE = new RegExp(
+/** Result/response count overflow — shrink window; not free-tier. */
+export const RESULT_OVERFLOW_ERROR_RE = new RegExp(
+  ['query returned more than', '10,?000 results', 'response size', 'exceeds limit'].join('|'),
+  'i',
+);
+
+/**
+ * Explicit block-range caps (Alchemy “other chains” / “10k blocks”).
+ * Not free-tier and not log-count overflow.
+ */
+export const BLOCK_RANGE_CAP_ERROR_RE = new RegExp(
   [
-    'query returned more than',
-    'too large',
     'block range',
-    '10,?000 results',
-    'response size',
-    'exceeds limit',
-    String.raw`10\s*block`,
-    'free tier',
-    'block difference',
-    'Upgrade to PAYG',
-    'query timeout',
-    'timeout exceeded',
-    'request timed out',
-    'context deadline',
+    '10,?000 block',
+    String.raw`up to a \d+\s*block`,
+    String.raw`blocks? (?:limit|range)`,
+    String.raw`range (?:is|of) (?:at most )?\d+`,
     rpcCode('-32012'),
   ].join('|'),
   'i',

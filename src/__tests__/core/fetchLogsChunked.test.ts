@@ -352,7 +352,7 @@ describe('scanLogsForward', () => {
   });
 });
 
-describe('scanForMintEvent paid parallel', () => {
+describe('scanForMintEvent', () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });

@@ -20,7 +20,6 @@ import {
   scanAfterProbeFailure,
   scanForMintEvent,
   scanLogsBackward,
-  warmProviderNetwork,
 } from './fetchLogsChunked';
 import {
   ParsedLog,
@@ -48,6 +47,75 @@ const toTerminationReasonLabel = (reason: unknown): TerminationReasonLabel | und
   return TERMINATION_REASON_LABELS[index];
 };
 
+const fetchV4OwnerAndHolder = async (
+  titleEscrowContract: TitleEscrowV4,
+  fromBlock: number,
+  toBlock: number,
+): Promise<TitleEscrowTransferEvent[]> => {
+  const [holderChangeLogs, ownerChangeLogs] = await Promise.all([
+    fetchHolderTransfers(titleEscrowContract, fromBlock, toBlock),
+    fetchOwnerTransfers(titleEscrowContract, fromBlock, toBlock),
+  ]);
+  return [...holderChangeLogs, ...ownerChangeLogs];
+};
+
+const mapV4RawLogsToTransfers = (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  rawLogs: any[],
+  titleEscrowContract: TitleEscrowV4,
+): TitleEscrowTransferEvent[] => {
+  const parsed = getParsedLogs(rawLogs, titleEscrowContract);
+  const ownerChangeLogs: TitleEscrowTransferEvent[] = [];
+  const holderChangeLogs: TitleEscrowTransferEvent[] = [];
+  for (const event of parsed) {
+    if (event.name === 'BeneficiaryTransfer') {
+      ownerChangeLogs.push({
+        type: 'TRANSFER_BENEFICIARY',
+        owner: event.args.toBeneficiary,
+        blockNumber: event.blockNumber,
+        transactionHash: event.transactionHash,
+        transactionIndex: event.transactionIndex,
+      });
+    } else if (event.name === 'HolderTransfer') {
+      holderChangeLogs.push({
+        type: 'TRANSFER_HOLDER',
+        blockNumber: event.blockNumber,
+        holder: event.args.toHolder,
+        transactionHash: event.transactionHash,
+        transactionIndex: event.transactionIndex,
+      });
+    }
+  }
+  return [...holderChangeLogs, ...ownerChangeLogs];
+};
+
+const fetchV4TransfersAfterProbeFailure = async (
+  provider: Provider | ethersV6.Provider,
+  titleEscrowContract: TitleEscrowV4,
+  address: string,
+  fromBlock: number,
+  latestBlock: number,
+  probeErr: unknown,
+): Promise<TitleEscrowTransferEvent[]> => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let rawLogs: any[];
+  if (fromBlock > 0) {
+    rawLogs = await scanAfterProbeFailure(provider, address, fromBlock, latestBlock, probeErr);
+  } else {
+    // No floor — backward with capability learned from the probe (never assume paid).
+    const result = await scanLogsBackward(provider, address, latestBlock, 0, undefined, undefined, {
+      capability: learnCapabilityFromProbeError(probeErr),
+    });
+    if (result.truncated) {
+      throw new Error(
+        'Unable to retrieve Title Escrow events; scan stopped after an RPC failure; refusing incomplete endorsement chain',
+      );
+    }
+    rawLogs = result.logs;
+  }
+  return mapV4RawLogsToTransfers(rawLogs, titleEscrowContract);
+};
+
 export const fetchEscrowTransfersV4 = async (
   provider: Provider | ethersV6.Provider,
   address: string,
@@ -62,7 +130,6 @@ export const fetchEscrowTransfersV4 = async (
     provider as any,
   ) as TitleEscrowV4;
 
-  await warmProviderNetwork(provider);
   const latestBlock = await getLatestBlockWithRetry(provider);
   let fromBlock = scanFloor > 0 && scanFloor <= latestBlock ? scanFloor : 0;
 
@@ -75,63 +142,23 @@ export const fetchEscrowTransfersV4 = async (
 
   // Fits in one paid window — ranged filters, no probe/chunking.
   if (span <= INITIAL_CHUNK_SIZE) {
-    const [holderChangeLogs, ownerChangeLogs] = await Promise.all([
-      fetchHolderTransfers(titleEscrowContract, fromBlock, latestBlock),
-      fetchOwnerTransfers(titleEscrowContract, fromBlock, latestBlock),
-    ]);
-    return [...holderChangeLogs, ...ownerChangeLogs];
+    return fetchV4OwnerAndHolder(titleEscrowContract, fromBlock, latestBlock);
   }
 
   // Large span: one probe. Enterprise → ranged filters; else learn capability and scan.
   try {
     await probeLogsRange(provider, address, fromBlock, latestBlock);
-    const [holderChangeLogs, ownerChangeLogs] = await Promise.all([
-      fetchHolderTransfers(titleEscrowContract, fromBlock, latestBlock),
-      fetchOwnerTransfers(titleEscrowContract, fromBlock, latestBlock),
-    ]);
-    return [...holderChangeLogs, ...ownerChangeLogs];
+    return fetchV4OwnerAndHolder(titleEscrowContract, fromBlock, latestBlock);
   } catch (err) {
     if (!isLogsRetryableError(err)) throw err;
-
-    // One address-wide scan — owner+holder parsed from the same logs.
-    // Capability from probe error: free stays sequential; never assume paid.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let rawLogs: any[];
-    if (fromBlock > 0) {
-      rawLogs = await scanAfterProbeFailure(provider, address, fromBlock, latestBlock, err);
-    } else {
-      const result = await scanLogsBackward(provider, address, latestBlock, 0);
-      if (result.truncated) {
-        throw new Error(
-          'Unable to retrieve Title Escrow events; scan stopped after an RPC failure; refusing incomplete endorsement chain',
-        );
-      }
-      rawLogs = result.logs;
-    }
-
-    const parsed = getParsedLogs(rawLogs, titleEscrowContract);
-    const ownerChangeLogs: TitleEscrowTransferEvent[] = [];
-    const holderChangeLogs: TitleEscrowTransferEvent[] = [];
-    for (const event of parsed) {
-      if (event.name === 'BeneficiaryTransfer') {
-        ownerChangeLogs.push({
-          type: 'TRANSFER_BENEFICIARY',
-          owner: event.args.toBeneficiary,
-          blockNumber: event.blockNumber,
-          transactionHash: event.transactionHash,
-          transactionIndex: event.transactionIndex,
-        });
-      } else if (event.name === 'HolderTransfer') {
-        holderChangeLogs.push({
-          type: 'TRANSFER_HOLDER',
-          blockNumber: event.blockNumber,
-          holder: event.args.toHolder,
-          transactionHash: event.transactionHash,
-          transactionIndex: event.transactionIndex,
-        });
-      }
-    }
-    return [...holderChangeLogs, ...ownerChangeLogs];
+    return fetchV4TransfersAfterProbeFailure(
+      provider,
+      titleEscrowContract,
+      address,
+      fromBlock,
+      latestBlock,
+      err,
+    );
   }
 };
 
@@ -443,7 +470,6 @@ const fetchEscrowLogs = async (
   titleEscrowAddress: string,
   includeObligationStatus: boolean,
 ): Promise<ethers.providers.Log[] | ethersV6.Log[]> => {
-  await warmProviderNetwork(provider);
   const latestBlock = await getLatestBlockWithRetry(provider);
   const { fromBlock, toBlock } = await resolveEscrowScanBounds(
     provider,
