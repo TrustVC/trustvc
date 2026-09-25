@@ -10,12 +10,14 @@ import {
   ObligationEscrow__factory,
 } from '../../token-registry-v5/contracts';
 import { supportInterfaceIds as supportInterfaceIdsV5 } from '../../token-registry-v5/supportInterfaceIds';
-import { DEFAULT_MAX_BLOCKS_TO_SCAN } from '../../constants';
+import { INITIAL_CHUNK_SIZE } from '../../constants';
 import { getEthersContractFromProvider } from '../../utils/ethers';
 import {
   getLatestBlockWithRetry,
   isLogsRetryableError,
-  resolveFilterTopics,
+  learnCapabilityFromProbeError,
+  probeLogsRange,
+  scanAfterProbeFailure,
   scanForMintEvent,
   scanLogsBackward,
 } from './fetchLogsChunked';
@@ -45,9 +47,80 @@ const toTerminationReasonLabel = (reason: unknown): TerminationReasonLabel | und
   return TERMINATION_REASON_LABELS[index];
 };
 
+const fetchV4OwnerAndHolder = async (
+  titleEscrowContract: TitleEscrowV4,
+  fromBlock: number,
+  toBlock: number,
+): Promise<TitleEscrowTransferEvent[]> => {
+  const [holderChangeLogs, ownerChangeLogs] = await Promise.all([
+    fetchHolderTransfers(titleEscrowContract, fromBlock, toBlock),
+    fetchOwnerTransfers(titleEscrowContract, fromBlock, toBlock),
+  ]);
+  return [...holderChangeLogs, ...ownerChangeLogs];
+};
+
+const mapV4RawLogsToTransfers = (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  rawLogs: any[],
+  titleEscrowContract: TitleEscrowV4,
+): TitleEscrowTransferEvent[] => {
+  const parsed = getParsedLogs(rawLogs, titleEscrowContract);
+  const ownerChangeLogs: TitleEscrowTransferEvent[] = [];
+  const holderChangeLogs: TitleEscrowTransferEvent[] = [];
+  for (const event of parsed) {
+    if (event.name === 'BeneficiaryTransfer') {
+      ownerChangeLogs.push({
+        type: 'TRANSFER_BENEFICIARY',
+        owner: event.args.toBeneficiary,
+        blockNumber: event.blockNumber,
+        transactionHash: event.transactionHash,
+        transactionIndex: event.transactionIndex,
+      });
+    } else if (event.name === 'HolderTransfer') {
+      holderChangeLogs.push({
+        type: 'TRANSFER_HOLDER',
+        blockNumber: event.blockNumber,
+        holder: event.args.toHolder,
+        transactionHash: event.transactionHash,
+        transactionIndex: event.transactionIndex,
+      });
+    }
+  }
+  return [...holderChangeLogs, ...ownerChangeLogs];
+};
+
+const fetchV4TransfersAfterProbeFailure = async (
+  provider: Provider | ethersV6.Provider,
+  titleEscrowContract: TitleEscrowV4,
+  address: string,
+  fromBlock: number,
+  latestBlock: number,
+  probeErr: unknown,
+): Promise<TitleEscrowTransferEvent[]> => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let rawLogs: any[];
+  if (fromBlock > 0) {
+    rawLogs = await scanAfterProbeFailure(provider, address, fromBlock, latestBlock, probeErr);
+  } else {
+    // No floor — backward with capability learned from the probe (never assume paid).
+    const result = await scanLogsBackward(provider, address, latestBlock, 0, undefined, undefined, {
+      capability: learnCapabilityFromProbeError(probeErr),
+    });
+    if (result.truncated) {
+      throw new Error(
+        'Unable to retrieve Title Escrow events; scan stopped after an RPC failure; refusing incomplete endorsement chain',
+      );
+    }
+    rawLogs = result.logs;
+  }
+  return mapV4RawLogsToTransfers(rawLogs, titleEscrowContract);
+};
+
 export const fetchEscrowTransfersV4 = async (
   provider: Provider | ethersV6.Provider,
   address: string,
+  /** Optional mint/creation floor (e.g. token INITIAL block) — avoids eth_getCode when known. */
+  scanFloor = 0,
 ): Promise<TitleEscrowTransferEvent[]> => {
   const Contract = getEthersContractFromProvider(provider);
   const titleEscrowContract = new Contract(
@@ -57,13 +130,36 @@ export const fetchEscrowTransfersV4 = async (
     provider as any,
   ) as TitleEscrowV4;
 
-  const holderChangeLogsDeferred = fetchHolderTransfers(provider, titleEscrowContract, address);
-  const ownerChangeLogsDeferred = fetchOwnerTransfers(provider, titleEscrowContract, address);
-  const [holderChangeLogs, ownerChangeLogs] = await Promise.all([
-    holderChangeLogsDeferred,
-    ownerChangeLogsDeferred,
-  ]);
-  return [...holderChangeLogs, ...ownerChangeLogs];
+  const latestBlock = await getLatestBlockWithRetry(provider);
+  let fromBlock = scanFloor > 0 && scanFloor <= latestBlock ? scanFloor : 0;
+
+  // No token mint floor → resolve escrow creation so we never sequential-backward the whole chain.
+  if (fromBlock === 0) {
+    fromBlock = await resolveContractCreationBlock(provider, address, latestBlock);
+  }
+
+  const span = latestBlock - fromBlock;
+
+  // Fits in one paid window — ranged filters, no probe/chunking.
+  if (span <= INITIAL_CHUNK_SIZE) {
+    return fetchV4OwnerAndHolder(titleEscrowContract, fromBlock, latestBlock);
+  }
+
+  // Large span: one probe. Enterprise → ranged filters; else learn capability and scan.
+  try {
+    await probeLogsRange(provider, address, fromBlock, latestBlock);
+    return fetchV4OwnerAndHolder(titleEscrowContract, fromBlock, latestBlock);
+  } catch (err) {
+    if (!isLogsRetryableError(err)) throw err;
+    return fetchV4TransfersAfterProbeFailure(
+      provider,
+      titleEscrowContract,
+      address,
+      fromBlock,
+      latestBlock,
+      err,
+    );
+  }
 };
 
 export const fetchEscrowTransfersV5 = async (
@@ -129,49 +225,27 @@ const getParsedLogs = (
   });
 };
 
-// Shared by fetchOwnerTransfers/fetchHolderTransfers: falls back to a chunked scan on a
-// range/rate-limit error, filtered to this filter's own topics (never the unfiltered
-// address — this contract emits other event types under the same ABI).
-const queryEscrowFilterWithFallback = async (
-  provider: Provider | ethersV6.Provider,
+const queryEscrowFilter = async (
   titleEscrowContract: TitleEscrowV4,
-  address: string,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   filter: any,
+  fromBlock: number,
+  latestBlock: number,
 ): Promise<ethers.providers.Log[] | ethersV6.Log[]> => {
-  try {
-    // exiting function put under try/catch to handle rate limit errors
-    return await titleEscrowContract.queryFilter(filter, 0, 'latest');
-  } catch (err) {
-    if (!isLogsRetryableError(err)) throw err;
-    const latestBlock = await getLatestBlockWithRetry(provider);
-    const scanFloor = await resolveContractCreationBlock(provider, address, latestBlock);
-    const maxBlocksToScan = Math.max(DEFAULT_MAX_BLOCKS_TO_SCAN, latestBlock - scanFloor);
-    const topics = await resolveFilterTopics(filter);
-    const result = await scanLogsBackward(
-      provider,
-      address,
-      latestBlock,
-      scanFloor,
-      undefined,
-      maxBlocksToScan,
-      topics,
-    );
-    return result.logs;
-  }
+  return titleEscrowContract.queryFilter(filter, fromBlock, latestBlock);
 };
 
 const fetchOwnerTransfers = async (
-  provider: Provider | ethersV6.Provider,
   titleEscrowContract: TitleEscrowV4,
-  address: string,
+  fromBlock: number,
+  latestBlock: number,
 ): Promise<TitleEscrowTransferEvent[]> => {
   const ownerChangeFilter = titleEscrowContract.filters.BeneficiaryTransfer(null, null);
-  const ownerChangeLogs = await queryEscrowFilterWithFallback(
-    provider,
+  const ownerChangeLogs = await queryEscrowFilter(
     titleEscrowContract,
-    address,
     ownerChangeFilter,
+    fromBlock,
+    latestBlock,
   );
 
   const ownerChangeLogsParsed = getParsedLogs(ownerChangeLogs, titleEscrowContract);
@@ -185,16 +259,16 @@ const fetchOwnerTransfers = async (
 };
 
 const fetchHolderTransfers = async (
-  provider: Provider | ethersV6.Provider,
   titleEscrowContract: TitleEscrowV4,
-  address: string,
+  fromBlock: number,
+  latestBlock: number,
 ): Promise<TitleEscrowTransferEvent[]> => {
   const holderChangeFilter = titleEscrowContract.filters.HolderTransfer(null, null);
-  const holderChangeLogs = await queryEscrowFilterWithFallback(
-    provider,
+  const holderChangeLogs = await queryEscrowFilter(
     titleEscrowContract,
-    address,
     holderChangeFilter,
+    fromBlock,
+    latestBlock,
   );
   const holderChangeLogsParsed = getParsedLogs(holderChangeLogs, titleEscrowContract);
   return holderChangeLogsParsed.map((event) => ({
@@ -263,15 +337,16 @@ const buildEscrowFilters = (
   return filters;
 };
 
-const fetchLogsUnranged = async (
+const fetchLogsInRange = async (
   titleEscrowContract: ethers.Contract | ethersV6.Contract,
+  fromBlock: number,
+  toBlock: number | 'latest',
   includeObligationStatus: boolean,
 ): Promise<ethers.providers.Log[] | ethersV6.Log[]> => {
   const allFilters = buildEscrowFilters(titleEscrowContract, includeObligationStatus);
   const allLogs = await Promise.all(
     allFilters.map(async (filterFactory) => {
-      const logs = await titleEscrowContract.queryFilter(filterFactory(), 0, 'latest');
-      return logs;
+      return titleEscrowContract.queryFilter(filterFactory(), fromBlock, toBlock);
     }),
   );
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -281,8 +356,14 @@ const fetchLogsUnranged = async (
 const isNonEmptyCode = (code: unknown): boolean =>
   typeof code === 'string' && code !== '0x' && code.length > 2;
 
-// Binary-search the first block where the escrow has code (Title Escrow V5 has no mintBlock).
-// Exported so fetchTokenTransfer.ts can reuse the same scan-floor logic for the token registry.
+/**
+ * Binary-search first block where `address` has code (~log2(latest) eth_getCode calls).
+ * Used only when mintBlock is unavailable — still far cheaper than scanning 0→latest in 10k windows.
+ * @param {Provider | ethersV6.Provider} provider - Ethers provider
+ * @param {string} address - Contract address
+ * @param {number} latestBlock - Latest block
+ * @returns {Promise<number>} Creation block, or 0 if unknown
+ */
 export const resolveContractCreationBlock = async (
   provider: Provider | ethersV6.Provider,
   address: string,
@@ -295,7 +376,6 @@ export const resolveContractCreationBlock = async (
     };
 
     if (!(await hasCodeAt(latestBlock))) return 0;
-    // Already present at genesis — cannot bound a useful floor.
     if (await hasCodeAt(0)) return 0;
 
     let low = 0;
@@ -311,76 +391,131 @@ export const resolveContractCreationBlock = async (
   }
 };
 
-const resolveEscrowScanFloor = async (
+/**
+ * Resolve inclusive [fromBlock, toBlock] for an escrow log scan.
+ * ObligationEscrow: mintBlock → start, shredBlock → end when shredded (else latest).
+ * Classic Title Escrow V5: creation binary-search floor → latest (no shredBlock).
+ * @param {Provider | ethersV6.Provider} provider - Ethers provider
+ * @param {ethers.Contract | ethersV6.Contract} titleEscrowContract - Escrow contract
+ * @param {string} titleEscrowAddress - Escrow address
+ * @param {number} latestBlock - Chain tip
+ * @returns {Promise<{ fromBlock: number; toBlock: number }>} Inclusive scan bounds
+ */
+export const resolveEscrowScanBounds = async (
   provider: Provider | ethersV6.Provider,
   titleEscrowContract: ethers.Contract | ethersV6.Contract,
   titleEscrowAddress: string,
   latestBlock: number,
-): Promise<number> => {
+): Promise<{ fromBlock: number; toBlock: number }> => {
+  let fromBlock = 0;
+  let toBlock = latestBlock;
+
   try {
+    // ObligationEscrow (and compatible) — mintBlock is the document start.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const mintBlock = Number(await (titleEscrowContract as any).mintBlock());
     if (Number.isFinite(mintBlock) && mintBlock > 0 && mintBlock <= latestBlock) {
-      return mintBlock;
+      fromBlock = mintBlock;
     }
   } catch {
-    // Title Escrow V5 does not expose mintBlock.
+    // Classic Title Escrow V5 — mintBlock reverts.
   }
 
-  const creationBlock = await resolveContractCreationBlock(
-    provider,
-    titleEscrowAddress,
-    latestBlock,
-  );
-  if (creationBlock > 0 && creationBlock <= latestBlock) {
-    return creationBlock;
-  }
-  return 0;
-};
-
-const fetchLogsChunked = async (
-  provider: Provider | ethersV6.Provider,
-  titleEscrowContract: ethers.Contract | ethersV6.Contract,
-  titleEscrowAddress: string,
-): Promise<ethers.providers.Log[] | ethersV6.Log[]> => {
-  const latestBlock = await getLatestBlockWithRetry(provider);
-  const scanFloor = await resolveEscrowScanFloor(
-    provider,
-    titleEscrowContract,
-    titleEscrowAddress,
-    latestBlock,
-  );
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const isMintLog = (log: any) => {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const parsed = (titleEscrowContract.interface as any).parseLog(log);
-      return parsed?.name === 'TokenReceived' && parsed.args.isMinting;
-    } catch {
-      return false;
+  if (fromBlock === 0) {
+    // Without a floor, paid keys fall into sequential backward mint-hunt (concurrency unused).
+    // ~20–25 getCode calls beat thousands of sequential eth_getLogs.
+    const creationBlock = await resolveContractCreationBlock(
+      provider,
+      titleEscrowAddress,
+      latestBlock,
+    );
+    if (creationBlock > 0 && creationBlock <= latestBlock) {
+      fromBlock = creationBlock;
     }
-  };
+  }
 
-  return scanForMintEvent(provider, titleEscrowAddress, scanFloor, latestBlock, {
-    isMintLog,
-    notFoundInBudgetMessage:
-      'Unable to locate TokenReceived (mint) within the scan budget; refusing incomplete endorsement chain',
-    notFoundMessage:
-      'Unable to locate TokenReceived (mint) before the escrow scan floor; refusing incomplete endorsement chain',
-  });
+  try {
+    // ObligationEscrow — shredBlock is the document end (0 while still active).
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const shredBlock = Number(await (titleEscrowContract as any).shredBlock());
+    if (
+      Number.isFinite(shredBlock) &&
+      shredBlock > 0 &&
+      shredBlock <= latestBlock &&
+      shredBlock >= fromBlock
+    ) {
+      toBlock = shredBlock;
+    }
+  } catch {
+    // Classic Title Escrow V4/V5 — no shredBlock; scan through latest.
+  }
+
+  return { fromBlock, toBlock };
 };
 
+/**
+ * Fetch escrow logs without burning a parallel 0→latest storm on paid 10k keys.
+ * 1. Resolve mint/creation floor and optional shred ceiling (Obligation).
+ * 2. If span fits one paid window → query all filters in that range.
+ * 3. Else one full-span probe (enterprise) → all filters; on range error → chunk forward.
+ * @param {Provider | ethersV6.Provider} provider - Ethers provider
+ * @param {ethers.Contract | ethersV6.Contract} titleEscrowContract - Title escrow contract
+ * @param {string} titleEscrowAddress - Title escrow address
+ * @param {boolean} includeObligationStatus - Include obligation status event filters
+ * @returns {Promise<ethers.providers.Log[] | ethersV6.Log[]>} Escrow event logs
+ */
 const fetchEscrowLogs = async (
   provider: Provider | ethersV6.Provider,
   titleEscrowContract: ethers.Contract | ethersV6.Contract,
   titleEscrowAddress: string,
   includeObligationStatus: boolean,
 ): Promise<ethers.providers.Log[] | ethersV6.Log[]> => {
+  const latestBlock = await getLatestBlockWithRetry(provider);
+  const { fromBlock, toBlock } = await resolveEscrowScanBounds(
+    provider,
+    titleEscrowContract,
+    titleEscrowAddress,
+    latestBlock,
+  );
+  const span = toBlock - fromBlock;
+
+  // Fits in a single paid 10k window — no probe, no chunking.
+  if (span <= INITIAL_CHUNK_SIZE) {
+    return fetchLogsInRange(titleEscrowContract, fromBlock, toBlock, includeObligationStatus);
+  }
+
+  // Large span: one address-scoped probe. Enterprise succeeds; else learn and chunk.
   try {
-    return await fetchLogsUnranged(titleEscrowContract, includeObligationStatus);
+    await probeLogsRange(provider, titleEscrowAddress, fromBlock, toBlock);
+    return fetchLogsInRange(titleEscrowContract, fromBlock, toBlock, includeObligationStatus);
   } catch (err) {
     if (!isLogsRetryableError(err)) throw err;
-    return fetchLogsChunked(provider, titleEscrowContract, titleEscrowAddress);
+
+    // Floor known — adaptive forward scan from probe capability (never assume paid).
+    if (fromBlock > 0) {
+      return scanAfterProbeFailure(provider, titleEscrowAddress, fromBlock, toBlock, err);
+    }
+
+    // No floor — mint-seeking backward scan, seeded with capability from the probe error.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const isMintLog = (log: any) => {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const parsed = (titleEscrowContract.interface as any).parseLog(log);
+        return parsed?.name === 'TokenReceived' && parsed.args.isMinting;
+      } catch {
+        return false;
+      }
+    };
+
+    return scanForMintEvent(provider, titleEscrowAddress, 0, toBlock, {
+      isMintLog,
+      notFoundOnFailureMessage:
+        'Unable to locate TokenReceived (mint); scan stopped after an RPC failure; refusing incomplete endorsement chain',
+      notFoundMessage:
+        'Unable to locate TokenReceived (mint) before the escrow scan floor; refusing incomplete endorsement chain',
+      capability: learnCapabilityFromProbeError(err),
+    });
   }
 };
 
