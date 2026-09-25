@@ -36,7 +36,7 @@ export const BLOCK_RANGE_CAP_ERROR_RE = new RegExp(
     'block range',
     '10,?000 block',
     String.raw`up to a \d+\s*block`,
-    String.raw`blocks? (?:limit|range)`,
+    'blocks? (?:limit|range)',
     String.raw`range (?:is|of) (?:at most )?\d+`,
     rpcCode('-32012'),
   ].join('|'),

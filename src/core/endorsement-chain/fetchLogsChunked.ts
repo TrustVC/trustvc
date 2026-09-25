@@ -531,7 +531,7 @@ export const scanLogsForward = async (
   const capability = options?.capability;
   const state = stateFromCapability(capability);
 
-  if (capability && capability.parallel) {
+  if (capability?.parallel) {
     const windows = buildWindows(fromBlock, toBlock, state.chunkSize);
     const chunkGroups = await mapPool(windows, GET_LOGS_MAX_CONCURRENCY, async (window) =>
       fetchWindowAdaptive(
