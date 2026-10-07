@@ -17,6 +17,9 @@ import { w3cIssuerIdentity } from './issuer-identity/w3cIssuerIdentity';
 import { w3cEmptyCredentialStatus } from './document-status/w3cEmptyCredentialStatus';
 
 export {
+  // The codes are the contract a consumer keys copy off, so the enum has to be reachable —
+  // `reason.codeString` alone would leave callers comparing bare strings.
+  W3CVpCode,
   w3cVpCredentialStatus,
   w3cVpIssuerIdentity,
   w3cVpSignatureIntegrity,

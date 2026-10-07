@@ -106,13 +106,47 @@ answers only "is every signature authentic + is the holder bound". If you move a
 between these two fragments, move its test with it — an expired embedded VC must stay
 caught *somewhere*.
 
-`isVpDocument()` (the `test()` gate) routes on shape only (`type` includes
-`VerifiablePresentation` + has `verifiableCredential`) — it does **not** look at `proof`,
-so an unsigned VP is still routed in and then judged INVALID by the integrity fragment.
+### Failure codes and user-facing copy
 
-**Consistency note:** the fragment pipeline and `verifyW3CPresentation` were deliberately
-aligned to both enforce proof-presence + holder binding. If you touch one, keep the other
-in step.
+Every INVALID/ERROR fragment these verifiers emit carries a **`reason.code` from `W3CVpCode`**
+(`w3cVpVerifier.ts`) plus **`data.credentialIndices`** naming the embedded credential(s) at
+fault. `reason.message` is *developer-facing prose* — free to be reworded in any release. **The
+code is the contract.** A consumer that regexes the message will break quietly.
+
+`getVerificationError(fragments, document?)` (`src/utils/fragment/`) is the supported way to
+render a failure: it returns `{ type, title, message, code, codeString, credentialIndices }`
+with **both strings already resolved** from `errorMessages.MESSAGES` — a UI renders them and
+writes no copy of its own. It falls back to `errorMessageHandling` for OA documents.
+
+Two things make this more than a lookup table:
+
+- **`errorMessageHandling` could not express a presentation.** It is OA-shaped (one issuer, one
+  status), so its W3C branch could only answer HASH/IDENTITY/INVALID — every VP failure came out
+  as *"Document has been tampered with"*. The `PRESENTATION_*` / `CREDENTIAL_*` types exist
+  because **envelope and embedded credential have opposite remedies**: an expired presentation
+  is the holder's to fix (present again), an expired credential is the issuer's (reissue —
+  presenting again *can never work*). Same word "expired", different party. Never merge them.
+- **`CODE_PRIORITY` (`presentationError.ts`) is behaviour, not style.** Issuer resolution and
+  revocation are ranked ahead of signature failures because they are **root causes**: verifying
+  an embedded credential's signature needs its issuer's key, so an unpublished did:web *also*
+  fails integrity with a raw TypeError. Ranked the other way, an intact document is reported to
+  its holder as tampered with.
+
+Copy naming a credential uses `{credentials}` + `failureMessagePlural`, filled by
+`nameCredentials()` (`src/w3c/credentialLabel.ts`) as `Credential 2 ("BILL OF LADING")` —
+**position and label together**. Position alone names nothing on screen (renderers label tabs by
+template or type); label alone is ambiguous (two bills of lading give two identical tabs).
+
+Adding a code means: the enum, `CODE_TO_TYPE`, `CODE_PRIORITY`, a TYPE + MESSAGES entry, and a
+case in `verificationError.test.ts` — the "every code resolves" test fails otherwise.
+
+**Known gap, accepted deliberately:** `CREDENTIAL_STATUS_UNSUPPORTED` outranks
+`CREDENTIAL_SIGNATURE_INVALID`, so swapping a credential's status method for an unevaluable one
+— evading a revocation check — is reported as *"we cannot check the status"* rather than as an
+altered document, even though the signature provably fails. It is ranked this way so a
+presentation from another implementation, using a status method we do not implement but
+otherwise intact, is told what is wrong instead of being accused of forgery; that case is the
+common one. `reportsStatusRatherThanTampering` pins the choice and fails if the order changes.
 
 ## Endorsement chain (`src/core/endorsement-chain/useEndorsementChain.ts`)
 
@@ -171,6 +205,12 @@ Do **not** re-add the removed aliases. User-facing docs also live in `README.md`
   can find a false marker inside the coordinates instead of the real prefix. The point is
   reliably the **last 65 bytes** of the DER blob; slice from the end, not by searching for
   a marker byte. See `src/utils/aws-kms-signer/viem-kms-account.ts`.
+- **`createPresentation` validates embedded credentials against its `now`.** Building a VP with
+  a `now` earlier than a credential's `validFrom` throws *"credential at index 0 is not yet
+  valid"* at creation, before any verification runs. To fixture an expired VP, set `now` after
+  the credential's `validFrom` and use a short `expiresInSeconds`.
+- **`src/__tests__/core/endorsement-chain.test.ts` needs live RPC** for ~10 chains; it fails
+  offline (24 tests) regardless of your change. Check against a clean tree before blaming it.
 
 ## Relationship to the w3c monorepo
 
@@ -196,6 +236,9 @@ green w3c-vc build alone doesn't prove integration.
 - **A public export or its behavior** (a new/renamed function, changed signature).
 - **A VP policy or invariant** — the enforced flags, holder binding, v2 lock, create/verify
   symmetry, the fragment pipeline's proof-presence check.
+- **A failure code, its copy, or its priority** — `W3CVpCode`, `CODE_TO_TYPE`, `CODE_PRIORITY`,
+  or the presentation entries in the `errorMessages` catalogue. These are a published contract
+  that UIs render verbatim.
 - **Commands, tooling, or Node/engine requirements** — keep the Commands section runnable.
 - **A gotcha you just spent time on** — new gotchas are the highest-value additions.
 

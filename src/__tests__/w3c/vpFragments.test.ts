@@ -15,6 +15,8 @@ import {
   w3cVpSignatureIntegrity,
 } from '../../verify/fragments/presentation/w3cVpVerifier';
 import { w3cIssuerIdentity } from '../../verify/fragments/issuer-identity/w3cIssuerIdentity';
+import { getVerificationError } from '../../utils/fragment';
+import { errorMessages } from '../../utils/errorMessages';
 import { verifyDocument } from '../../core/verify';
 import { isValid } from '../../verify/verify';
 
@@ -577,5 +579,105 @@ describe('W3C VP verification fragments', () => {
     expect(byName('W3CVpSignatureIntegrity')?.status).toBe('INVALID');
     expect(isValid(fragments, ['DOCUMENT_INTEGRITY'])).toBe(false);
     expect(isValid(fragments)).toBe(false);
+  });
+  // ---------------------------------------------------------------------------------------
+  // The copy a user is shown, resolved from REAL fragments.
+  //
+  // The unit tests in utils/fragment/verificationError.test.ts pin the code -> copy mapping
+  // against hand-built fragments; they cannot catch a verifier that stops emitting the code,
+  // or emits a different one. These do: they run the real documents through the real
+  // verifiers and assert on the sentence that comes out the other end.
+  // ---------------------------------------------------------------------------------------
+  describe('user-facing copy, end to end', () => {
+    const resolve = async (doc: unknown) => {
+      const o = await opts();
+      const fragments = [
+        await w3cVpSignatureIntegrity.verify(doc as never, o as never),
+        await w3cVpCredentialStatus.verify(doc as never, o as never),
+        await w3cVpIssuerIdentity.verify(doc as never, o as never),
+      ];
+      return getVerificationError(fragments, doc);
+    };
+
+    it('an expired PRESENTATION asks the HOLDER to present again', async () => {
+      // `now` must be after the embedded credential's validFrom (2024-04-01) — createPresentation
+      // rejects a credential that is not yet valid at creation time. A 60s lifetime from there is
+      // long past by the time this runs.
+      const vp = await createPresentation(embeddedVc as never, {
+        holder: DID,
+        now: new Date('2025-01-01T00:00:00Z'),
+        expiresInSeconds: 60,
+      });
+      const { signed } = await signPresentation(vp, holderKey as never, { challenge: 'copy-vp' });
+      const err = await resolve(signed);
+      expect(err?.type).toBe(errorMessages.TYPES.PRESENTATION_EXPIRED);
+      expect(err?.message).toContain('Please ask the holder to present the credentials again');
+      // No raw verifier wording.
+      expect(err?.message).not.toContain('validUntil');
+    });
+
+    it('an expired embedded CREDENTIAL names it and asks the ISSUER to reissue', async () => {
+      const raw = {
+        ...W3C_RAW_CREDENTIAL_V2_0,
+        issuer: DID,
+        validFrom: '2020-01-01T00:00:00Z',
+        validUntil: '2021-01-01T00:00:00Z',
+        credentialSubject: { ...W3C_RAW_CREDENTIAL_V2_0.credentialSubject, id: DID },
+      };
+      const s = await signCredential(raw as never, holderKey as never, 'ecdsa-sd-2023');
+      const vc = assertDefined(
+        (
+          await deriveCredential(assertDefined(s.signed, 'signed'), [
+            '/credentialSubject/id',
+            '/validUntil',
+          ])
+        ).derived,
+        'derived',
+      );
+      const vp = await createPresentation(vc as never, {
+        holder: DID,
+        now: new Date('2020-06-01T00:00:00Z'),
+        expiresInSeconds: 315360000,
+      });
+      const { signed } = await signPresentation(vp, holderKey as never, { challenge: 'copy-vc' });
+      const err = await resolve(signed);
+
+      expect(err?.type).toBe(errorMessages.TYPES.CREDENTIAL_EXPIRED);
+      expect(err?.message).toContain('Credential 1');
+      expect(err?.message).toContain('Please ask the issuing authority to reissue it');
+      // The remedy for the ENVELOPE must never appear here: only the issuer can reissue.
+      expect(err?.message).not.toContain('Ask the holder');
+      expect(err?.message).not.toContain('validUntil');
+    });
+
+    // Altering an embedded credential breaks the envelope proof too, since the holder signed
+    // over it. Reporting the envelope blames the holder for someone else's edit and names
+    // nothing the reader can look at; the credential that changed is what gets reported.
+    it('names the tampered CREDENTIAL rather than blaming the presentation', async () => {
+      const raw = JSON.parse(
+        JSON.stringify(await createPresentation(embeddedVc as never, { holder: DID })),
+      );
+      const sub = Array.isArray(raw.verifiableCredential)
+        ? raw.verifiableCredential[0]
+        : raw.verifiableCredential;
+      sub.proof.proofValue = String(sub.proof.proofValue).slice(0, -6) + 'ZZZZZZ';
+      const { signed } = await signPresentation(raw, holderKey as never, {
+        challenge: 'copy-tamper',
+      });
+      const err = await resolve(signed);
+
+      expect(err?.type).toBe(errorMessages.TYPES.CREDENTIAL_TAMPERED);
+      expect(err?.message).toContain('Credential 1');
+      expect(err?.message).toContain('do not match its signature');
+      expect(err?.credentialIndices).toEqual([0]);
+    });
+
+    it('an UNSIGNED presentation is reported as unsigned, not as tampered with', async () => {
+      const vp = await createPresentation(embeddedVc as never, { holder: DID });
+      const err = await resolve(vp);
+      expect(err?.type).toBe(errorMessages.TYPES.PRESENTATION_UNSIGNED);
+      expect(err?.message).toContain('not signed');
+      expect(err?.message).not.toContain('tampered');
+    });
   });
 });

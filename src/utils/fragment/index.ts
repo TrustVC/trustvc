@@ -9,6 +9,9 @@ import { W3CCredentialStatusCode } from '../../verify/fragments/document-status/
 import { CredentialStatusResult } from '@trustvc/w3c-vc';
 import { TYPES } from '../errorMessages/VerificationErrorMessages';
 import { errorMessages as CONSTANTS } from '../errorMessages';
+import { VerificationError } from '../errorMessages/types';
+import { getPresentationFailure } from './presentationError';
+import { resolveVerificationError } from './verificationError';
 
 interface interpretFragmentsReturnTypes {
   hashValid: boolean;
@@ -113,6 +116,12 @@ const errorMessageHandling = (fragments: VerificationFragment[]): string[] => {
     (f) => f.name.startsWith('W3C') || f.name === 'TransferableRecords',
   );
   if (isW3cFragments) {
+    // A presentation reports its own cause. Ask it FIRST: the switch below is OpenAttestation
+    // shaped — one issuer, one status — so it can only answer HASH/IDENTITY/INVALID, and an
+    // expired or unsigned presentation came out of it as "Document has been tampered with".
+    const presentation = getPresentationFailure(fragments);
+    if (presentation) return [presentation.type];
+
     switch (true) {
       case w3cCredentialStatusRevoked(fragments):
         errors.push(CONSTANTS.TYPES.REVOKED);
@@ -135,4 +144,30 @@ const errorMessageHandling = (fragments: VerificationFragment[]): string[] => {
   } else return OAErrorMessageHandling(fragments);
 };
 
-export { errorMessageHandling, w3cCredentialStatusRevoked, w3cCredentialStatusSuspended };
+/**
+ * The failure a verification reports, resolved to the title and body a user should see.
+ * Returns undefined when nothing failed.
+ *
+ * This is the supported entry point for rendering a verification failure — prefer it over
+ * `errorMessageHandling` (which returns bare type keys) and never parse `reason.message`,
+ * which is diagnostic prose and may be reworded in any release. Pass the verified `document`
+ * so an embedded credential at fault can be named the way a renderer labels it.
+ * @param {VerificationFragment[]} fragments - The fragments returned by verification.
+ * @param {unknown} [document] - The verified document, for naming credentials at fault.
+ * @returns {VerificationError | undefined} What to show the user, or undefined when valid.
+ */
+const getVerificationError = (
+  fragments: VerificationFragment[],
+  document?: unknown,
+): VerificationError | undefined =>
+  resolveVerificationError(fragments, document, errorMessageHandling);
+
+export {
+  errorMessageHandling,
+  getVerificationError,
+  w3cCredentialStatusRevoked,
+  w3cCredentialStatusSuspended,
+};
+export { renderErrorMessage } from './verificationError';
+export { getPresentationFailure } from './presentationError';
+export type { PresentationFailure } from './presentationError';

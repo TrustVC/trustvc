@@ -7,3 +7,4 @@ export * as vc from './vc';
 export * from './verify';
 export * from './derive';
 export * from './presentation';
+export * from './credentialLabel';
