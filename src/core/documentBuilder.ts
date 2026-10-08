@@ -81,6 +81,10 @@ export interface RenderMethod {
   templateName: string;
 }
 
+const INLINE_HTML_TEMPLATE_TYPE = 'INLINE_HTML_TEMPLATE';
+// base64url of gzip output: every gzip stream starts 1f 8b 08, which encodes to "H4sI".
+const COMPRESSED_TEMPLATE_PATTERN = /^H4sI[A-Za-z0-9_-]+$/;
+
 /**
  * Configuration for the qrcode used in a Verifiable Credential document.
  * @property {string} uri - A unique identifier for the qrcode, typically a URL or URI.
@@ -203,11 +207,29 @@ export class DocumentBuilder {
     return this;
   }
 
-  // Defines the rendering method for the document.
+  // Defines the rendering method for the document. An inline template added via inlineTemplate()
+  // is kept, after this entry: readers that predate INLINE_HTML_TEMPLATE take renderMethod[0].
   renderMethod(method: RenderMethod) {
     if (this.isSigned) throw new Error('Configuration Error: Document is already signed.');
-    this.document.renderMethod = [method];
+    const inline = this.renderMethods().filter((m) => m.type === INLINE_HTML_TEMPLATE_TYPE);
+    this.document.renderMethod = [method, ...inline];
     this.addContext(RENDER_CONTEXT_V2_URL); // Add render method context to document.
+    return this;
+  }
+
+  // Adds an INLINE_HTML_TEMPLATE renderMethod entry, after any renderMethod() entry (see above).
+  // Takes the string from compressTemplate(): compression is async, so it happens before
+  // building rather than inside this chain or sign(). Calling again replaces the inline template.
+  inlineTemplate(template: string) {
+    if (this.isSigned) throw new Error('Configuration Error: Document is already signed.');
+    if (typeof template !== 'string' || !COMPRESSED_TEMPLATE_PATTERN.test(template)) {
+      throw new Error(
+        'Configuration Error: inlineTemplate expects a template compressed with compressTemplate().',
+      );
+    }
+    const others = this.renderMethods().filter((m) => m.type !== INLINE_HTML_TEMPLATE_TYPE);
+    this.document.renderMethod = [...others, { type: INLINE_HTML_TEMPLATE_TYPE, template }];
+    this.addContext(RENDER_CONTEXT_V2_URL);
     return this;
   }
 
@@ -366,6 +388,11 @@ export class DocumentBuilder {
     if (!this.document['@context'].includes(context)) {
       this.document['@context'].push(context);
     }
+  }
+
+  // Private helper returning the current renderMethod entries as an array.
+  private renderMethods(): Record<string, unknown>[] {
+    return [this.document.renderMethod].flat().filter(Boolean);
   }
 
   private assertSupportedChain(): void {

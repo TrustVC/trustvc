@@ -48,6 +48,11 @@
       "import": "./dist/esm/dnsprove/index.js",
       "require": "./dist/cjs/dnsprove/index.js"
     },
+    "./inline-template": {
+      "types": "./dist/types/inline-template/index.d.ts",
+      "import": "./dist/esm/inline-template/index.js",
+      "require": "./dist/cjs/inline-template/index.js"
+    },
     "./open-attestation": {
       "types": "./dist/types/open-attestation/index.d.ts",
       "import": "./dist/esm/open-attestation/index.js",

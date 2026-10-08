@@ -1,6 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { DocumentBuilder } from '../../core/documentBuilder';
 import {
+  compressTemplate,
+  decompressInlineTemplate,
+  findInlineTemplateRenderMethod,
+} from '../../inline-template';
+import { verifyW3CSignature } from '../../w3c';
+import {
   Bbs2023PrivateKeyPair,
   CryptoSuite,
   PrivateKeyPair,
@@ -355,6 +361,84 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
         'https://trustvc.io/context/render-method-context-v2.json',
       );
     });
+  });
+
+  describe('inlineTemplate', () => {
+    const embedded = {
+      id: 'https://generic-templates.tradetrust.io',
+      type: 'EMBEDDED_RENDERER',
+      templateName: 'BILL_OF_LADING',
+    };
+    const template = {
+      templateName: 'BILL_OF_LADING',
+      html: '<h1 data-field="blNumber"></h1>',
+      css: 'h1 { color: navy; }',
+    };
+
+    it('adds an INLINE_HTML_TEMPLATE entry after the EMBEDDED_RENDERER entry, in either call order', async () => {
+      const compressed = await compressTemplate(template);
+      const inline = { type: 'INLINE_HTML_TEMPLATE', template: compressed };
+
+      documentBuilder.inlineTemplate(compressed).renderMethod(embedded);
+      expect(documentBuilder['document'].renderMethod).toEqual([embedded, inline]);
+
+      const other = new DocumentBuilder({}).renderMethod(embedded).inlineTemplate(compressed);
+      expect(other['document'].renderMethod).toEqual([embedded, inline]);
+      expect(other['document']['@context']).toContain(
+        'https://trustvc.io/context/render-method-context-v2.json',
+      );
+    });
+
+    it('replaces a previous inline template instead of adding a second one', async () => {
+      const first = await compressTemplate(template);
+      const second = await compressTemplate({ ...template, css: 'h1 { color: red; }' });
+
+      documentBuilder.renderMethod(embedded).inlineTemplate(first).inlineTemplate(second);
+      expect(documentBuilder['document'].renderMethod).toEqual([
+        embedded,
+        { type: 'INLINE_HTML_TEMPLATE', template: second },
+      ]);
+    });
+
+    it('rejects a template that was not compressed with compressTemplate()', () => {
+      expect(() => documentBuilder.inlineTemplate(JSON.stringify(template))).toThrow(
+        'Configuration Error: inlineTemplate expects a template compressed with compressTemplate().',
+      );
+      expect(() => documentBuilder.inlineTemplate(template as never)).toThrow(
+        'Configuration Error: inlineTemplate expects a template compressed with compressTemplate().',
+      );
+    });
+
+    it('signs, derives and verifies with the template covered by the proof', async () => {
+      documentBuilder
+        .credentialSubject({ type: ['BillOfLading'], blNumber: 'BL-001' })
+        .renderMethod(embedded)
+        .inlineTemplate(await compressTemplate(template));
+
+      // Callers make /renderMethod mandatory so a derived copy can't drop the template.
+      const signed = await documentBuilder.sign(ECDSAtestPrivateKeyDidKey, 'ecdsa-sd-2023', {
+        mandatoryPointers: ['/renderMethod'],
+      });
+      const derived = await documentBuilder.derive([]);
+      expect(derived.renderMethod).toEqual(signed.renderMethod);
+      expect(await documentBuilder.verify()).toBe(true);
+
+      const restored = await decompressInlineTemplate(derived);
+      expect(findInlineTemplateRenderMethod(restored)?.template).toEqual(template);
+
+      const tampered = {
+        ...derived,
+        renderMethod: [
+          embedded,
+          {
+            type: 'INLINE_HTML_TEMPLATE',
+            template: await compressTemplate({ ...template, html: '<h1>forged</h1>' }),
+          },
+        ],
+      };
+      const tamperedResult = await verifyW3CSignature(tampered as never);
+      expect(tamperedResult.verified).toBe(false);
+    }, 10000);
   });
 
   describe('qrCode', () => {
