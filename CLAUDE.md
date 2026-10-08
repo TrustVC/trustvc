@@ -33,6 +33,7 @@ Source map (`src/`):
 | `src/verify/verify.ts` | `verificationBuilder`, `openAttestationVerifiers`, `w3cVerifiers`. |
 | `src/verify/fragments/` | Verifier fragments by dimension: `document-integrity`, `document-status`, `issuer-identity`, `presentation`. |
 | `src/w3c/` | The W3C surface: `sign`, `derive`, `verify`, **`presentation`** (VP wrappers), `types`. |
+| `src/inline-template/` | `INLINE_HTML_TEMPLATE` renderMethod: compression (`compressTemplate` → string for `DocumentBuilder.inlineTemplate()`, `decompressInlineTemplate` after verify) selection (`getRenderMethods` → `{ inlineTemplate, renderer }`: try inline first, fall back to the renderer URL) and rendering (`findInlineTemplateRenderMethod`, `fillInlineTemplate`, `renderInlineTemplate`). Rendering is **browser-only at call time** (DOMParser / Shadow DOM); safe to import in Node. Also exported as `@trustvc/trustvc/inline-template`. Signed `template` is always the compressed string — the render-method-context-v2 term is a plain string. |
 
 ## Commands
 
@@ -171,6 +172,14 @@ Do **not** re-add the removed aliases. User-facing docs also live in `README.md`
   can find a false marker inside the coordinates instead of the real prefix. The point is
   reliably the **last 65 bytes** of the DER blob; slice from the end, not by searching for
   a marker byte. See `src/utils/aws-kms-signer/viem-kms-account.ts`.
+
+- **DOM code needs jsdom in tests and `/* global X */` for jsdoc.** Vitest runs in Node by
+  default — DOM-touching test files start with `// @vitest-environment jsdom`. ESLint has no
+  browser globals configured, so `jsdoc/no-undefined-types` rejects `{HTMLElement}` etc.
+  unless the file declares them (`/* global HTMLElement */`).
+- **Inline-template bindings never use `innerHTML` for data.** `data-field` → `textContent`,
+  `data-field-src` → `src` only. Don't add a generic attribute binder (e.g. `href` would
+  reopen script injection from credential values).
 
 ## Relationship to the w3c monorepo
 

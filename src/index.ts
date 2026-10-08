@@ -44,6 +44,7 @@ export * from './w3c';
 export * from './utils';
 export * from './dnsprove';
 export * from './transaction';
+export * from './inline-template';
 
 export {
   v4SupportInterfaceIds,
