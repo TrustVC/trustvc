@@ -8,7 +8,7 @@ import {
 import { constants, errors, providers } from 'ethers';
 
 // TODO: Remove and replace with ethers v6 ERROR interfaces https://github.com/ethers-io/ethers.js/blob/v6.13.4/src.ts/utils/errors.ts#L156
-type EthersError = {
+export type EthersError = {
   message?: string;
   data?: string;
   method?: string;

@@ -9,6 +9,10 @@ module.exports = {
       name: 'v1',
       prerelease: 'alpha',
     },
+    {
+      name: 'beta',
+      prerelease: 'beta',
+    },
   ],
   github: true,
   changelog: true,

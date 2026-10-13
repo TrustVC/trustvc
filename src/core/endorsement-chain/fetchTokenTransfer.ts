@@ -4,9 +4,16 @@ import { LogDescription } from 'ethers/lib/utils';
 import { ethers as ethersV6 } from 'ethersV6';
 import { TradeTrustToken, TradeTrustToken__factory } from '../../token-registry-v4/contracts';
 import { getEthersContractFromProvider } from '../../utils/ethers';
-import { sortLogChain } from '../endorsement-chain/helpers';
+import { isZeroAddress, sortLogChain } from '../endorsement-chain/helpers';
 import { TokenTransferEvent, TokenTransferEventType, TypedEvent } from '../endorsement-chain/types';
 import { Provider } from '@ethersproject/abstract-provider';
+import { resolveContractCreationBlock } from './fetchEscrowTransfer';
+import {
+  getLatestBlockWithRetry,
+  isLogsRetryableError,
+  resolveFilterTopics,
+  scanForMintEvent,
+} from './fetchLogsChunked';
 
 export const fetchTokenTransfers = async (
   provider: Provider | ethersV6.Provider,
@@ -22,7 +29,7 @@ export const fetchTokenTransfers = async (
   );
 
   // Fetch transfer logs from token registry
-  const logs = await fetchLogs(tokenRegistryContract, tokenId);
+  const logs = await fetchLogs(provider, tokenRegistryContract, tokenRegistryAddress, tokenId);
   const parsedLogs = parseLogs(logs, tokenRegistryContract);
 
   const reformattedLogs = parsedLogs.map((event) =>
@@ -34,22 +41,67 @@ export const fetchTokenTransfers = async (
 };
 
 /**
- * Fetches transfer logs from token registry
+ * Fetches transfer logs from token registry.
+ * Tries a single unranged query first; if the provider rejects the range (e.g. Infura's
+ * 10,000-block eth_getLogs cap on a chain deep enough to exceed it), falls back to an
+ * adaptive backward chunked scan filtered to this tokenId's own Transfer events.
+ * @param {Provider | ethersV6.Provider} provider - Ethers provider
  * @param {TradeTrustToken} tokenRegistry - Token Registry contract
+ * @param {string} tokenRegistryAddress - Token Registry contract address
  * @param {string} tokenId - Token ID
  * @returns {Promise<Event[] | ethersV6.EventLog[]>} - Transfer Event logs
  */
 async function fetchLogs(
+  provider: Provider | ethersV6.Provider,
   tokenRegistry: ethersV6.Contract | ethers.Contract,
+  tokenRegistryAddress: string,
   tokenId: string,
 ): Promise<Event[] | ethersV6.EventLog[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const transferLogFilter: any = tokenRegistry.filters.Transfer(null, null, tokenId);
-  const logs = await tokenRegistry.queryFilter(transferLogFilter, 0);
 
-  if (logs.length === 0) {
-    throw new Error('Unminted Title Escrow');
+  try {
+    const logs = await tokenRegistry.queryFilter(transferLogFilter, 0);
+    if (logs.length === 0) {
+      throw new Error('Unminted Title Escrow');
+    }
+    return logs as Event[] | ethersV6.EventLog[];
+  } catch (err) {
+    if (!isLogsRetryableError(err)) throw err;
+    const topics = await resolveFilterTopics(transferLogFilter);
+    return fetchLogsChunked(provider, tokenRegistry, tokenRegistryAddress, topics);
   }
+}
+
+async function fetchLogsChunked(
+  provider: Provider | ethersV6.Provider,
+  tokenRegistry: ethersV6.Contract | ethers.Contract,
+  tokenRegistryAddress: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  topics: any[],
+): Promise<Event[] | ethersV6.EventLog[]> {
+  const latestBlock = await getLatestBlockWithRetry(provider);
+  const scanFloor = await resolveContractCreationBlock(provider, tokenRegistryAddress, latestBlock);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const isMintLog = (log: any): boolean => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const parsed = (tokenRegistry.interface as any).parseLog(log);
+      return isZeroAddress(parsed?.args?.from);
+    } catch {
+      return false;
+    }
+  };
+
+  const logs = await scanForMintEvent(provider, tokenRegistryAddress, scanFloor, latestBlock, {
+    isMintLog,
+    notFoundInBudgetMessage:
+      'Unable to locate mint Transfer event within the scan budget; refusing incomplete endorsement chain',
+    notFoundMessage: 'Unminted Title Escrow',
+    topics,
+  });
+
   return logs as Event[] | ethersV6.EventLog[];
 }
 

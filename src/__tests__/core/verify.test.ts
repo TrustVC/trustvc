@@ -18,7 +18,7 @@ import {
 import { W3CCredentialStatusCode } from '../../verify/fragments/document-status/w3cCredentialStatus';
 import { openAttestationDidSignedDocumentStatus } from '@tradetrust-tt/tt-verify';
 
-const providerUrl = 'https://polygon-amoy-bor-rpc.publicnode.com';
+const providerUrl = process.env.AMOY_RPC || 'https://polygon-amoy-bor-rpc.publicnode.com';
 
 describe.concurrent('W3C verify', () => {
   describe.concurrent('W3C_VERIFIABLE_DOCUMENT', () => {
@@ -68,6 +68,16 @@ describe.concurrent('W3C verify', () => {
               "code": 4,
               "codeString": "SKIPPED",
               "message": "Document does not have TransferableRecords status",
+            },
+            "status": "SKIPPED",
+            "type": "DOCUMENT_STATUS",
+          },
+          {
+            "name": "ObligationRecords",
+            "reason": {
+              "code": 4,
+              "codeString": "SKIPPED",
+              "message": "Document does not have ObligationRecords status",
             },
             "status": "SKIPPED",
             "type": "DOCUMENT_STATUS",
@@ -369,6 +379,16 @@ describe.concurrent('W3C verify', () => {
               },
               "name": "TransferableRecords",
               "status": "VALID",
+              "type": "DOCUMENT_STATUS",
+            },
+            {
+              "name": "ObligationRecords",
+              "reason": {
+                "code": 4,
+                "codeString": "SKIPPED",
+                "message": "Document does not have ObligationRecords status",
+              },
+              "status": "SKIPPED",
               "type": "DOCUMENT_STATUS",
             },
             {
