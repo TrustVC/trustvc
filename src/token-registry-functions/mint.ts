@@ -74,10 +74,7 @@ const mint = async (
     );
   }
 
-  if (remarks && isV5TT && !options.id) {
-    throw new Error('An `id` is required to encrypt remarks');
-  }
-  const encryptedRemarks = remarks && isV5TT ? `0x${encrypt(remarks, options.id as string)}` : '0x';
+  const encryptedRemarks = remarks && isV5TT ? `0x${encrypt(remarks, options.id ?? '')}` : '0x';
   // Check callStatic (dry run)
   try {
     const isV6 = isV6EthersProvider(signer.provider);

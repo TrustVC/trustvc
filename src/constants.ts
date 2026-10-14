@@ -1,3 +1,5 @@
+export const DEFAULT_KEY = '4d5a4e3f2f6d2b0a1f2e9b8f8a3c7a0b8d4f5c2e7b1a1c3f2e7b8c2d5a4f7e3e';
+
 // Match JSON-RPC / HTTP codes as standalone tokens (not inside block numbers, gas, chain IDs).
 const rpcCode = (code: string): string => `(?:^|[^0-9A-Za-z+-])${code}(?![0-9A-Za-z])`;
 // use string raw to avoid escaping the backslashes

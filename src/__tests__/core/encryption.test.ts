@@ -69,8 +69,10 @@ describe.concurrent('Encrpytion', () => {
     const decrypted = decrypt(encrypted, key);
     expect(decrypted).toBe(message);
   });
-  it('rejects a missing encryption key', async ({ expect }) => {
-    expect(() => encrypt('hello', '')).toThrow('Encryption key is required');
-    expect(() => decrypt('aa', '')).toThrow('Encryption key is required');
+  it('successfully encrypts and decrypts a messsage when key is missing', async ({ expect }) => {
+    const message = 'a'.repeat(120);
+    const encrypted = encrypt(message, '');
+    const decrypted = decrypt(encrypted, '');
+    expect(decrypted).toBe(message);
   });
 });

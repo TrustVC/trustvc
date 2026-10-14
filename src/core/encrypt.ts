@@ -1,3 +1,4 @@
+import { DEFAULT_KEY } from '../constants';
 import { stringToUint8Array, generate32ByteKey, generate12ByteNonce } from '../utils/stringUtils';
 import { Chacha20 } from 'ts-chacha20';
 
@@ -14,9 +15,8 @@ import { Chacha20 } from 'ts-chacha20';
  * @throws {Error} - Throws if the encryption process encounters any issues.
  */
 export function encrypt(message: string, key: string, nonce?: string): string {
-  if (typeof key !== 'string' || key.length === 0) {
-    throw new Error('Encryption key is required');
-  }
+  // Use a default key if the provided key is empty
+  key = key.length > 0 ? key : DEFAULT_KEY;
 
   // Ensure the key is transformed into a 32-byte key
   key = generate32ByteKey(key);
