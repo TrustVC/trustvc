@@ -565,7 +565,7 @@ The function returns the original plaintext message in UTF-8 format.
 #### Parameters
 
 - `encryptedMessage` (string): The encrypted message, in hexadecimal format.
-- `key` (string): The decryption key, which will be transformed into a 32-byte key. Defaults to `DEFAULT_KEY` if an empty key is provided.
+- `key` (string): The decryption key, which will be transformed into a 32-byte key. An empty key is rejected.
 - `nonce` (string, optional): A 12-byte nonce used during encryption. If omitted, one will be generated.
 
 #### Returns
@@ -624,8 +624,7 @@ It also relies on the `ts-chacha20` library for decryption operations.
 
 1. Always use the same key and nonce pair that were used during encryption for successful decryption.
 2. If a custom nonce is not provided, the function will generate a new one, which may not match the original encryption nonce and will result in decryption failure.
-3. The default key, `DEFAULT_KEY`, should only be used for fallback scenarios and not in production environments.
-4. Suggestion: If available, consider using the value of the key Id inside the document as the encryption key. This can simplify key management and enhance the security of your encryption process.
+3. Pass the document id as the key when one is available. An empty key is rejected.
 
 ---
 

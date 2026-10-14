@@ -273,6 +273,6 @@ export const fetchEndorsementChain = async (
     ? endorsementChain
     : endorsementChain.map((event) => ({
         ...event,
-        remark: event?.remark?.slice(2) ? decrypt(event.remark.slice(2), keyId ?? '') : '',
+        remark: event?.remark?.slice(2) && keyId ? decrypt(event.remark.slice(2), keyId) : '',
       }));
 };
