@@ -33,7 +33,7 @@ Source map (`src/`):
 | `src/verify/verify.ts` | `verificationBuilder`, `openAttestationVerifiers`, `w3cVerifiers`. |
 | `src/verify/fragments/` | Verifier fragments by dimension: `document-integrity`, `document-status`, `issuer-identity`, `presentation`. |
 | `src/w3c/` | The W3C surface: `sign`, `derive`, `verify`, **`presentation`** (VP wrappers), `types`. |
-| `src/inline-template/` | `INLINE_HTML_TEMPLATE` renderMethod: compression (`compressTemplate` → string for `DocumentBuilder.inlineTemplate()`, `decompressInlineTemplate` after verify) selection (`getRenderMethods` → `{ inlineTemplate, renderer }`: try inline first, fall back to the renderer URL) and rendering (`findInlineTemplateRenderMethod`, `fillInlineTemplate`, `renderInlineTemplate`). Rendering is **browser-only at call time** (DOMParser / Shadow DOM); safe to import in Node. Also exported as `@trustvc/trustvc/inline-template`. Signed `template` is always the compressed string — the render-method-context-v2 term is a plain string. |
+| `src/inline-template/` | `INLINE_HTML_TEMPLATE` renderMethod: compression (`compressTemplate` → string for `DocumentBuilder.inlineTemplate()`, `decompressInlineTemplate` after verify) selection (`getRenderMethods` → `{ inlineTemplate, renderer }`: try inline first, fall back to the renderer URL) and rendering (`findInlineTemplateRenderMethod`, `fillInlineTemplate`, `buildInlineTemplateSrcdoc`, `renderInlineTemplate` → sandboxed `srcdoc` iframe, `printInlineTemplate` → prints only that iframe). Rendering is **browser-only at call time** (DOMParser); safe to import in Node. Also exported as `@trustvc/trustvc/inline-template`. Signed `template` is always the compressed string — the render-method-context-v2 term is a plain string. |
 
 ## Commands
 
@@ -180,6 +180,16 @@ Do **not** re-add the removed aliases. User-facing docs also live in `README.md`
 - **Inline-template bindings never use `innerHTML` for data.** `data-field` → `textContent`,
   `data-field-src` → `src` only. Don't add a generic attribute binder (e.g. `href` would
   reopen script injection from credential values).
+- **Inline templates render only in a sandboxed iframe, never in the host page.** Template
+  HTML is issuer-controlled; DOMParser stops `<script>` but not `onerror=` / `onload=` /
+  `javascript:` (verified in Chrome and Edge), and Shadow DOM is not a security boundary.
+  `renderInlineTemplate` uses `sandbox="allow-same-origin allow-modals"` with **no
+  `allow-scripts`** (with same-origin it would let the frame remove its own sandbox) plus a
+  CSP `<meta>` (`INLINE_TEMPLATE_CSP`, `default-src 'none'`). Same-origin is only there so
+  the host can size the frame, cancel link clicks (a plain `<a href>` would otherwise load an
+  unsigned page inside the frame) and print it; `allow-modals` only because browsers ignore
+  `print()` on a sandboxed frame without it. `printInlineTemplate(host)` prints just the
+  frame and must be called from a user gesture.
 
 ## Relationship to the w3c monorepo
 

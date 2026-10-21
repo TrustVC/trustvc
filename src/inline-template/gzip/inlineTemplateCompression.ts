@@ -29,9 +29,6 @@ const isInlineTemplateEntry = (
   typeof method === 'object' &&
   (method as { type?: unknown }).type === 'INLINE_HTML_TEMPLATE';
 
-const isPlainEntry = (method: unknown): method is InlineTemplateRenderMethod =>
-  isInlineTemplateEntry(method) && !!method.template && typeof method.template === 'object';
-
 const isCompressedEntry = (method: unknown): method is CompressedInlineTemplateRenderMethod =>
   isInlineTemplateEntry(method) && typeof method.template === 'string';
 
@@ -75,10 +72,14 @@ const assertTemplate = (value: unknown, label = 'Decompressed inline template'):
  * Compresses a template's HTML + CSS into the string an `INLINE_HTML_TEMPLATE` renderMethod entry
  * carries: `base64url(gzip(JSON.stringify({ templateName, html, css })))`. Pass the result to
  * `DocumentBuilder.inlineTemplate()`.
+ *
+ * This is the only compression entry point, and it takes just the template object, never a
+ * whole credential. Only `templateName`, `html` and `css` are compressed; any other property on
+ * the object is dropped.
  * @param {object} template - The template to compress.
  * @param {string} template.templateName - Name of the template, e.g. 'BILL_OF_LADING'.
  * @param {string} template.html - Template markup, using `data-field` / `data-field-src` / `data-repeat` bindings.
- * @param {string} template.css - Styles for the markup (scoped to the template's Shadow DOM when rendered).
+ * @param {string} template.css - Styles for the markup (applied inside the template's sandboxed iframe when rendered).
  * @returns {Promise<string>} The compressed template string.
  */
 export async function compressTemplate(template: Template): Promise<string> {
@@ -93,31 +94,6 @@ export async function compressTemplate(template: Template): Promise<string> {
  */
 export function isCompressedInlineTemplate(document: unknown): boolean {
   return renderMethodsOf(document).some(isCompressedEntry);
-}
-
-/**
- * Gzips the template of every plain `INLINE_HTML_TEMPLATE` renderMethod entry. Call on the UNSIGNED
- * document, before signing, so the proof covers the compressed string.
- *
- * A document with no plain inline template (no renderMethod, other types only, or already
- * compressed) is returned as-is -- the same reference, untouched.
- * @template T
- * @param {T} document - The unsigned credential.
- * @returns {Promise<T>} A copy with compressed template(s), or `document` itself if there was nothing to compress.
- * @throws If `document` already has a `proof` -- compressing it would invalidate the signature.
- */
-export async function compressInlineTemplate<T>(document: T): Promise<T> {
-  if (!renderMethodsOf(document).some(isPlainEntry)) return document;
-  if ((document as { proof?: unknown }).proof) {
-    throw new Error(
-      'compressInlineTemplate must be called before signing: the document already has a proof',
-    );
-  }
-  return mapRenderMethods(document, async (method) => {
-    if (!isPlainEntry(method)) return method;
-    const template = await compressTemplate(method.template);
-    return { ...method, template } satisfies CompressedInlineTemplateRenderMethod;
-  });
 }
 
 /**

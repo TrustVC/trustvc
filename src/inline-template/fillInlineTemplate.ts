@@ -11,9 +11,10 @@
  *   the top-level `data`.
  *
  * `root` is expected to come from a freshly `DOMParser`-parsed document (see
- * `renderInlineTemplate`) -- never the live page document -- since the whole point of this
- * mechanism is that the stored template is inert data, not something we trust to run
- * unmodified against the real DOM until it's been filled.
+ * `buildInlineTemplateSrcdoc`) -- never the live page document. The parsed tree is only
+ * inert while detached: event-handler attributes in the template run once its nodes reach a
+ * live page, so the filled result must only ever be shown inside the sandboxed iframe that
+ * `renderInlineTemplate` creates.
  */
 function fillField(el: Element, data: Record<string, unknown> | undefined): void {
   const key = el.getAttribute('data-field');
