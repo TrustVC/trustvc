@@ -55,12 +55,13 @@ export const gzip = (bytes: Uint8Array): Promise<Uint8Array> =>
 export const gunzip = (bytes: Uint8Array, maxBytes: number): Promise<Uint8Array> =>
   readAll(pipe(bytes, new DecompressionStream('gzip')), maxBytes);
 
-// btoa/atob work on "binary strings"; build them in chunks so large templates don't overflow
-// the argument limit of String.fromCharCode.
+// btoa/atob work on "binary strings" (one char per byte, 0-255, so code point == char code);
+// build them in chunks so large templates don't overflow the argument limit of
+// String.fromCodePoint.
 export const toBase64Url = (bytes: Uint8Array): string => {
   let binary = '';
   for (let i = 0; i < bytes.length; i += 0x8000) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    binary += String.fromCodePoint(...bytes.subarray(i, i + 0x8000));
   }
   return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 };
@@ -70,7 +71,5 @@ export const fromBase64Url = (value: string): Uint8Array => {
     throw new Error('Inline HTML template is not valid base64url');
   const base64 = value.replace(/-/g, '+').replace(/_/g, '/');
   const binary = atob(base64 + '='.repeat((4 - (base64.length % 4)) % 4));
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return bytes;
+  return Uint8Array.from(binary, (char) => char.codePointAt(0) ?? 0);
 };

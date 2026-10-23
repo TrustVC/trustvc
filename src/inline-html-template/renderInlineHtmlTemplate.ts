@@ -65,7 +65,7 @@ export function buildInlineHtmlTemplateSrcdoc(document: unknown): string | undef
   const style = out.createElement('style');
   // `<style>` text is serialised unescaped, so a `</style` in the CSS would close the element
   // early. Harmless inside the sandbox, but keep the CSS where it belongs.
-  style.textContent = method.template.css.replace(/<\/style/gi, '<\\/style');
+  style.textContent = method.template.css.replace(/<\/style/gi, String.raw`<\/style`);
   out.head.appendChild(style);
   // DOMParser moves these into <head> (dropped above) only when they lead the markup; after body
   // content, or cloned out of a repeat block, they stay in <body>. There a meta refresh would
