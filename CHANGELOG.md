@@ -1,3 +1,10 @@
+## [2.16.0-beta.11](https://github.com/TrustVC/trustvc/compare/v2.16.0-beta.10...v2.16.0-beta.11) (2026-10-23)
+
+
+### Bug Fixes
+
+* inline template ([#177](https://github.com/TrustVC/trustvc/issues/177)) ([8a7a69c](https://github.com/TrustVC/trustvc/commit/8a7a69c793db08c0af64ba96d6e5c0ae6b858525))
+
 ## [2.16.0-beta.10](https://github.com/TrustVC/trustvc/compare/v2.16.0-beta.9...v2.16.0-beta.10) (2026-09-17)
 
 
