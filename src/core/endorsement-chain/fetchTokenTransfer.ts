@@ -2,15 +2,16 @@ import type { Event } from 'ethers';
 import { ethers } from 'ethers';
 import { LogDescription } from 'ethers/lib/utils';
 import { ethers as ethersV6 } from 'ethersV6';
-import { TradeTrustToken, TradeTrustToken__factory } from '../../token-registry-v4/contracts';
+import { TradeTrustToken__factory } from '../../token-registry-v4/contracts';
 import { getEthersContractFromProvider } from '../../utils/ethers';
 import { isZeroAddress, sortLogChain } from '../endorsement-chain/helpers';
 import { TokenTransferEvent, TokenTransferEventType, TypedEvent } from '../endorsement-chain/types';
 import { Provider } from '@ethersproject/abstract-provider';
-import { resolveContractCreationBlock } from './fetchEscrowTransfer';
 import {
   getLatestBlockWithRetry,
   isLogsRetryableError,
+  learnCapabilityFromProbeError,
+  type LogsCapability,
   resolveFilterTopics,
   scanForMintEvent,
 } from './fetchLogsChunked';
@@ -42,11 +43,11 @@ export const fetchTokenTransfers = async (
 
 /**
  * Fetches transfer logs from token registry.
- * Tries a single unranged query first; if the provider rejects the range (e.g. Infura's
- * 10,000-block eth_getLogs cap on a chain deep enough to exceed it), falls back to an
- * adaptive backward chunked scan filtered to this tokenId's own Transfer events.
+ * One topic-scoped queryFilter 0→latest (enterprise); on range/rate error, mint-seeking
+ * chunks from tip using capability learned from that error (large-first → free 10).
+ * Single-filter path — no parallel doomed burst on free keys.
  * @param {Provider | ethersV6.Provider} provider - Ethers provider
- * @param {TradeTrustToken} tokenRegistry - Token Registry contract
+ * @param {ethersV6.Contract | ethers.Contract} tokenRegistry - Token Registry contract
  * @param {string} tokenRegistryAddress - Token Registry contract address
  * @param {string} tokenId - Token ID
  * @returns {Promise<Event[] | ethersV6.EventLog[]>} - Transfer Event logs
@@ -69,7 +70,13 @@ async function fetchLogs(
   } catch (err) {
     if (!isLogsRetryableError(err)) throw err;
     const topics = await resolveFilterTopics(transferLogFilter);
-    return fetchLogsChunked(provider, tokenRegistry, tokenRegistryAddress, topics);
+    return fetchLogsChunked(
+      provider,
+      tokenRegistry,
+      tokenRegistryAddress,
+      topics,
+      learnCapabilityFromProbeError(err),
+    );
   }
 }
 
@@ -79,9 +86,10 @@ async function fetchLogsChunked(
   tokenRegistryAddress: string,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   topics: any[],
+  capability?: LogsCapability,
 ): Promise<Event[] | ethersV6.EventLog[]> {
   const latestBlock = await getLatestBlockWithRetry(provider);
-  const scanFloor = await resolveContractCreationBlock(provider, tokenRegistryAddress, latestBlock);
+  // Floor 0 — mint is near tip for live titles; avoid eth_getCode binary search on the registry.
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const isMintLog = (log: any): boolean => {
@@ -94,12 +102,13 @@ async function fetchLogsChunked(
     }
   };
 
-  const logs = await scanForMintEvent(provider, tokenRegistryAddress, scanFloor, latestBlock, {
+  const logs = await scanForMintEvent(provider, tokenRegistryAddress, 0, latestBlock, {
     isMintLog,
-    notFoundInBudgetMessage:
-      'Unable to locate mint Transfer event within the scan budget; refusing incomplete endorsement chain',
+    notFoundOnFailureMessage:
+      'Unable to locate mint Transfer event; scan stopped after an RPC failure; refusing incomplete endorsement chain',
     notFoundMessage: 'Unminted Title Escrow',
     topics,
+    capability,
   });
 
   return logs as Event[] | ethersV6.EventLog[];
