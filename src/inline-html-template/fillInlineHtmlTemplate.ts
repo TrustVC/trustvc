@@ -11,10 +11,10 @@
  *   the top-level `data`.
  *
  * `root` is expected to come from a freshly `DOMParser`-parsed document (see
- * `buildInlineTemplateSrcdoc`) -- never the live page document. The parsed tree is only
+ * `buildInlineHtmlTemplateSrcdoc`) -- never the live page document. The parsed tree is only
  * inert while detached: event-handler attributes in the template run once its nodes reach a
  * live page, so the filled result must only ever be shown inside the sandboxed iframe that
- * `renderInlineTemplate` creates.
+ * `renderInlineHtmlTemplate` creates.
  */
 function fillField(el: Element, data: Record<string, unknown> | undefined): void {
   const key = el.getAttribute('data-field');
@@ -48,7 +48,7 @@ function fillFieldSrc(el: Element, data: Record<string, unknown> | undefined): v
  * @param {ParentNode} root - Root of a detached, `DOMParser`-parsed template tree.
  * @param {Record<string, unknown> | undefined} subject - Usually the credential's `credentialSubject`.
  */
-export function fillInlineTemplate(
+export function fillInlineHtmlTemplate(
   root: ParentNode,
   subject: Record<string, unknown> | undefined,
 ): void {
@@ -63,7 +63,10 @@ export function fillInlineTemplate(
   root.querySelectorAll('template[data-repeat]').forEach((node) => {
     const tpl = node as HTMLTemplateElement;
     const key = tpl.getAttribute('data-repeat');
-    const items = (key && (subject?.[key] as Record<string, unknown>[])) || [];
+    // Credential data is issuer-controlled: a non-array value (string, object) renders as an
+    // empty list rather than throwing on .forEach.
+    const value = key ? subject?.[key] : undefined;
+    const items = Array.isArray(value) ? (value as Record<string, unknown>[]) : [];
     const parent = tpl.parentNode;
     if (!parent) return;
 

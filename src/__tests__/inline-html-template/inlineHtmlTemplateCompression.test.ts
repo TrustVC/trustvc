@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   compressTemplate,
-  decompressInlineTemplate,
-  findInlineTemplateRenderMethod,
-  isCompressedInlineTemplate,
-} from '../../inline-template';
+  decompressInlineHtmlTemplate,
+  findInlineHtmlTemplateRenderMethod,
+  isCompressedInlineHtmlTemplate,
+} from '../../inline-html-template';
 
 const template = {
   templateName: 'BILL_OF_LADING',
@@ -44,10 +44,10 @@ describe('compressTemplate', () => {
     expect(compressed).toMatch(/^H4sI[A-Za-z0-9_-]+$/);
 
     const doc = { renderMethod: [{ type: 'INLINE_HTML_TEMPLATE', template: compressed }] };
-    expect(isCompressedInlineTemplate(doc)).toBe(true);
-    const restored = await decompressInlineTemplate(doc);
-    expect(findInlineTemplateRenderMethod(restored)?.template).toEqual(template);
-    expect(isCompressedInlineTemplate(restored)).toBe(false);
+    expect(isCompressedInlineHtmlTemplate(doc)).toBe(true);
+    const restored = await decompressInlineHtmlTemplate(doc);
+    expect(findInlineHtmlTemplateRenderMethod(restored)?.template).toEqual(template);
+    expect(isCompressedInlineHtmlTemplate(restored)).toBe(false);
   });
 
   it('only compresses templateName, html and css, dropping anything else on the object', async () => {
@@ -56,28 +56,28 @@ describe('compressTemplate', () => {
       credentialSubject: { a: 1 },
     } as never);
     const doc = { renderMethod: [{ type: 'INLINE_HTML_TEMPLATE', template: compressed }] };
-    const restored = await decompressInlineTemplate(doc);
-    expect(findInlineTemplateRenderMethod(restored)?.template).toEqual(template);
+    const restored = await decompressInlineHtmlTemplate(doc);
+    expect(findInlineHtmlTemplateRenderMethod(restored)?.template).toEqual(template);
   });
 
   it('rejects a whole credential instead of a template object', async () => {
     await expect(compressTemplate(unsignedDoc as never)).rejects.toThrow(
-      'Inline template must be an object with string templateName, html and css',
+      'Inline HTML template must be an object with string templateName, html and css',
     );
   });
 
   it('rejects a template missing html, css or templateName', async () => {
     await expect(compressTemplate({ ...template, css: undefined } as never)).rejects.toThrow(
-      'Inline template must be an object with string templateName, html and css',
+      'Inline HTML template must be an object with string templateName, html and css',
     );
   });
 });
 
-describe('decompressInlineTemplate', () => {
+describe('decompressInlineHtmlTemplate', () => {
   it('round-trips back to the original document', async () => {
-    const restored = await decompressInlineTemplate(await withCompressed(unsignedDoc));
+    const restored = await decompressInlineHtmlTemplate(await withCompressed(unsignedDoc));
     expect(restored).toEqual(unsignedDoc);
-    expect(findInlineTemplateRenderMethod(restored)?.template).toEqual(template);
+    expect(findInlineHtmlTemplateRenderMethod(restored)?.template).toEqual(template);
   });
 
   it('round-trips non-ASCII content', async () => {
@@ -86,7 +86,7 @@ describe('decompressInlineTemplate', () => {
         { type: 'INLINE_HTML_TEMPLATE', template: { ...template, html: '<p>Löwe 老虎 🐯</p>' } },
       ],
     };
-    expect(await decompressInlineTemplate(await withCompressed(doc))).toEqual(doc);
+    expect(await decompressInlineHtmlTemplate(await withCompressed(doc))).toEqual(doc);
   });
 
   it('does not mutate a signed (verified) input', async () => {
@@ -95,15 +95,15 @@ describe('decompressInlineTemplate', () => {
       proof: { type: 'DataIntegrityProof' },
     };
     const before = JSON.stringify(signed);
-    const restored = await decompressInlineTemplate(signed);
+    const restored = await decompressInlineHtmlTemplate(signed);
     expect(JSON.stringify(signed)).toBe(before);
     expect(restored.proof).toEqual(signed.proof);
   });
 
-  it('returns the same reference when there is no compressed inline template', async () => {
-    expect(await decompressInlineTemplate(unsignedDoc)).toBe(unsignedDoc);
+  it('returns the same reference when there is no compressed inline HTML template', async () => {
+    expect(await decompressInlineHtmlTemplate(unsignedDoc)).toBe(unsignedDoc);
     const embeddedOnly = { renderMethod: [{ id: 'https://x', type: 'EMBEDDED_RENDERER' }] };
-    expect(await decompressInlineTemplate(embeddedOnly)).toBe(embeddedOnly);
+    expect(await decompressInlineHtmlTemplate(embeddedOnly)).toBe(embeddedOnly);
   });
 
   it('aborts when the template inflates beyond the size cap', async () => {
@@ -114,17 +114,17 @@ describe('decompressInlineTemplate', () => {
     };
     const compressed = await withCompressed(bomb);
     await expect(
-      decompressInlineTemplate(compressed, { maxDecompressedBytes: 100_000 }),
+      decompressInlineHtmlTemplate(compressed, { maxDecompressedBytes: 100_000 }),
     ).rejects.toThrow(/size limit/);
   });
 
   it('rejects a template string that is not valid base64url', async () => {
     const doc = { renderMethod: [{ type: 'INLINE_HTML_TEMPLATE', template: 'not base64url!' }] };
-    await expect(decompressInlineTemplate(doc)).rejects.toThrow(/base64url/);
+    await expect(decompressInlineHtmlTemplate(doc)).rejects.toThrow(/base64url/);
   });
 
   it('is not treated as renderable until decompressed', async () => {
     const compressed = await withCompressed(unsignedDoc);
-    expect(findInlineTemplateRenderMethod(compressed)).toBeUndefined();
+    expect(findInlineHtmlTemplateRenderMethod(compressed)).toBeUndefined();
   });
 });

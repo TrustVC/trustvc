@@ -2,9 +2,9 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { DocumentBuilder } from '../../core/documentBuilder';
 import {
   compressTemplate,
-  decompressInlineTemplate,
-  findInlineTemplateRenderMethod,
-} from '../../inline-template';
+  decompressInlineHtmlTemplate,
+  findInlineHtmlTemplateRenderMethod,
+} from '../../inline-html-template';
 import { verifyW3CSignature } from '../../w3c';
 import {
   Bbs2023PrivateKeyPair,
@@ -363,7 +363,7 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
     });
   });
 
-  describe('inlineTemplate', () => {
+  describe('inlineHtmlTemplate', () => {
     const embedded = {
       id: 'https://generic-templates.tradetrust.io',
       type: 'EMBEDDED_RENDERER',
@@ -379,21 +379,21 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
       const compressed = await compressTemplate(template);
       const inline = { type: 'INLINE_HTML_TEMPLATE', template: compressed };
 
-      documentBuilder.inlineTemplate(compressed).renderMethod(embedded);
+      documentBuilder.inlineHtmlTemplate(compressed).renderMethod(embedded);
       expect(documentBuilder['document'].renderMethod).toEqual([embedded, inline]);
 
-      const other = new DocumentBuilder({}).renderMethod(embedded).inlineTemplate(compressed);
+      const other = new DocumentBuilder({}).renderMethod(embedded).inlineHtmlTemplate(compressed);
       expect(other['document'].renderMethod).toEqual([embedded, inline]);
       expect(other['document']['@context']).toContain(
         'https://trustvc.io/context/render-method-context-v2.json',
       );
     });
 
-    it('replaces a previous inline template instead of adding a second one', async () => {
+    it('replaces a previous inline HTML template instead of adding a second one', async () => {
       const first = await compressTemplate(template);
       const second = await compressTemplate({ ...template, css: 'h1 { color: red; }' });
 
-      documentBuilder.renderMethod(embedded).inlineTemplate(first).inlineTemplate(second);
+      documentBuilder.renderMethod(embedded).inlineHtmlTemplate(first).inlineHtmlTemplate(second);
       expect(documentBuilder['document'].renderMethod).toEqual([
         embedded,
         { type: 'INLINE_HTML_TEMPLATE', template: second },
@@ -401,11 +401,11 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
     });
 
     it('rejects a template that was not compressed with compressTemplate()', () => {
-      expect(() => documentBuilder.inlineTemplate(JSON.stringify(template))).toThrow(
-        'Configuration Error: inlineTemplate expects a template compressed with compressTemplate().',
+      expect(() => documentBuilder.inlineHtmlTemplate(JSON.stringify(template))).toThrow(
+        'Configuration Error: inlineHtmlTemplate expects a template compressed with compressTemplate().',
       );
-      expect(() => documentBuilder.inlineTemplate(template as never)).toThrow(
-        'Configuration Error: inlineTemplate expects a template compressed with compressTemplate().',
+      expect(() => documentBuilder.inlineHtmlTemplate(template as never)).toThrow(
+        'Configuration Error: inlineHtmlTemplate expects a template compressed with compressTemplate().',
       );
     });
 
@@ -413,7 +413,7 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
       documentBuilder
         .credentialSubject({ type: ['BillOfLading'], blNumber: 'BL-001' })
         .renderMethod(embedded)
-        .inlineTemplate(await compressTemplate(template));
+        .inlineHtmlTemplate(await compressTemplate(template));
 
       // Callers make /renderMethod mandatory so a derived copy can't drop the template.
       const signed = await documentBuilder.sign(ECDSAtestPrivateKeyDidKey, 'ecdsa-sd-2023', {
@@ -423,8 +423,8 @@ describe('DocumentBuilder data model 2.0 using ECDSA', () => {
       expect(derived.renderMethod).toEqual(signed.renderMethod);
       expect(await documentBuilder.verify()).toBe(true);
 
-      const restored = await decompressInlineTemplate(derived);
-      expect(findInlineTemplateRenderMethod(restored)?.template).toEqual(template);
+      const restored = await decompressInlineHtmlTemplate(derived);
+      expect(findInlineHtmlTemplateRenderMethod(restored)?.template).toEqual(template);
 
       const tampered = {
         ...derived,

@@ -1,22 +1,22 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest';
-import { fillInlineTemplate } from '../../inline-template';
+import { fillInlineHtmlTemplate } from '../../inline-html-template';
 
 const parse = (html: string): Document => new DOMParser().parseFromString(html, 'text/html');
 
-describe('fillInlineTemplate', () => {
+describe('fillInlineHtmlTemplate', () => {
   it('fills flat data-field elements from the subject', () => {
     const doc = parse(
       `<div><span data-field="blNumber"></span><span data-field="scac"></span></div>`,
     );
-    fillInlineTemplate(doc.body, { blNumber: 'SGCNM21566325', scac: '20250107' });
+    fillInlineHtmlTemplate(doc.body, { blNumber: 'SGCNM21566325', scac: '20250107' });
     expect(doc.querySelector('[data-field="blNumber"]')?.textContent).toBe('SGCNM21566325');
     expect(doc.querySelector('[data-field="scac"]')?.textContent).toBe('20250107');
   });
 
   it("fills missing fields as empty text instead of leaking 'undefined'/'null'", () => {
     const doc = parse(`<span data-field="doesNotExist"></span><span data-field="nil"></span>`);
-    fillInlineTemplate(doc.body, { nil: null });
+    fillInlineHtmlTemplate(doc.body, { nil: null });
     doc.querySelectorAll('[data-field]').forEach((el) => expect(el.textContent).toBe(''));
   });
 
@@ -28,7 +28,7 @@ describe('fillInlineTemplate', () => {
         </template>
       </tbody></table>
     `);
-    fillInlineTemplate(doc.body, {
+    fillInlineHtmlTemplate(doc.body, {
       packages: [
         { packagesDescription: '1 container', packagesWeight: '1000kg' },
         { packagesDescription: '2nd container', packagesWeight: '2000kg' },
@@ -50,9 +50,20 @@ describe('fillInlineTemplate', () => {
     const doc = parse(`
       <table><tbody><template data-repeat="packages"><tr><td data-field="x"></td></tr></template></tbody></table>
     `);
-    fillInlineTemplate(doc.body, { packages: [] });
+    fillInlineHtmlTemplate(doc.body, { packages: [] });
     expect(doc.querySelector('template')).toBeNull();
     expect(doc.querySelectorAll('tr')).toHaveLength(0);
+  });
+
+  it('treats a non-array data-repeat value as an empty list instead of throwing', () => {
+    for (const packages of ['not an array', { 0: { x: 'a' } }, 42]) {
+      const doc = parse(
+        `<table><tbody><template data-repeat="packages"><tr><td data-field="x"></td></tr></template></tbody></table>`,
+      );
+      expect(() => fillInlineHtmlTemplate(doc.body, { packages })).not.toThrow();
+      expect(doc.querySelector('template')).toBeNull();
+      expect(doc.querySelectorAll('tr')).toHaveLength(0);
+    }
   });
 
   it('does not double-fill fields inside an unprocessed <template> when there is also a top-level field with the same name', () => {
@@ -63,14 +74,17 @@ describe('fillInlineTemplate', () => {
       <div data-field="blNumber"></div>
       <template data-repeat="packages"><span data-field="blNumber"></span></template>
     `);
-    fillInlineTemplate(doc.body, { blNumber: 'TOP-LEVEL', packages: [{ blNumber: 'FROM-ITEM' }] });
+    fillInlineHtmlTemplate(doc.body, {
+      blNumber: 'TOP-LEVEL',
+      packages: [{ blNumber: 'FROM-ITEM' }],
+    });
     expect(doc.querySelector('div[data-field="blNumber"]')?.textContent).toBe('TOP-LEVEL');
     expect(doc.querySelector('span[data-field="blNumber"]')?.textContent).toBe('FROM-ITEM');
   });
 
   it('treats field values as literal text -- a value containing markup never becomes child elements', () => {
     const doc = parse(`<div data-field="shipperName"></div>`);
-    fillInlineTemplate(doc.body, { shipperName: '<img src=x onerror="alert(1)">' });
+    fillInlineHtmlTemplate(doc.body, { shipperName: '<img src=x onerror="alert(1)">' });
     const el = doc.querySelector('[data-field="shipperName"]');
     expect(el?.children).toHaveLength(0);
     expect(el?.textContent).toBe('<img src=x onerror="alert(1)">');
@@ -82,7 +96,7 @@ describe('fillInlineTemplate', () => {
       <img id="missing" data-field-src="nope" src="placeholder.png">
       <div id="list"><template data-repeat="items"><img data-field-src="icon"></template></div>
     `);
-    fillInlineTemplate(doc.body, {
+    fillInlineHtmlTemplate(doc.body, {
       logo: 'data:image/png;base64,AAAA',
       items: [{ icon: 'a.png' }, { icon: 'b.png' }],
     });

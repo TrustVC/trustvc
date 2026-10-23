@@ -1,6 +1,6 @@
 /* global HTMLElement, HTMLIFrameElement, Element, Event */
-import { fillInlineTemplate } from './fillInlineTemplate';
-import { findInlineTemplateRenderMethod } from './findInlineTemplateRenderMethod';
+import { fillInlineHtmlTemplate } from './fillInlineHtmlTemplate';
+import { findInlineHtmlTemplateRenderMethod } from './findInlineHtmlTemplateRenderMethod';
 
 /**
  * CSP for the rendered template. The template must render fully offline from the signed
@@ -8,7 +8,7 @@ import { findInlineTemplateRenderMethod } from './findInlineTemplateRenderMethod
  * `<style>` / `style=""` are allowed (the template's CSS is shipped inline), and `data:`
  * images / fonts are allowed (that is how a template embeds its logo / fonts).
  */
-export const INLINE_TEMPLATE_CSP =
+export const INLINE_HTML_TEMPLATE_CSP =
   "default-src 'none'; img-src data:; font-src data:; style-src 'unsafe-inline'; form-action 'none'";
 
 /**
@@ -18,14 +18,14 @@ export const INLINE_TEMPLATE_CSP =
  * frame's height, intercept link clicks and print the frame. Never add `allow-scripts`
  * alongside it -- that pair lets the frame remove its own sandbox. `allow-modals` is only
  * there because browsers ignore `print()` on a sandboxed frame without it (see
- * `printInlineTemplate`); with no scripts in the frame, the template itself can't open any
+ * `printInlineHtmlTemplate`); with no scripts in the frame, the template itself can't open any
  * dialog. Forms, popups and top-level navigation stay blocked because their flags are absent.
  */
-export const INLINE_TEMPLATE_SANDBOX = 'allow-same-origin allow-modals';
+export const INLINE_HTML_TEMPLATE_SANDBOX = 'allow-same-origin allow-modals';
 
 /**
  * Builds the complete, filled HTML document for a credential's `INLINE_HTML_TEMPLATE` entry,
- * ready to be used as a sandboxed iframe's `srcdoc` (see `renderInlineTemplate`).
+ * ready to be used as a sandboxed iframe's `srcdoc` (see `renderInlineHtmlTemplate`).
  *
  * The template is parsed with DOMParser and filled in that detached document. Only its
  * `<body>` content is kept; the template's CSS comes from `template.css`. The CSP `<meta>`
@@ -36,15 +36,15 @@ export const INLINE_TEMPLATE_SANDBOX = 'allow-same-origin allow-modals';
  * @returns {string | undefined} The srcdoc HTML, or `undefined` if the document has no
  * renderable `INLINE_HTML_TEMPLATE` entry.
  */
-export function buildInlineTemplateSrcdoc(document: unknown): string | undefined {
-  const method = findInlineTemplateRenderMethod(document);
+export function buildInlineHtmlTemplateSrcdoc(document: unknown): string | undefined {
+  const method = findInlineHtmlTemplateRenderMethod(document);
   if (!method) return undefined;
   const credentialSubject = (document as { credentialSubject?: Record<string, unknown> })
     ?.credentialSubject;
 
   const parser = new DOMParser();
   const parsed = parser.parseFromString(method.template.html, 'text/html');
-  fillInlineTemplate(parsed.body, credentialSubject);
+  fillInlineHtmlTemplate(parsed.body, credentialSubject);
 
   const out = parser.parseFromString(
     '<!doctype html><html><head></head><body></body></html>',
@@ -52,7 +52,7 @@ export function buildInlineTemplateSrcdoc(document: unknown): string | undefined
   );
   const csp = out.createElement('meta');
   csp.setAttribute('http-equiv', 'Content-Security-Policy');
-  csp.setAttribute('content', INLINE_TEMPLATE_CSP);
+  csp.setAttribute('content', INLINE_HTML_TEMPLATE_CSP);
   out.head.appendChild(csp);
   const charset = out.createElement('meta');
   charset.setAttribute('charset', 'utf-8');
@@ -67,6 +67,11 @@ export function buildInlineTemplateSrcdoc(document: unknown): string | undefined
   // early. Harmless inside the sandbox, but keep the CSS where it belongs.
   style.textContent = method.template.css.replace(/<\/style/gi, '<\\/style');
   out.head.appendChild(style);
+  // DOMParser moves these into <head> (dropped above) only when they lead the markup; after body
+  // content, or cloned out of a repeat block, they stay in <body>. There a meta refresh would
+  // navigate the frame to an unsigned page, <base> would retarget relative URLs, and some
+  // <link> hints fetch outside the CSP. Removed after filling so repeat clones are covered.
+  parsed.body.querySelectorAll('meta, base, link').forEach((el) => el.remove());
   Array.from(parsed.body.childNodes).forEach((node) =>
     out.body.appendChild(out.importNode(node, true)),
   );
@@ -102,7 +107,7 @@ function blockLinkNavigation(event: Event): void {
  * tags: event-handler attributes (`<img onerror>`, `<svg onload>`, ...) and `javascript:`
  * links run as soon as the nodes reach a live page, and a Shadow DOM is not a security
  * boundary (template CSS could also cover the host page with `position: fixed`). In the
- * frame, nothing can run, nothing remote can load (`INLINE_TEMPLATE_CSP`), and the template
+ * frame, nothing can run, nothing remote can load (`INLINE_HTML_TEMPLATE_CSP`), and the template
  * can only draw inside its own box. The frame's height follows its content.
  *
  * Framework-agnostic: callers (e.g. a React component's effect) own `host`'s lifecycle.
@@ -114,14 +119,14 @@ function blockLinkNavigation(event: Event): void {
  * @returns {boolean} `true` if an `INLINE_HTML_TEMPLATE` entry was found and rendered, `false` otherwise
  * (`host` is left untouched).
  */
-export function renderInlineTemplate(document: unknown, host: HTMLElement): boolean {
-  const srcdoc = buildInlineTemplateSrcdoc(document);
+export function renderInlineHtmlTemplate(document: unknown, host: HTMLElement): boolean {
+  const srcdoc = buildInlineHtmlTemplateSrcdoc(document);
   if (srcdoc === undefined) return false;
 
   cleanups.get(host)?.();
   const view = host.ownerDocument.defaultView;
   const frame = host.ownerDocument.createElement('iframe') as HTMLIFrameElement;
-  frame.setAttribute('sandbox', INLINE_TEMPLATE_SANDBOX);
+  frame.setAttribute('sandbox', INLINE_HTML_TEMPLATE_SANDBOX);
   frame.setAttribute('title', 'Document');
   frame.setAttribute('scrolling', 'no');
   frame.style.display = 'block';
@@ -156,15 +161,15 @@ export function renderInlineTemplate(document: unknown, host: HTMLElement): bool
 }
 
 /**
- * Opens the browser's print dialog for the template `renderInlineTemplate` mounted in `host`,
+ * Opens the browser's print dialog for the template `renderInlineHtmlTemplate` mounted in `host`,
  * printing only the template -- not the host page around it.
  *
  * Browser-only. Call it from a user gesture (e.g. a Print button's click handler).
- * @param {HTMLElement} host - The element previously passed to `renderInlineTemplate`.
+ * @param {HTMLElement} host - The element previously passed to `renderInlineHtmlTemplate`.
  * @returns {boolean} `true` if a rendered template was found and the print dialog requested,
  * `false` otherwise (nothing rendered in `host` yet, or the render failed).
  */
-export function printInlineTemplate(host: HTMLElement): boolean {
+export function printInlineHtmlTemplate(host: HTMLElement): boolean {
   const view = host.querySelector('iframe')?.contentWindow;
   if (!view) return false;
   view.focus();

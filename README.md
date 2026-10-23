@@ -1031,8 +1031,8 @@ builder.renderMethod({
 });
 ```
 
-##### Add an Inline Template
-An inline template carries the document's own HTML + CSS inside the credential, so it can be rendered without a renderer URL. Compress it with `compressTemplate` first, then add it. It always goes after the `renderMethod()` entry, whichever you call first, so readers that only know `EMBEDDED_RENDERER` keep working.
+##### Add an Inline HTML Template
+An inline HTML template carries the document's own HTML + CSS inside the credential, so it can be rendered without a renderer URL. Compress it with `compressTemplate` first, then add it. It always goes after the `renderMethod()` entry, whichever you call first, so readers that only know `EMBEDDED_RENDERER` keep working.
 
 ```ts
 import { compressTemplate } from '@trustvc/trustvc';
@@ -1049,7 +1049,7 @@ builder
     type: 'EMBEDDED_RENDERER',
     templateName: 'BILL_OF_LADING',
   })
-  .inlineTemplate(template);
+  .inlineHtmlTemplate(template);
 
 // Make /renderMethod mandatory so a derived copy can't drop the template.
 await builder.sign(keyPair, 'ecdsa-sd-2023', { mandatoryPointers: ['/renderMethod'] });

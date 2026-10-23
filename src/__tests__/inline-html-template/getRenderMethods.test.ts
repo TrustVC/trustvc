@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getRenderMethods, RenderMethods } from '../../inline-template';
+import { getRenderMethods, RenderMethods } from '../../inline-html-template';
 
 const renderer = {
   id: 'https://generic-templates.tradetrust.io',
@@ -16,33 +16,33 @@ const plain = {
 };
 
 describe('getRenderMethods', () => {
-  it('returns both the inline template and the renderer fallback', () => {
+  it('returns both the inline HTML template and the renderer fallback', () => {
     expect(getRenderMethods({ renderMethod: [renderer, compressed] })).toEqual({
-      inlineTemplate: compressed,
+      inlineHtmlTemplate: compressed,
       renderer,
     });
   });
 
   it('does not depend on entry order', () => {
     expect(getRenderMethods({ renderMethod: [plain, renderer] })).toEqual({
-      inlineTemplate: plain,
+      inlineHtmlTemplate: plain,
       renderer,
     });
   });
 
   it('accepts a single (non-array) renderMethod object', () => {
     expect(getRenderMethods({ renderMethod: renderer })).toEqual({
-      inlineTemplate: undefined,
+      inlineHtmlTemplate: undefined,
       renderer,
     });
     expect(getRenderMethods({ renderMethod: compressed })).toEqual({
-      inlineTemplate: compressed,
+      inlineHtmlTemplate: compressed,
       renderer: undefined,
     });
   });
 
   it('returns nothing for documents without a usable renderMethod', () => {
-    const none: RenderMethods = { inlineTemplate: undefined, renderer: undefined };
+    const none: RenderMethods = { inlineHtmlTemplate: undefined, renderer: undefined };
     expect(getRenderMethods(undefined)).toEqual(none);
     expect(getRenderMethods({})).toEqual(none);
     expect(
@@ -56,5 +56,17 @@ describe('getRenderMethods', () => {
         ],
       }),
     ).toEqual(none);
+  });
+
+  it('skips an object-form template whose templateName, html or css is not a string', () => {
+    for (const template of [
+      {},
+      { templateName: 'X', html: '<div></div>' },
+      { templateName: 'X', html: 42, css: '' },
+    ]) {
+      expect(
+        getRenderMethods({ renderMethod: [{ type: 'INLINE_HTML_TEMPLATE', template }, renderer] }),
+      ).toEqual({ inlineHtmlTemplate: undefined, renderer });
+    }
   });
 });

@@ -4,7 +4,7 @@
 // TradeTrust website's browser bundle without a polyfill, and adds no dependency.
 
 /** Default cap on decompressed output: 4 MB (ADR 4.1). Closes the decompression-bomb vector. */
-export const INLINE_TEMPLATE_MAX_DECOMPRESSED_BYTES = 4 * 1024 * 1024;
+export const INLINE_HTML_TEMPLATE_MAX_DECOMPRESSED_BYTES = 4 * 1024 * 1024;
 
 const concat = (chunks: Uint8Array[], total: number): Uint8Array => {
   const out = new Uint8Array(total);
@@ -37,7 +37,9 @@ const readAll = async (
     total += value.byteLength;
     if (maxBytes !== undefined && total > maxBytes) {
       await reader.cancel();
-      throw new Error(`Inline template exceeds the decompressed size limit of ${maxBytes} bytes`);
+      throw new Error(
+        `Inline HTML template exceeds the decompressed size limit of ${maxBytes} bytes`,
+      );
     }
     chunks.push(value);
   }
@@ -64,7 +66,8 @@ export const toBase64Url = (bytes: Uint8Array): string => {
 };
 
 export const fromBase64Url = (value: string): Uint8Array => {
-  if (!/^[A-Za-z0-9_-]*$/.test(value)) throw new Error('Inline template is not valid base64url');
+  if (!/^[A-Za-z0-9_-]*$/.test(value))
+    throw new Error('Inline HTML template is not valid base64url');
   const base64 = value.replace(/-/g, '+').replace(/_/g, '/');
   const binary = atob(base64 + '='.repeat((4 - (base64.length % 4)) % 4));
   const bytes = new Uint8Array(binary.length);
