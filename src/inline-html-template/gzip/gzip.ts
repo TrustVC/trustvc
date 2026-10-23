@@ -31,17 +31,22 @@ const readAll = async (
   const reader = stream.getReader();
   const chunks: Uint8Array[] = [];
   let total = 0;
+  let exceeded = false;
   for (;;) {
     const { done, value } = await reader.read();
     if (done) break;
     total += value.byteLength;
     if (maxBytes !== undefined && total > maxBytes) {
-      await reader.cancel();
-      throw new Error(
-        `Inline HTML template exceeds the decompressed size limit of ${maxBytes} bytes`,
-      );
+      exceeded = true;
+      break;
     }
     chunks.push(value);
+  }
+  if (exceeded) {
+    await reader.cancel();
+    throw new Error(
+      `Inline HTML template exceeds the decompressed size limit of ${maxBytes} bytes`,
+    );
   }
   return concat(chunks, total);
 };
@@ -63,13 +68,15 @@ export const toBase64Url = (bytes: Uint8Array): string => {
   for (let i = 0; i < bytes.length; i += 0x8000) {
     binary += String.fromCodePoint(...bytes.subarray(i, i + 0x8000));
   }
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  // `=` only ever appears as trailing padding in base64, so dropping every `=` strips just the
+  // padding, without a backtracking `=+$`.
+  return btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '');
 };
 
 export const fromBase64Url = (value: string): Uint8Array => {
   if (!/^[A-Za-z0-9_-]*$/.test(value))
     throw new Error('Inline HTML template is not valid base64url');
-  const base64 = value.replace(/-/g, '+').replace(/_/g, '/');
+  const base64 = value.replaceAll('-', '+').replaceAll('_', '/');
   const binary = atob(base64 + '='.repeat((4 - (base64.length % 4)) % 4));
   return Uint8Array.from(binary, (char) => char.codePointAt(0) ?? 0);
 };
