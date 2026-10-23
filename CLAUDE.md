@@ -21,7 +21,8 @@ separate `w3c` monorepo — see [w3c section](#relationship-to-the-w3c-monorepo)
 
 ```
 @trustvc/w3c  @trustvc/w3c-vc  @trustvc/w3c-context
-@trustvc/w3c-credential-status  @trustvc/w3c-issuer   → all pinned ^2.3.0
+@trustvc/w3c-credential-status                        → pinned ^2.6.0
+@trustvc/w3c-issuer                                   → pinned ^2.3.0
 ```
 
 Source map (`src/`):
@@ -195,7 +196,7 @@ Do **not** re-add the removed aliases. User-facing docs also live in `README.md`
 
 The VP/VC crypto logic lives in `@trustvc/w3c-vc` (separate repo, `../w3c-10`). To test an
 **unpublished** w3c-vc change here, `npm pack` it there and install the tarball; once
-published, repoint the dep to the version (`^2.3.0`). Real changes should be validated
+published, repoint the dep to the version (e.g. `^2.6.0`). Real changes should be validated
 here because this repo resolves the packages' full dep tree (and stricter jsonld) — a
 green w3c-vc build alone doesn't prove integration.
 

@@ -1,7 +1,16 @@
 import { TRANSFERABLE_RECORDS_TYPE } from '../../verify/fragments';
-import { ObligationRecordsCredentialStatus } from '@trustvc/w3c-credential-status';
+import { ObligationRecordsSigningCredentialStatus } from '@trustvc/w3c-credential-status';
 import { CredentialStatus, isSignedDocument, SignedVerifiableCredential } from '../../w3c/vc';
 import { WrappedOrSignedOpenAttestationDocument } from './index';
+
+// @trustvc/w3c-credential-status@2.6.0's own ObligationRecordsCredentialStatus is built through a
+// chain of nested Omit<> over a type with an index signature, which drops the `type` property from
+// TS's perspective -- it no longer satisfies CredentialStatus (or even its own sibling
+// GeneralCredentialStatus). Rebuilt here from CredentialStatus plus the fields we actually need.
+export type ObligationRecordsCredentialStatus = CredentialStatus &
+  Pick<ObligationRecordsSigningCredentialStatus, 'type' | 'tokenNetwork' | 'obligationRegistry'> & {
+    tokenId: string;
+  };
 
 export const isObligationRecordCredentialStatus = (
   credentialStatus: CredentialStatus | undefined,
