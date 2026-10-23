@@ -48,6 +48,11 @@
       "import": "./dist/esm/dnsprove/index.js",
       "require": "./dist/cjs/dnsprove/index.js"
     },
+    "./inline-html-template": {
+      "types": "./dist/types/inline-html-template/index.d.ts",
+      "import": "./dist/esm/inline-html-template/index.js",
+      "require": "./dist/cjs/inline-html-template/index.js"
+    },
     "./open-attestation": {
       "types": "./dist/types/open-attestation/index.d.ts",
       "import": "./dist/esm/open-attestation/index.js",
@@ -130,11 +135,11 @@
     "@tradetrust-tt/tt-verify": "^9.7.6",
     "@trustvc/document-store": "^1.0.3",
     "@trustvc/eip7702": "^1.1.0-beta.2",
-    "@trustvc/w3c": "^2.4.2",
-    "@trustvc/w3c-context": "^2.4.0",
-    "@trustvc/w3c-credential-status": "^2.4.0",
+    "@trustvc/w3c": "^2.6.0",
+    "@trustvc/w3c-context": "^2.6.0",
+    "@trustvc/w3c-credential-status": "^2.6.0",
     "@trustvc/w3c-issuer": "^2.3.0",
-    "@trustvc/w3c-vc": "^2.4.2",
+    "@trustvc/w3c-vc": "^2.6.0",
     "ethers": "^5.8.0",
     "ethersV6": "npm:ethers@^6.14.4",
     "js-sha3": "^0.9.3",

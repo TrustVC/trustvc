@@ -21,7 +21,8 @@ separate `w3c` monorepo — see [w3c section](#relationship-to-the-w3c-monorepo)
 
 ```
 @trustvc/w3c  @trustvc/w3c-vc  @trustvc/w3c-context
-@trustvc/w3c-credential-status  @trustvc/w3c-issuer   → all pinned ^2.3.0
+@trustvc/w3c-credential-status                        → pinned ^2.6.0
+@trustvc/w3c-issuer                                   → pinned ^2.3.0
 ```
 
 Source map (`src/`):
@@ -33,6 +34,7 @@ Source map (`src/`):
 | `src/verify/verify.ts` | `verificationBuilder`, `openAttestationVerifiers`, `w3cVerifiers`. |
 | `src/verify/fragments/` | Verifier fragments by dimension: `document-integrity`, `document-status`, `issuer-identity`, `presentation`. |
 | `src/w3c/` | The W3C surface: `sign`, `derive`, `verify`, **`presentation`** (VP wrappers), `types`. |
+| `src/inline-html-template/` | `INLINE_HTML_TEMPLATE` renderMethod: compression (`compressTemplate` → string for `DocumentBuilder.inlineHtmlTemplate()`, `decompressInlineHtmlTemplate` after verify) selection (`getRenderMethods` → `{ inlineHtmlTemplate, renderer }`: try inline first, fall back to the renderer URL) and rendering (`findInlineHtmlTemplateRenderMethod`, `fillInlineHtmlTemplate`, `buildInlineHtmlTemplateSrcdoc`, `renderInlineHtmlTemplate` → sandboxed `srcdoc` iframe, `printInlineHtmlTemplate` → prints only that iframe). Rendering is **browser-only at call time** (DOMParser); safe to import in Node. Also exported as `@trustvc/trustvc/inline-html-template`. Signed `template` is always the compressed string — the render-method-context-v2 term is a plain string. |
 
 ## Commands
 
@@ -172,11 +174,31 @@ Do **not** re-add the removed aliases. User-facing docs also live in `README.md`
   reliably the **last 65 bytes** of the DER blob; slice from the end, not by searching for
   a marker byte. See `src/utils/aws-kms-signer/viem-kms-account.ts`.
 
+- **DOM code needs jsdom in tests and `/* global X */` for jsdoc.** Vitest runs in Node by
+  default — DOM-touching test files start with `// @vitest-environment jsdom`. ESLint has no
+  browser globals configured, so `jsdoc/no-undefined-types` rejects `{HTMLElement}` etc.
+  unless the file declares them (`/* global HTMLElement */`).
+- **Inline HTML template bindings never use `innerHTML` for data.** `data-field` → `textContent`,
+  `data-field-src` → `src` only. Don't add a generic attribute binder (e.g. `href` would
+  reopen script injection from credential values).
+- **Inline HTML templates render only in a sandboxed iframe, never in the host page.** Template
+  HTML is issuer-controlled; DOMParser stops `<script>` but not `onerror=` / `onload=` /
+  `javascript:` (verified in Chrome and Edge), and Shadow DOM is not a security boundary.
+  `renderInlineHtmlTemplate` uses `sandbox="allow-same-origin allow-modals"` with **no
+  `allow-scripts`** (with same-origin it would let the frame remove its own sandbox) plus a
+  CSP `<meta>` (`INLINE_HTML_TEMPLATE_CSP`, `default-src 'none'`). Same-origin is only there so
+  the host can size the frame, cancel link clicks (a plain `<a href>` would otherwise load an
+  unsigned page inside the frame) and print it; `allow-modals` only because browsers ignore
+  `print()` on a sandboxed frame without it. `printInlineHtmlTemplate(host)` prints just the
+  frame and must be called from a user gesture. Template `<meta>` / `<base>` / `<link>` are
+  stripped from the body after filling — a meta refresh would otherwise navigate the frame to
+  an unsigned page, which neither the sandbox nor the CSP stops.
+
 ## Relationship to the w3c monorepo
 
 The VP/VC crypto logic lives in `@trustvc/w3c-vc` (separate repo, `../w3c-10`). To test an
 **unpublished** w3c-vc change here, `npm pack` it there and install the tarball; once
-published, repoint the dep to the version (`^2.3.0`). Real changes should be validated
+published, repoint the dep to the version (e.g. `^2.6.0`). Real changes should be validated
 here because this repo resolves the packages' full dep tree (and stricter jsonld) — a
 green w3c-vc build alone doesn't prove integration.
 

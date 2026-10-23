@@ -6,10 +6,12 @@ import {
   ValidTokenRegistryStatus,
   VerifierOptions,
 } from '@tradetrust-tt/tt-verify';
-import { ObligationRecordsCredentialStatus } from '@trustvc/w3c-credential-status';
 import * as w3cVC from '@trustvc/w3c-vc';
 import { SignedVerifiableCredential } from '@trustvc/w3c-vc';
-import { isObligationRecordCredentialStatus } from '../../../../utils/documents/obligation';
+import {
+  isObligationRecordCredentialStatus,
+  ObligationRecordsCredentialStatus,
+} from '../../../../utils/documents/obligation';
 import {
   ObligationRecordsResultFragment,
   ObligationRecordsVerificationFragment,
