@@ -4,7 +4,8 @@
  * place. Binding rules (ours, not a W3C convention):
  * - `[data-field="x"]` -- set to `String(data.x)` via `.textContent` (never `.innerHTML`,
  *   so injection via a malicious credentialSubject value is structurally impossible, not
- *   just escaped).
+ *   just escaped). Only primitive values are shown; objects and arrays fill as empty, like a
+ *   missing value, rather than as `[object Object]`.
  * - `[data-field-src="x"]` -- set as the element's `src` (see `fillFieldSrc`).
  * - `<template data-repeat="x">...</template>` -- cloned once per item in `data.x` (an
  *   array); `data-field` attributes inside the clone resolve against that array item, not
@@ -16,11 +17,18 @@
  * live page, so the filled result must only ever be shown inside the sandboxed iframe that
  * `renderInlineHtmlTemplate` creates.
  */
+const toText = (value: unknown): string | undefined =>
+  typeof value === 'string' ||
+  typeof value === 'number' ||
+  typeof value === 'boolean' ||
+  typeof value === 'bigint'
+    ? String(value)
+    : undefined;
+
 function fillField(el: HTMLElement, data: Record<string, unknown> | undefined): void {
   const key = el.dataset.field;
   if (!key) return;
-  const value = data?.[key];
-  el.textContent = value === undefined || value === null ? '' : String(value);
+  el.textContent = toText(data?.[key]) ?? '';
 }
 
 /**
@@ -35,12 +43,12 @@ function fillField(el: HTMLElement, data: Record<string, unknown> | undefined): 
 function fillFieldSrc(el: HTMLElement, data: Record<string, unknown> | undefined): void {
   const key = el.dataset.fieldSrc;
   if (!key) return;
-  const value = data?.[key];
-  if (value === undefined || value === null) {
+  const src = toText(data?.[key]);
+  if (src === undefined) {
     el.removeAttribute('src');
     return;
   }
-  el.setAttribute('src', String(value));
+  el.setAttribute('src', src);
 }
 
 /**

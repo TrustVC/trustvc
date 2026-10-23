@@ -20,6 +20,20 @@ describe('fillInlineHtmlTemplate', () => {
     doc.querySelectorAll('[data-field]').forEach((el) => expect(el.textContent).toBe(''));
   });
 
+  it("fills primitives as text and objects/arrays as empty instead of '[object Object]'", () => {
+    const doc = parse(`
+      <span data-field="num"></span><span data-field="bool"></span>
+      <span data-field="obj"></span><span data-field="arr"></span>
+      <img id="objSrc" data-field-src="obj" src="placeholder.png">
+    `);
+    fillInlineHtmlTemplate(doc.body, { num: 0, bool: false, obj: { a: 1 }, arr: ['a'] });
+    expect(doc.querySelector('[data-field="num"]')?.textContent).toBe('0');
+    expect(doc.querySelector('[data-field="bool"]')?.textContent).toBe('false');
+    expect(doc.querySelector('[data-field="obj"]')?.textContent).toBe('');
+    expect(doc.querySelector('[data-field="arr"]')?.textContent).toBe('');
+    expect(doc.getElementById('objSrc')?.hasAttribute('src')).toBe(false);
+  });
+
   it('clones a <template data-repeat> block once per array item and fills each clone against that item', () => {
     const doc = parse(`
       <table><tbody>
