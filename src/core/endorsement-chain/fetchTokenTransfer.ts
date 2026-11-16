@@ -1,20 +1,12 @@
-import type { Event } from 'ethers';
 import { ethers } from 'ethers';
 import { LogDescription } from 'ethers/lib/utils';
 import { ethers as ethersV6 } from 'ethersV6';
 import { TradeTrustToken__factory } from '../../token-registry-v4/contracts';
 import { getEthersContractFromProvider } from '../../utils/ethers';
-import { isZeroAddress, sortLogChain } from '../endorsement-chain/helpers';
+import { sortLogChain } from '../endorsement-chain/helpers';
 import { TokenTransferEvent, TokenTransferEventType, TypedEvent } from '../endorsement-chain/types';
 import { Provider } from '@ethersproject/abstract-provider';
-import {
-  getLatestBlockWithRetry,
-  isLogsRetryableError,
-  learnCapabilityFromProbeError,
-  type LogsCapability,
-  resolveFilterTopics,
-  scanForMintEvent,
-} from './fetchLogsChunked';
+import { getLatestBlockWithRetry, getLogsAdaptive, resolveFilterTopics } from './fetchLogsChunked';
 
 export const fetchTokenTransfers = async (
   provider: Provider | ethersV6.Provider,
@@ -42,90 +34,46 @@ export const fetchTokenTransfers = async (
 };
 
 /**
- * Fetches transfer logs from token registry.
- * One topic-scoped queryFilter 0→latest (enterprise); on range/rate error, mint-seeking
- * chunks from tip using capability learned from that error (large-first → free 10).
- * Single-filter path — no parallel doomed burst on free keys.
+ * Transfer logs for one token, topic-scoped, from block 0 to latest.
+ * getLogsAdaptive tries the whole span once, then walks 10,000-block windows.
  * @param {Provider | ethersV6.Provider} provider - Ethers provider
  * @param {ethersV6.Contract | ethers.Contract} tokenRegistry - Token Registry contract
  * @param {string} tokenRegistryAddress - Token Registry contract address
  * @param {string} tokenId - Token ID
- * @returns {Promise<Event[] | ethersV6.EventLog[]>} - Transfer Event logs
+ * @returns {Promise<Array<{ blockNumber?: number; transactionHash?: string }>>} Transfer logs
  */
 async function fetchLogs(
   provider: Provider | ethersV6.Provider,
   tokenRegistry: ethersV6.Contract | ethers.Contract,
   tokenRegistryAddress: string,
   tokenId: string,
-): Promise<Event[] | ethersV6.EventLog[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<any[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const transferLogFilter: any = tokenRegistry.filters.Transfer(null, null, tokenId);
-
-  try {
-    const logs = await tokenRegistry.queryFilter(transferLogFilter, 0);
-    if (logs.length === 0) {
-      throw new Error('Unminted Title Escrow');
-    }
-    return logs as Event[] | ethersV6.EventLog[];
-  } catch (err) {
-    if (!isLogsRetryableError(err)) throw err;
-    const topics = await resolveFilterTopics(transferLogFilter);
-    return fetchLogsChunked(
-      provider,
-      tokenRegistry,
-      tokenRegistryAddress,
-      topics,
-      learnCapabilityFromProbeError(err),
-    );
-  }
-}
-
-async function fetchLogsChunked(
-  provider: Provider | ethersV6.Provider,
-  tokenRegistry: ethersV6.Contract | ethers.Contract,
-  tokenRegistryAddress: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  topics: any[],
-  capability?: LogsCapability,
-): Promise<Event[] | ethersV6.EventLog[]> {
+  const topics = await resolveFilterTopics(transferLogFilter);
   const latestBlock = await getLatestBlockWithRetry(provider);
-  // Floor 0 — mint is near tip for live titles; avoid eth_getCode binary search on the registry.
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const isMintLog = (log: any): boolean => {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const parsed = (tokenRegistry.interface as any).parseLog(log);
-      return isZeroAddress(parsed?.args?.from);
-    } catch {
-      return false;
-    }
-  };
-
-  const logs = await scanForMintEvent(provider, tokenRegistryAddress, 0, latestBlock, {
-    isMintLog,
-    notFoundOnFailureMessage:
-      'Unable to locate mint Transfer event; scan stopped after an RPC failure; refusing incomplete endorsement chain',
-    notFoundMessage: 'Unminted Title Escrow',
-    topics,
-    capability,
-  });
-
-  return logs as Event[] | ethersV6.EventLog[];
+  const logs = await getLogsAdaptive(provider, tokenRegistryAddress, 0, latestBlock, topics);
+  if (logs.length === 0) {
+    throw new Error('Unminted Title Escrow');
+  }
+  return logs;
 }
 
 const parseLogs = (
-  logs: ethers.Event[] | ethersV6.EventLog[],
-  tokenRegistry: ethers.Contract | ethersV6.Contract, //TradeTrustToken,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  logs: any[],
+  tokenRegistry: ethers.Contract | ethersV6.Contract,
 ): (TypedEvent & LogDescription)[] => {
   return logs.map((log) => {
-    if (!log.args) throw new Error(`Transfer log malformed: ${log}`);
     if (!log.blockNumber) throw new Error('Block number not present');
     if (!log.transactionHash) throw new Error('Transaction hash not present');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const parsed = (tokenRegistry.interface as any).parseLog(log);
+    if (!parsed?.args) throw new Error(`Transfer log malformed: ${log}`);
     return {
       ...log,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ...tokenRegistry.interface.parseLog(log as any),
+      ...parsed,
     } as TypedEvent & LogDescription;
   });
 };

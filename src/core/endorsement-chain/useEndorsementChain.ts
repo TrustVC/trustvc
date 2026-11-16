@@ -227,7 +227,7 @@ export const fetchEndorsementChain = async (
     throw new Error('Missing required dependencies');
   }
 
-  // One eth_chainId / getNetwork up front so parallel getLogs don't each re-detect the network.
+  // One eth_chainId / getNetwork up front so later calls don't each re-detect the network.
   await warmProviderNetwork(provider);
 
   const resolvedTitleEscrowAddress =

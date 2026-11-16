@@ -137,13 +137,14 @@ Do **not** re-add the removed aliases. User-facing docs also live in `README.md`
   [Endorsement chain](#endorsement-chain-srccoreendorsement-chainuseendorsementchaints)
   — do not re-add `fetchObligationEndorsementChain`, `fetchEscrowTransfersObligation`,
   or `ObligationEscrowInterface`.
-- **`eth_getLogs` is capability-learned, never assume-paid.** After a full-span probe
-  fails, classify the error (`learnCapabilityFromProbeError`) and scan with that
-  capability — free stays sequential at 10 blocks; do **not** open parallel 10k
-  storms on free keys. Sparse escrows: large-first (result/timeout caps), not a
-  fixed 10k-block default. Timeout → bisect; overflow → `/4` or provider suggested
-  range. Parallelism is `mapPool` only (no process-global rate gate). Mint hunts
-  are tip + sequential backward — prefer mint/creation floors so deep hunts are rare.
+- **`eth_getLogs` is one full-span call, then 10k chunks.** `getLogsAdaptive`
+  requests `fromBlock`→`toBlock` once (mint/shred bounds, or the creation-block
+  floor through latest). Unlimited plans finish there. A range, timeout, or
+  too-many-logs error walks forward one window at a time, starting at 10,000
+  blocks — 10 on a free-tier error. A window that itself fails shrinks in place
+  (free tier → 10, timeout → half, otherwise quarter, never below 1) and retries
+  the same cursor. Rate limits retry 3 times, then throw. Any other error throws.
+  Never return a partial chain, and do not scan chunks in parallel.
 - **Obligation scan bounds come from the contract.** Use `mintBlock()` as `fromBlock`
   and `shredBlock()` as `toBlock` when shredded (`shredBlock > 0`); active docs still
   scan through `latest`. Do not scan past shred into empty tip history.

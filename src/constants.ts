@@ -55,19 +55,13 @@ export const RATE_LIMIT_ERROR_RE = new RegExp(
 );
 
 /**
- * Paid block-range fallback (Alchemy “other chains” / explicit 10k block caps).
- * Not the default start for Infura-like result/time caps — those use LARGE_CHUNK_SIZE.
+ * Where a chunked eth_getLogs scan begins after the unchunked full-range query fails.
+ * Matches Infura's paid-tier block cap. Unlimited plans (Alchemy paid, Infura
+ * enterprise) succeed on the full-span call and never reach this.
  */
 export const INITIAL_CHUNK_SIZE = 10_000;
-/**
- * Post-probe start when free is ruled out and the error is not an explicit block-range cap
- * (sparse escrows: few logs → much wider than 10k blocks is safe until timeout/overflow).
- */
-export const LARGE_CHUNK_SIZE = 1_000_000;
 /** Free-tier max eth_getLogs block span (Infura / Alchemy free). */
 export const FREE_TIER_MAX_CHUNK_SIZE = 10;
 export const MIN_CHUNK_SIZE = 1;
 export const RATE_LIMIT_MAX_RETRIES = 3;
 export const RATE_LIMIT_BASE_DELAY_MS = 500;
-/** Max in-flight eth_getLogs during parallel forward scans (non-free tiers). */
-export const GET_LOGS_MAX_CONCURRENCY = 10;
