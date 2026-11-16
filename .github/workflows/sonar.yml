@@ -1,0 +1,48 @@
+name: SonarCloud
+
+on:
+  push:
+    branches:
+      - main
+      - beta
+  pull_request:
+    types: ['opened', 'reopened', 'synchronize']
+
+permissions:
+  contents: read
+  pull-requests: read
+
+env:
+  NODE_ENV: ci
+
+jobs:
+  sonar:
+    name: SonarCloud Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history, needed for Sonar's new-code analysis
+
+      - name: Use Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: 'npm'
+
+      - run: npm ci --ignore-scripts
+
+      # vitest.config.ts has coverage enabled -> writes .coverage/lcov.info
+      - name: Run tests with coverage
+        run: npm run test
+        env:
+          ANKR_API_KEY: ${{ secrets.ANKR_API_KEY }}
+          POLYGONSCAN_API_KEY: ${{ secrets.POLYGONSCAN_API_KEY }}
+          AMOY_RPC: https://polygon-amoy-bor-rpc.publicnode.com
+
+      - name: SonarCloud Scan
+        if: ${{ !cancelled() }} # still scan if a flaky test fails
+        uses: SonarSource/sonarqube-scan-action@v4
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
