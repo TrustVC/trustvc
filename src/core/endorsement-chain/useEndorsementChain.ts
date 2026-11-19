@@ -9,8 +9,8 @@ import {
   fetchEscrowTransfersV5,
 } from '../endorsement-chain/fetchEscrowTransfer';
 import {
+  getLatestBlockWithRetry,
   isLogsRetryableError,
-  warmProviderNetwork,
   withRateLimitRetry,
 } from '../endorsement-chain/fetchLogsChunked';
 import { fetchTokenTransfers } from '../endorsement-chain/fetchTokenTransfer';
@@ -227,9 +227,6 @@ export const fetchEndorsementChain = async (
     throw new Error('Missing required dependencies');
   }
 
-  // One eth_chainId / getNetwork up front so later calls don't each re-detect the network.
-  await warmProviderNetwork(provider);
-
   const resolvedTitleEscrowAddress =
     titleEscrowAddress ?? (await getTitleEscrowAddress(tokenRegistryAddress, tokenId, provider));
 
@@ -259,13 +256,21 @@ export const fetchEndorsementChain = async (
   let transferEvents: TransferBaseEvent[] = [];
 
   if (isV4) {
+    // One tip for both scans so a block mined between them cannot appear in only one result.
+    const latestBlock = await getLatestBlockWithRetry(provider);
     // Token mint block ≈ escrow creation — reuse it instead of eth_getCode binary search.
-    const tokenLogs = await fetchTokenTransfers(provider, tokenRegistryAddress, tokenId);
+    const tokenLogs = await fetchTokenTransfers(
+      provider,
+      tokenRegistryAddress,
+      tokenId,
+      latestBlock,
+    );
     const mintFloor = tokenLogs.find((event) => event.type === 'INITIAL')?.blockNumber ?? 0;
     const titleEscrowLogs = await fetchEscrowTransfersV4(
       provider,
       resolvedTitleEscrowAddress,
       mintFloor,
+      latestBlock,
     );
 
     transferEvents = mergeTransfersV4([...titleEscrowLogs, ...tokenLogs]);

@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 import { FREE_TIER_MAX_CHUNK_SIZE, INITIAL_CHUNK_SIZE } from '../../constants';
-import { getLogsAdaptive } from '../../core/endorsement-chain/fetchLogsChunked';
+import {
+  getLogsAdaptive,
+  isLogsRetryableError,
+  isRateLimit,
+  withRateLimitRetry,
+} from '../../core/endorsement-chain/fetchLogsChunked';
 
 const ADDRESS = '0xabc';
 
@@ -45,6 +50,56 @@ describe('getLogsAdaptive', () => {
       [10_000, 19_999],
       [20_000, 25_000],
     ]);
+  });
+
+  it('shrinks a short span before walking when the default chunk would repeat it', async () => {
+    const { provider, calls } = providerReturning((from, to) => {
+      if (to - from + 1 > 500) throw timeoutError();
+      return [{ blockNumber: from }];
+    });
+
+    const logs = await getLogsAdaptive(provider as never, ADDRESS, 0, 999);
+    expect(logs.map((log) => log.blockNumber)).toEqual([0, 500]);
+    expect(calls).toEqual([
+      [0, 999],
+      [0, 499],
+      [500, 999],
+    ]);
+  });
+
+  it('starts chunked scans at the fallback block after the full span is rejected', async () => {
+    const { provider, calls } = providerReturning((from, to) => {
+      if (to - from + 1 > INITIAL_CHUNK_SIZE) throw rangeError();
+      return [{ blockNumber: from }];
+    });
+    const fallbackFromBlock = vi.fn(async () => 15_000);
+
+    const logs = await getLogsAdaptive(
+      provider as never,
+      ADDRESS,
+      0,
+      40_000,
+      undefined,
+      fallbackFromBlock,
+    );
+
+    expect(fallbackFromBlock).toHaveBeenCalledOnce();
+    expect(logs.map((log) => log.blockNumber)).toEqual([15_000, 25_000, 35_000]);
+    expect(calls).toEqual([
+      [0, 40_000],
+      [15_000, 24_999],
+      [25_000, 34_999],
+      [35_000, 40_000],
+    ]);
+  });
+
+  it('does not resolve a fallback when the full span succeeds', async () => {
+    const { provider } = providerReturning(() => [{ blockNumber: 1 }]);
+    const fallbackFromBlock = vi.fn(async () => 5_000);
+
+    await getLogsAdaptive(provider as never, ADDRESS, 0, 50_000, undefined, fallbackFromBlock);
+
+    expect(fallbackFromBlock).not.toHaveBeenCalled();
   });
 
   it('starts at 10-block windows when the full span hits a free-tier limit', async () => {
@@ -105,5 +160,54 @@ describe('getLogsAdaptive', () => {
     await assertion;
     expect(calls).toHaveLength(4);
     vi.useRealTimers();
+  });
+});
+
+describe('rate-limit classification', () => {
+  it('does not retry a coalesced permanent RPC error', async () => {
+    const err = Object.assign(new Error('could not coalesce error'), {
+      error: { code: -32000, message: 'execution reverted' },
+    });
+
+    expect(isRateLimit(err)).toBe(false);
+    expect(isLogsRetryableError(err)).toBe(false);
+    const fn = vi.fn(async () => {
+      throw err;
+    });
+    await expect(withRateLimitRetry(fn)).rejects.toBe(err);
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+
+  it('retries a coalesced error when the underlying code is a rate limit', async () => {
+    vi.useFakeTimers();
+    const err = Object.assign(new Error('could not coalesce error'), {
+      errors: [{ code: 429, message: 'Too Many Requests' }],
+    });
+
+    expect(isRateLimit(err)).toBe(true);
+    expect(isLogsRetryableError(err)).toBe(true);
+    const fn = vi.fn(async () => {
+      throw err;
+    });
+    const pending = withRateLimitRetry(fn);
+    const assertion = expect(pending).rejects.toBe(err);
+    await vi.runAllTimersAsync();
+    await assertion;
+    expect(fn).toHaveBeenCalledTimes(4);
+    vi.useRealTimers();
+  });
+
+  it('keeps range errors ahead of a shared -32005 code', async () => {
+    const err = Object.assign(new Error('query returned more than 10000 results'), {
+      code: -32005,
+    });
+
+    expect(isRateLimit(err)).toBe(false);
+    expect(isLogsRetryableError(err)).toBe(true);
+    const fn = vi.fn(async () => {
+      throw err;
+    });
+    await expect(withRateLimitRetry(fn)).rejects.toBe(err);
+    expect(fn).toHaveBeenCalledTimes(1);
   });
 });

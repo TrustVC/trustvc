@@ -11,7 +11,12 @@ import {
 } from '../../token-registry-v5/contracts';
 import { supportInterfaceIds as supportInterfaceIdsV5 } from '../../token-registry-v5/supportInterfaceIds';
 import { getEthersContractFromProvider } from '../../utils/ethers';
-import { getLatestBlockWithRetry, getLogsAdaptive } from './fetchLogsChunked';
+import {
+  getLatestBlockWithRetry,
+  getLogsAdaptive,
+  isRateLimit,
+  withRateLimitRetry,
+} from './fetchLogsChunked';
 import {
   ParsedLog,
   TerminationReasonLabel,
@@ -73,6 +78,8 @@ export const fetchEscrowTransfersV4 = async (
   address: string,
   /** Optional mint/creation floor (e.g. token INITIAL block) — avoids eth_getCode when known. */
   scanFloor = 0,
+  /** Inclusive upper bound shared with the token scan. Omitted → current chain tip. */
+  toBlock?: number,
 ): Promise<TitleEscrowTransferEvent[]> => {
   const Contract = getEthersContractFromProvider(provider);
   const titleEscrowContract = new Contract(
@@ -82,7 +89,7 @@ export const fetchEscrowTransfersV4 = async (
     provider as any,
   ) as TitleEscrowV4;
 
-  const latestBlock = await getLatestBlockWithRetry(provider);
+  const latestBlock = toBlock ?? (await getLatestBlockWithRetry(provider));
   let fromBlock = scanFloor > 0 && scanFloor <= latestBlock ? scanFloor : 0;
 
   // No token mint floor → resolve escrow creation so the scan does not start at block 0.
@@ -269,8 +276,12 @@ export const resolveEscrowScanBounds = async (
 
   try {
     // ObligationEscrow — shredBlock is the document end (0 while still active).
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const shredBlock = Number(await (titleEscrowContract as any).shredBlock());
+    const shredBlock = Number(
+      await withRateLimitRetry(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        () => (titleEscrowContract as any).shredBlock(),
+      ),
+    );
     if (
       Number.isFinite(shredBlock) &&
       shredBlock > 0 &&
@@ -279,7 +290,9 @@ export const resolveEscrowScanBounds = async (
     ) {
       toBlock = shredBlock;
     }
-  } catch {
+  } catch (err) {
+    // Throttling is not a missing getter. Retries already ran inside withRateLimitRetry.
+    if (isRateLimit(err)) throw err;
     // Classic Title Escrow V4/V5 — no shredBlock; scan through latest.
   }
 

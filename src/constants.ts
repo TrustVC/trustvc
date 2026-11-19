@@ -43,14 +43,9 @@ export const BLOCK_RANGE_CAP_ERROR_RE = new RegExp(
   'i',
 );
 
+/** Throttling only. "could not coalesce" is an ethers wrapper, not a rate limit by itself. */
 export const RATE_LIMIT_ERROR_RE = new RegExp(
-  [
-    String.raw`rate[\s-]?limit`,
-    'too many requests',
-    'could not coalesce',
-    rpcCode('429'),
-    rpcCode('-32005'),
-  ].join('|'),
+  [String.raw`rate[\s-]?limit`, 'too many requests', rpcCode('429'), rpcCode('-32005')].join('|'),
   'i',
 );
 

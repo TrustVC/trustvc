@@ -15,22 +15,31 @@ import {
 
 type RangeFailure = 'FREE_TIER' | 'RESULT_OVERFLOW' | 'TIMEOUT' | 'RANGE_CAP';
 
-function errorMessage(err: unknown): string {
+function pushRpcParts(target: string[], value: unknown, depth: number): void {
+  if (depth > 3 || value == null || typeof value !== 'object') return;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const anyErr = err as any;
-  const parts = [
-    anyErr?.message,
-    anyErr?.shortMessage,
-    anyErr?.error?.message,
-    anyErr?.info?.error?.message,
-    typeof anyErr?.statusCode === 'number' ? String(anyErr.statusCode) : undefined,
-    typeof anyErr?.code === 'number' || typeof anyErr?.code === 'string'
-      ? String(anyErr.code)
-      : undefined,
-  ].filter((part): part is string => typeof part === 'string' && part.length > 0);
+  const anyVal = value as any;
+  if (typeof anyVal.message === 'string') target.push(anyVal.message);
+  if (typeof anyVal.shortMessage === 'string') target.push(anyVal.shortMessage);
+  if (typeof anyVal.reason === 'string') target.push(anyVal.reason);
+  if (typeof anyVal.code === 'number' || typeof anyVal.code === 'string') {
+    target.push(String(anyVal.code));
+  }
+  if (typeof anyVal.statusCode === 'number') target.push(String(anyVal.statusCode));
+  if (anyVal.error && anyVal.error !== value) pushRpcParts(target, anyVal.error, depth + 1);
+  if (anyVal.info?.error && anyVal.info.error !== value) {
+    pushRpcParts(target, anyVal.info.error, depth + 1);
+  }
+  if (Array.isArray(anyVal.errors)) {
+    for (const item of anyVal.errors) pushRpcParts(target, item, depth + 1);
+  }
+}
 
-  if (parts.length > 0) return parts.join(' ');
+function errorMessage(err: unknown): string {
   if (typeof err === 'string') return err;
+  const parts: string[] = [];
+  pushRpcParts(parts, err, 0);
+  if (parts.length > 0) return parts.join(' ');
   if (err instanceof Error) return err.message;
   try {
     return JSON.stringify(err);
@@ -77,7 +86,12 @@ function rangeFailure(err: unknown): RangeFailure | undefined {
   return undefined;
 }
 
-function isRateLimit(err: unknown): boolean {
+/**
+ * True for provider throttling. Range and timeout errors are not rate limits.
+ * @param {unknown} err - RPC error
+ * @returns {boolean} Whether the call should be retried
+ */
+export function isRateLimit(err: unknown): boolean {
   // Range errors win: Infura uses -32005 for overflow, timeout, and rate limits.
   if (rangeFailure(err)) return false;
   return RATE_LIMIT_ERROR_RE.test(errorMessage(err));
@@ -229,6 +243,7 @@ async function walkChunks(
  * @param {number} fromBlock - Inclusive start block
  * @param {number} toBlock - Inclusive end block
  * @param {Array} [topics] - Optional eth_getLogs topics
+ * @param {() => Promise<number>} [fallbackFromBlock] - Inclusive chunk start after the full span is rejected
  * @returns {Promise<Array>} Logs in block order
  */
 export async function getLogsAdaptive(
@@ -238,6 +253,7 @@ export async function getLogsAdaptive(
   toBlock: number,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   topics?: any[],
+  fallbackFromBlock?: () => Promise<number>,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<any[]> {
   if (toBlock < fromBlock) return [];
@@ -248,6 +264,24 @@ export async function getLogsAdaptive(
     );
   } catch (err) {
     if (!rangeFailure(err)) throw err;
-    return walkChunks(provider, address, fromBlock, toBlock, topics, startingChunk(err));
+    const chunkFrom = await chunkStartAfterRejection(fromBlock, toBlock, fallbackFromBlock);
+    const span = toBlock - chunkFrom + 1;
+    let chunk = startingChunk(err);
+    // The default chunk already covers this span, so the first walk step would
+    // repeat the call that just failed. Shrink that span before walking.
+    if (chunk >= span) chunk = shrinkChunk(span, err);
+    return walkChunks(provider, address, chunkFrom, toBlock, topics, chunk);
   }
+}
+
+// Inclusive chunk floor after the unchunked request fails. Invalid values keep fromBlock.
+async function chunkStartAfterRejection(
+  fromBlock: number,
+  toBlock: number,
+  fallbackFromBlock?: () => Promise<number>,
+): Promise<number> {
+  if (!fallbackFromBlock) return fromBlock;
+  const created = await fallbackFromBlock();
+  if (!Number.isFinite(created) || created <= fromBlock || created > toBlock) return fromBlock;
+  return created;
 }

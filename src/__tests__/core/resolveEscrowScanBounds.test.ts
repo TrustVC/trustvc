@@ -82,4 +82,41 @@ describe('resolveEscrowScanBounds', () => {
 
     expect(bounds).toEqual({ fromBlock: 10_000, toBlock: 20_000 });
   });
+
+  it('retries a throttled shredBlock and uses that end block', async () => {
+    vi.useFakeTimers();
+    const shredBlock = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('429 too many requests'))
+      .mockResolvedValueOnce(4_000);
+    const pending = resolveEscrowScanBounds(
+      { getCode: vi.fn() } as never,
+      { mintBlock: async () => 1_000, shredBlock } as never,
+      '0xescrow',
+      9_000,
+    );
+    const assertion = expect(pending).resolves.toEqual({ fromBlock: 1_000, toBlock: 4_000 });
+    await vi.runAllTimersAsync();
+    await assertion;
+    expect(shredBlock).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
+  });
+
+  it('throws when a throttled shredBlock is still failing after retries', async () => {
+    vi.useFakeTimers();
+    const shredBlock = vi.fn(async () => {
+      throw new Error('429 too many requests');
+    });
+    const pending = resolveEscrowScanBounds(
+      { getCode: vi.fn() } as never,
+      { mintBlock: async () => 1_000, shredBlock } as never,
+      '0xescrow',
+      9_000,
+    );
+    const assertion = expect(pending).rejects.toThrow('429 too many requests');
+    await vi.runAllTimersAsync();
+    await assertion;
+    expect(shredBlock).toHaveBeenCalledTimes(4);
+    vi.useRealTimers();
+  });
 });

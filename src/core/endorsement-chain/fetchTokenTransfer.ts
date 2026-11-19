@@ -6,12 +6,15 @@ import { getEthersContractFromProvider } from '../../utils/ethers';
 import { sortLogChain } from '../endorsement-chain/helpers';
 import { TokenTransferEvent, TokenTransferEventType, TypedEvent } from '../endorsement-chain/types';
 import { Provider } from '@ethersproject/abstract-provider';
+import { resolveContractCreationBlock } from './fetchEscrowTransfer';
 import { getLatestBlockWithRetry, getLogsAdaptive, resolveFilterTopics } from './fetchLogsChunked';
 
 export const fetchTokenTransfers = async (
   provider: Provider | ethersV6.Provider,
   tokenRegistryAddress: string,
   tokenId: string,
+  /** Inclusive upper bound shared with the escrow scan. Omitted → current chain tip. */
+  toBlock?: number,
 ): Promise<TokenTransferEvent[]> => {
   const Contract = getEthersContractFromProvider(provider);
   const tokenRegistryContract = new Contract(
@@ -22,7 +25,13 @@ export const fetchTokenTransfers = async (
   );
 
   // Fetch transfer logs from token registry
-  const logs = await fetchLogs(provider, tokenRegistryContract, tokenRegistryAddress, tokenId);
+  const logs = await fetchLogs(
+    provider,
+    tokenRegistryContract,
+    tokenRegistryAddress,
+    tokenId,
+    toBlock,
+  );
   const parsedLogs = parseLogs(logs, tokenRegistryContract);
 
   const reformattedLogs = parsedLogs.map((event) =>
@@ -34,12 +43,14 @@ export const fetchTokenTransfers = async (
 };
 
 /**
- * Transfer logs for one token, topic-scoped, from block 0 to latest.
- * getLogsAdaptive tries the whole span once, then walks 10,000-block windows.
+ * Transfer logs for one token, topic-scoped, from block 0 through `toBlock`.
+ * The full span is tried once. If that request is rejected, chunked windows
+ * start at the token registry creation block instead of genesis.
  * @param {Provider | ethersV6.Provider} provider - Ethers provider
  * @param {ethersV6.Contract | ethers.Contract} tokenRegistry - Token Registry contract
  * @param {string} tokenRegistryAddress - Token Registry contract address
  * @param {string} tokenId - Token ID
+ * @param {number} [toBlock] - Inclusive upper bound; current chain tip when omitted
  * @returns {Promise<Array<{ blockNumber?: number; transactionHash?: string }>>} Transfer logs
  */
 async function fetchLogs(
@@ -47,13 +58,16 @@ async function fetchLogs(
   tokenRegistry: ethersV6.Contract | ethers.Contract,
   tokenRegistryAddress: string,
   tokenId: string,
+  toBlock?: number,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<any[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const transferLogFilter: any = tokenRegistry.filters.Transfer(null, null, tokenId);
   const topics = await resolveFilterTopics(transferLogFilter);
-  const latestBlock = await getLatestBlockWithRetry(provider);
-  const logs = await getLogsAdaptive(provider, tokenRegistryAddress, 0, latestBlock, topics);
+  const latestBlock = toBlock ?? (await getLatestBlockWithRetry(provider));
+  const logs = await getLogsAdaptive(provider, tokenRegistryAddress, 0, latestBlock, topics, () =>
+    resolveContractCreationBlock(provider, tokenRegistryAddress, latestBlock),
+  );
   if (logs.length === 0) {
     throw new Error('Unminted Title Escrow');
   }

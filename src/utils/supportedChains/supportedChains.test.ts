@@ -1,4 +1,4 @@
-import { CHAIN_ID, SUPPORTED_CHAINS } from '../supportedChains';
+import { CHAIN_ID, rpcUrlPreferAlchemy, SUPPORTED_CHAINS } from '../supportedChains';
 
 describe('supportedChains', () => {
   it('should local chain info correctly', () => {
@@ -54,7 +54,28 @@ describe('supportedChains', () => {
     expect(type).toBe('test');
     expect(currency).toBe('POL');
     expect(explorerUrl).toBe('https://amoy.polygonscan.com');
-    expect(rpcUrl).toContain('https://polygon-amoy.infura.io/v3/');
+    const alchemy = process.env.ALCHEMY_API_KEY?.trim();
+    expect(rpcUrl).toContain(
+      alchemy ? 'https://polygon-amoy.g.alchemy.com/v2/' : 'https://polygon-amoy.infura.io/v3/',
+    );
+  });
+
+  it('falls back to Infura when the Alchemy key is missing', () => {
+    expect(rpcUrlPreferAlchemy('polygon-amoy', 'polygon-amoy', { infura: 'infura-key' })).toBe(
+      'https://polygon-amoy.infura.io/v3/infura-key',
+    );
+    expect(
+      rpcUrlPreferAlchemy('eth-sepolia', 'sepolia', { alchemy: '   ', infura: 'infura-key' }),
+    ).toBe('https://sepolia.infura.io/v3/infura-key');
+  });
+
+  it('uses Alchemy when the Alchemy key is set', () => {
+    expect(
+      rpcUrlPreferAlchemy('eth-mainnet', 'mainnet', {
+        alchemy: 'alchemy-key',
+        infura: 'infura-key',
+      }),
+    ).toBe('https://eth-mainnet.g.alchemy.com/v2/alchemy-key');
   });
 
   it('should use Etherscan v2 as the explorer API for amoy', () => {
