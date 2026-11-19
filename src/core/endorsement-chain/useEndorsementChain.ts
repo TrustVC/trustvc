@@ -8,7 +8,11 @@ import {
   fetchEscrowTransfersV4,
   fetchEscrowTransfersV5,
 } from '../endorsement-chain/fetchEscrowTransfer';
-import { isLogsRetryableError, withRateLimitRetry } from '../endorsement-chain/fetchLogsChunked';
+import {
+  getLatestBlockWithRetry,
+  isLogsRetryableError,
+  withRateLimitRetry,
+} from '../endorsement-chain/fetchLogsChunked';
 import { fetchTokenTransfers } from '../endorsement-chain/fetchTokenTransfer';
 import { mergeTransfersV4, mergeTransfersV5 } from '../endorsement-chain/helpers';
 import { getEndorsementChain } from '../endorsement-chain/retrieveEndorsementChain';
@@ -222,6 +226,7 @@ export const fetchEndorsementChain = async (
   if (!tokenRegistryAddress || !tokenId || !provider) {
     throw new Error('Missing required dependencies');
   }
+
   const resolvedTitleEscrowAddress =
     titleEscrowAddress ?? (await getTitleEscrowAddress(tokenRegistryAddress, tokenId, provider));
 
@@ -251,10 +256,22 @@ export const fetchEndorsementChain = async (
   let transferEvents: TransferBaseEvent[] = [];
 
   if (isV4) {
-    const [tokenLogs, titleEscrowLogs] = await Promise.all([
-      fetchTokenTransfers(provider, tokenRegistryAddress, tokenId),
-      fetchEscrowTransfersV4(provider, resolvedTitleEscrowAddress),
-    ]);
+    // One tip for both scans so a block mined between them cannot appear in only one result.
+    const latestBlock = await getLatestBlockWithRetry(provider);
+    // Token mint block ≈ escrow creation — reuse it instead of eth_getCode binary search.
+    const tokenLogs = await fetchTokenTransfers(
+      provider,
+      tokenRegistryAddress,
+      tokenId,
+      latestBlock,
+    );
+    const mintFloor = tokenLogs.find((event) => event.type === 'INITIAL')?.blockNumber ?? 0;
+    const titleEscrowLogs = await fetchEscrowTransfersV4(
+      provider,
+      resolvedTitleEscrowAddress,
+      mintFloor,
+      latestBlock,
+    );
 
     transferEvents = mergeTransfersV4([...titleEscrowLogs, ...tokenLogs]);
   } else if (isV5 || isObligation) {

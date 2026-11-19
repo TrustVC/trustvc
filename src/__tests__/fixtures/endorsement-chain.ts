@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { rpcUrlPreferAlchemy } from '../../utils/supportedChains';
 export const emptyMock: { function: string; params: any; result: any }[] = [
   {
     function: 'getBlockNumber',
@@ -3384,7 +3385,7 @@ export const testCases = [
     timeout: 180_000,
   },
   {
-    rpcUrl: `https://sepolia.infura.io/v3/${process.env.INFURA_API_KEY}`,
+    rpcUrl: rpcUrlPreferAlchemy('eth-sepolia', 'sepolia'),
     description: 'Token Registry V4 with Transfer, Surrender, Burnt events - Sepolia',
     tokenRegistryAddress: '0x689a6a40647a383274f947e14f210ae64eb2b9c2',
     tokenId: '0x69e10a3bfb000b3a84bddd7a6865df0195c4cde17454ddd824640cebcd0b71bb',
@@ -3403,7 +3404,7 @@ export const testCases = [
     timeout: 180_000,
   },
   {
-    rpcUrl: `https://sepolia.infura.io/v3/${process.env.INFURA_API_KEY}`,
+    rpcUrl: rpcUrlPreferAlchemy('eth-sepolia', 'sepolia'),
     description: 'Token Registry V5 with Transfer, Surrender, Burnt events - Sepolia',
     tokenRegistryAddress: '0x3A5f212f1D1bf90a8a0B7530698e25620DEb166B',
     tokenId: '0x951b39bcaddc0e8882883db48ca258ca35ccb01fee328355f0dfda1ff9be9990',
@@ -3754,7 +3755,7 @@ export const testCases = [
     timeout: 180_000,
   },
   {
-    rpcUrl: `https://polygon-mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
+    rpcUrl: rpcUrlPreferAlchemy('polygon-mainnet', 'polygon-mainnet'),
     description: 'Token Registry V4 with Transfer, Surrender, Burnt events - Polygon',
     tokenRegistryAddress: '0xFeC7d50A4062497710AC93AF802988FA47b2b8F5',
     tokenId: '0x2e9846da5cbebf0c7eaddaafa97ece7923942159189b5bb2d02c879aa75a508a',
@@ -3813,7 +3814,7 @@ export const testCases = [
     timeout: 180_000,
   },
   {
-    rpcUrl: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
+    rpcUrl: rpcUrlPreferAlchemy('eth-mainnet', 'mainnet'),
     description: 'Token Registry V4 with Transfer, Surrender, Burnt events - Ethereum',
     tokenRegistryAddress: '0x1550DD7B63a52356194aBBe5dfeCDe3f322FF335',
     tokenId: '0x75f52c9fca67f19e913186ba5feed72ba799285f32ed3f30ec7768a73b71df90',

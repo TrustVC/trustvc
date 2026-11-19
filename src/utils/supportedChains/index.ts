@@ -39,6 +39,36 @@ export type chainInfo = {
 
 type supportedChains = Record<CHAIN_ID, chainInfo>;
 
+const trimmedKey = (value: string | undefined): string | undefined => {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
+};
+
+/**
+ * Alchemy when `ALCHEMY_API_KEY` is set, otherwise Infura.
+ * A missing Infura key keeps the same `undefined` URL suffix as the previous templates.
+ * @param {string} alchemySubdomain - Host label before `.g.alchemy.com`
+ * @param {string} infuraHost - Host label before `.infura.io`
+ * @param {object} [keys] - Key overrides; defaults to the process environment
+ * @param {string} [keys.alchemy] - Alchemy key override; defaults to `ALCHEMY_API_KEY`
+ * @param {string} [keys.infura] - Infura key override; defaults to `INFURA_API_KEY`
+ * @returns {string} HTTPS JSON-RPC URL
+ */
+export const rpcUrlPreferAlchemy = (
+  alchemySubdomain: string,
+  infuraHost: string,
+  keys: { alchemy?: string; infura?: string } = {
+    alchemy: process.env.ALCHEMY_API_KEY,
+    infura: process.env.INFURA_API_KEY,
+  },
+): string => {
+  const alchemy = trimmedKey(keys.alchemy);
+  if (alchemy) {
+    return `https://${alchemySubdomain}.g.alchemy.com/v2/${alchemy}`;
+  }
+  return `https://${infuraHost}.infura.io/v3/${keys.infura}`;
+};
+
 export const SUPPORTED_CHAINS: supportedChains = {
   [CHAIN_ID.local]: {
     id: CHAIN_ID.local,
@@ -58,7 +88,7 @@ export const SUPPORTED_CHAINS: supportedChains = {
     currency: 'ETH',
     iconImage: iconEthereum,
     explorerUrl: 'https://etherscan.io',
-    rpcUrl: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
+    rpcUrl: rpcUrlPreferAlchemy('eth-mainnet', 'mainnet'),
   },
   [CHAIN_ID.pol]: {
     id: CHAIN_ID.pol,
@@ -68,7 +98,7 @@ export const SUPPORTED_CHAINS: supportedChains = {
     currency: 'POL',
     iconImage: iconPolygon,
     explorerUrl: 'https://polygonscan.com',
-    rpcUrl: `https://polygon-mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
+    rpcUrl: rpcUrlPreferAlchemy('polygon-mainnet', 'polygon-mainnet'),
     gasStation: gasStation('https://gasstation.polygon.technology/v2'),
     nativeCurrency: {
       name: 'POL',
@@ -85,7 +115,7 @@ export const SUPPORTED_CHAINS: supportedChains = {
     iconImage: iconPolygon,
     explorerUrl: 'https://amoy.polygonscan.com',
     explorerApiUrl: `https://api.etherscan.io/v2/api?apikey=${process.env.POLYGONSCAN_API_KEY}&chainid=80002`,
-    rpcUrl: `https://polygon-amoy.infura.io/v3/${process.env.INFURA_API_KEY}`,
+    rpcUrl: rpcUrlPreferAlchemy('polygon-amoy', 'polygon-amoy'),
     gasStation: gasStation('https://gasstation.polygon.technology/amoy'),
     nativeCurrency: {
       name: 'POL',
@@ -101,7 +131,7 @@ export const SUPPORTED_CHAINS: supportedChains = {
     currency: 'ETH',
     iconImage: iconEthereum,
     explorerUrl: 'https://sepolia.etherscan.io',
-    rpcUrl: `https://sepolia.infura.io/v3/${process.env.INFURA_API_KEY}`,
+    rpcUrl: rpcUrlPreferAlchemy('eth-sepolia', 'sepolia'),
     nativeCurrency: {
       name: 'ETH',
       symbol: 'sepETH',
