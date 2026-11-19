@@ -17,6 +17,10 @@ jobs:
           node-version: 20
       - run: npm ci --ignore-scripts
       - run: npm run test
+        env:
+          ANKR_API_KEY: ${{ secrets.ANKR_API_KEY }}
+          POLYGONSCAN_API_KEY: ${{ secrets.POLYGONSCAN_API_KEY }}
+          AMOY_RPC: https://polygon-amoy-bor-rpc.publicnode.com
 
   publish-npm:
     needs: test
