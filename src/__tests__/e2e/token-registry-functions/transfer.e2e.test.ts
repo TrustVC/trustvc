@@ -58,7 +58,7 @@ const providers: ProviderInfo[] = [
 ];
 
 providers.forEach(({ Provider, ethersVersion, titleEscrowVersion }) => {
-  describe(`Transfer Functions E2E Tests -with ethers ${ethersVersion} and token registry ${titleEscrowVersion}`, async function () {
+  describe(`Transfer Functions E2E Tests -with ethers ${ethersVersion} and token registry ${titleEscrowVersion}`, function () {
     let TradeTrustTokenContract: any;
     let TitleEscrowFactoryContract: any;
     let titleEscrowFactoryAddress: any;

@@ -1,4 +1,4 @@
-import {
+export {
   openAttestationDidSignedDocumentStatus,
   openAttestationDnsDidIdentityProof,
   openAttestationDnsTxtIdentityProof,
@@ -6,37 +6,21 @@ import {
   openAttestationEthereumTokenRegistryStatus,
   openAttestationHash,
 } from '@tradetrust-tt/tt-verify';
-import { w3cSignatureIntegrity } from './document-integrity/w3cSignatureIntegrity';
-import { ecdsaW3CSignatureIntegrity } from './document-integrity/ecdsaW3CSignatureIntegrity';
-import {
+export { w3cSignatureIntegrity } from './document-integrity/w3cSignatureIntegrity';
+export { ecdsaW3CSignatureIntegrity } from './document-integrity/ecdsaW3CSignatureIntegrity';
+export {
   credentialStatusTransferableRecordVerifier,
   TRANSFERABLE_RECORDS_TYPE,
 } from './document-status/transferableRecords/transferableRecordVerifier';
-import { w3cCredentialStatus } from './document-status/w3cCredentialStatus';
-import { w3cIssuerIdentity } from './issuer-identity/w3cIssuerIdentity';
-import { w3cEmptyCredentialStatus } from './document-status/w3cEmptyCredentialStatus';
+export { w3cCredentialStatus } from './document-status/w3cCredentialStatus';
+export { w3cIssuerIdentity } from './issuer-identity/w3cIssuerIdentity';
+export { w3cEmptyCredentialStatus } from './document-status/w3cEmptyCredentialStatus';
 
 export {
   w3cVpCredentialStatus,
   w3cVpIssuerIdentity,
   w3cVpSignatureIntegrity,
 } from './presentation/w3cVpVerifier';
-
-export {
-  TRANSFERABLE_RECORDS_TYPE,
-  credentialStatusTransferableRecordVerifier,
-  openAttestationDidSignedDocumentStatus,
-  openAttestationDnsDidIdentityProof,
-  openAttestationDnsTxtIdentityProof,
-  openAttestationEthereumDocumentStoreStatus,
-  openAttestationEthereumTokenRegistryStatus,
-  openAttestationHash,
-  w3cEmptyCredentialStatus,
-  w3cCredentialStatus,
-  w3cIssuerIdentity,
-  w3cSignatureIntegrity,
-  ecdsaW3CSignatureIntegrity,
-};
 
 export {
   credentialStatusObligationRecordVerifier,

@@ -1,5 +1,4 @@
 import {
-  isValid,
   openAttestationDidSignedDocumentStatus,
   openAttestationDnsDidIdentityProof,
   openAttestationDnsTxtIdentityProof,
@@ -7,27 +6,10 @@ import {
   openAttestationEthereumTokenRegistryStatus,
   openAttestationHash,
   openAttestationVerifiers as originalOpenAttestationVerifiers,
-  verificationBuilder,
-  verify,
-  getIdentifier,
-  createResolver,
-  utils,
 } from '@tradetrust-tt/tt-verify';
 import type {
-  DocumentsToVerify,
-  ErrorVerificationFragment,
-  InvalidVerificationFragment,
-  ProviderDetails,
-  providerType as ProviderType,
-  SkippedVerificationFragment,
-  ValidVerificationFragment,
-  VerificationBuilderOptions,
   VerificationFragment,
-  VerificationFragmentStatus,
-  VerificationFragmentType,
   Verifier,
-  VerifierOptions,
-  VerificationFragmentWithData,
 } from '@tradetrust-tt/tt-verify/dist/types/src/types/core';
 import { w3cSignatureIntegrity } from './fragments/document-integrity/w3cSignatureIntegrity';
 import { ecdsaW3CSignatureIntegrity } from './fragments/document-integrity/ecdsaW3CSignatureIntegrity';
@@ -82,24 +64,23 @@ const w3cVerifiers: Verifier<VerificationFragment>[] = [
   w3cVpIssuerIdentity,
 ];
 
+export { verifiers, openAttestationVerifiers, w3cVerifiers };
+
 export {
   isValid,
-  verifiers,
-  openAttestationVerifiers,
   verificationBuilder,
   verify,
-  w3cVerifiers,
   getIdentifier,
   createResolver,
   utils,
-};
+} from '@tradetrust-tt/tt-verify';
 
 export type {
   DocumentsToVerify,
   ErrorVerificationFragment,
   InvalidVerificationFragment,
   ProviderDetails,
-  ProviderType,
+  providerType as ProviderType,
   SkippedVerificationFragment,
   ValidVerificationFragment,
   VerificationBuilderOptions,
@@ -109,4 +90,4 @@ export type {
   VerificationFragmentType,
   VerifierOptions,
   Verifier,
-};
+} from '@tradetrust-tt/tt-verify/dist/types/src/types/core';

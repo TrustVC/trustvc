@@ -52,6 +52,25 @@ export interface DeployOptions {
 export type TransactionReceipt = ContractReceiptV5 | ContractReceiptV6;
 
 /**
+ * Extracts a readable message from a thrown value. Providers and RPC libraries can throw
+ * plain objects (e.g. `{ code, message }`), which `String()` would render as "[object Object]".
+ * @param {unknown} e - The thrown value.
+ * @returns {string} A human-readable error message.
+ */
+const getErrorMessage = (e: unknown): string => {
+  if (e instanceof Error) return e.message;
+  if (typeof e === 'string') return e;
+  if (typeof e === 'object' && e !== null && 'message' in e && typeof e.message === 'string') {
+    return e.message;
+  }
+  try {
+    return JSON.stringify(e) ?? 'Unknown error';
+  } catch {
+    return 'Unknown error';
+  }
+};
+
+/**
  * Deploys a new Document Store contract with automatic type selection.
  * **Store Types:**
  * - **Standard** (default): Documents are immutable and cannot be transferred
@@ -147,9 +166,7 @@ const deployDocumentStore = async (
   } catch (e) {
     // Provide detailed error message on deployment failure
     console.error('Deployment failed:', e);
-    throw new Error(
-      `Failed to deploy DocumentStore: ${e instanceof Error ? e.message : String(e)}`,
-    );
+    throw new Error(`Failed to deploy DocumentStore: ${getErrorMessage(e)}`);
   }
 };
 

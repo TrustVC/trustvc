@@ -48,7 +48,7 @@ const verify: VerifierType['verify'] = async (
         );
       }
 
-      if (!credentialStatus?.tokenNetwork || !credentialStatus?.tokenNetwork?.chainId) {
+      if (!credentialStatus?.tokenNetwork?.chainId) {
         throw new CodedError(
           "Document's credentialStatus does not have tokenNetwork.chainId",
           OpenAttestationEthereumTokenRegistryStatusCode.UNRECOGNIZED_DOCUMENT,

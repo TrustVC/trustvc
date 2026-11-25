@@ -416,7 +416,7 @@ describe('W3C Verifiable Presentation (via @trustvc/trustvc)', () => {
         challenge: CHALLENGE,
       });
       expect(result.verified).toBe(true);
-      expect(result.credentialResults?.length).toBe(2);
+      expect(result.credentialResults).toHaveLength(2);
     });
   });
 

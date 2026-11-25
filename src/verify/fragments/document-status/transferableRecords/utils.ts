@@ -20,7 +20,7 @@ const isNonExistentToken = (error: EthersError) => {
   const message: string | undefined = error.message;
   if (!message) {
     // ERC721NonexistentToken error
-    return error.data && error.data.slice(0, 10) === '0x7e273289';
+    return error.data?.startsWith('0x7e273289') ?? false;
   }
   return message.includes('owner query for nonexistent token');
 };

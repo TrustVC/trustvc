@@ -24,6 +24,38 @@ export enum W3CCredentialStatusCode {
   INVALID_ARGUMENT = 6,
   INVALID_ISSUERS = 7,
 }
+
+/**
+ * Builds the INVALID reason from which status purposes flagged the document.
+ * @param {boolean} hasRevocation - Whether a revocation status entry is present.
+ * @param {boolean} hasSuspension - Whether a suspension status entry is present.
+ * @returns {{ code: W3CCredentialStatusCode; codeString: string; message: string }} The fragment reason.
+ */
+const getInvalidStatusReason = (
+  hasRevocation: boolean,
+  hasSuspension: boolean,
+): { code: W3CCredentialStatusCode; codeString: string; message: string } => {
+  if (hasRevocation && hasSuspension) {
+    return {
+      code: W3CCredentialStatusCode.DOCUMENT_REVOKED_AND_SUSPENDED,
+      codeString: 'REVOKED_AND_SUSPENDED',
+      message: 'Document has been revoked and suspended.',
+    };
+  }
+  if (hasRevocation) {
+    return {
+      code: W3CCredentialStatusCode.DOCUMENT_REVOKED,
+      codeString: 'REVOKED',
+      message: 'Document has been revoked.',
+    };
+  }
+  return {
+    code: W3CCredentialStatusCode.DOCUMENT_SUSPENDED,
+    codeString: 'SUSPENDED',
+    message: 'Document has been suspended.',
+  };
+};
+
 export const w3cCredentialStatus: Verifier<VerificationFragment> = {
   skip: async () => {
     return {
@@ -65,10 +97,9 @@ export const w3cCredentialStatus: Verifier<VerificationFragment> = {
         verifyCredentialStatus(cs, cs?.type as CredentialStatusType, verifierOptions),
       ),
     );
-    const purposes = verificationResult.map((item) => item.purpose);
-    const hasRevocation = purposes.includes('revocation');
-    const hasSuspension = purposes.includes('suspension');
-    const hasRevocationAndSuspension = hasRevocation && hasSuspension;
+    const purposes = new Set(verificationResult.map((item) => item.purpose));
+    const hasRevocation = purposes.has('revocation');
+    const hasSuspension = purposes.has('suspension');
 
     if (verificationResult.some((r) => r.error)) {
       return {
@@ -95,23 +126,7 @@ export const w3cCredentialStatus: Verifier<VerificationFragment> = {
         name: 'W3CCredentialStatus',
         data: verificationResult,
         status: 'INVALID',
-        reason: {
-          code: hasRevocationAndSuspension
-            ? W3CCredentialStatusCode.DOCUMENT_REVOKED_AND_SUSPENDED
-            : hasRevocation
-              ? W3CCredentialStatusCode.DOCUMENT_REVOKED
-              : W3CCredentialStatusCode.DOCUMENT_SUSPENDED,
-          codeString: hasRevocationAndSuspension
-            ? 'REVOKED_AND_SUSPENDED'
-            : hasRevocation
-              ? 'REVOKED'
-              : 'SUSPENDED',
-          message: hasRevocationAndSuspension
-            ? 'Document has been revoked and suspended.'
-            : hasRevocation
-              ? 'Document has been revoked.'
-              : 'Document has been suspended.',
-        },
+        reason: getInvalidStatusReason(hasRevocation, hasSuspension),
       };
     }
   },

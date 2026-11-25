@@ -41,6 +41,6 @@ jobs:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
 
-      - uses: reviewdog/action-eslint@v1
+      - uses: reviewdog/action-eslint@6dad10dc50476699ad1ddbbb19bf55d36f311a39 # v1.37.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}

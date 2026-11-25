@@ -90,10 +90,15 @@ const COMPRESSED_TEMPLATE_PATTERN = /^H4sI[A-Za-z0-9_-]+$/;
  * @property {string} uri - A unique identifier for the qrcode, typically a URL or URI.
  * @property {string} type - The type of the qrcode method (e.g., 'TrustVCQRCode').
  */
-export interface qrCode {
+export interface QrCode {
   uri: string;
   type: string;
 }
+
+/**
+ * @deprecated Use {@link QrCode}. Kept so existing imports keep compiling; remove in the next major.
+ */
+export type qrCode = QrCode;
 
 /**
  * Options for signing a document.
@@ -234,7 +239,7 @@ export class DocumentBuilder {
   }
 
   // Defines the qrcode for the document.
-  qrCode(method: qrCode) {
+  qrCode(method: QrCode) {
     if (this.isSigned) throw new Error('Configuration Error: Document is already signed.');
     this.document.qrCode = method;
     this.addContext(QRCODE_CONTEXT_URL); // Add qrcode context to document.
@@ -376,7 +381,12 @@ export class DocumentBuilder {
 
   // Private helper method to build the context for the document, ensuring uniqueness and adding the default W3C context.
   private buildContext(context: string | string[]): string[] {
-    const arrayContext = Array.isArray(context) ? context : context ? [context] : [];
+    let arrayContext: string[] = [];
+    if (Array.isArray(context)) {
+      arrayContext = context;
+    } else if (context) {
+      arrayContext = [context];
+    }
     if (arrayContext.includes(VC_V1_URL)) {
       throw new Error('Document builder does not support data model v1.1.');
     }

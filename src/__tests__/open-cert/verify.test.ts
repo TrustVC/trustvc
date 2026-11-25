@@ -78,7 +78,7 @@ describe.concurrent('OpenCert signature verify', () => {
             examinationDate: 'fake-exam-date',
             semester: 'fake-semester',
           });
-          expect(modifiedData.transcript.length).toBe(originalLength + 1);
+          expect(modifiedData.transcript).toHaveLength(originalLength + 1);
 
           expect(
             await verifySignature({
@@ -121,7 +121,7 @@ describe.concurrent('OpenCert signature verify', () => {
             const modifiedData: any = cloneDeep(document.data);
             const originalLength = modifiedData.transcript.length;
             modifiedData.transcript.push({ name: 'newField' });
-            expect(modifiedData.transcript.length).toBe(originalLength + 1);
+            expect(modifiedData.transcript).toHaveLength(originalLength + 1);
 
             expect(
               await verifySignature({
@@ -149,7 +149,7 @@ describe.concurrent('OpenCert signature verify', () => {
             const modifiedData: any = cloneDeep(document.data);
             const originalLength = modifiedData.transcript.length;
             modifiedData.transcript.push(['abc']);
-            expect(modifiedData.transcript.length).toBe(originalLength + 1);
+            expect(modifiedData.transcript).toHaveLength(originalLength + 1);
 
             expect(
               await verifySignature({
@@ -176,7 +176,7 @@ describe.concurrent('OpenCert signature verify', () => {
           modifiedData.transcript.push({
             name: null,
           });
-          expect(modifiedData.transcript.length).toBe(originalLength + 1);
+          expect(modifiedData.transcript).toHaveLength(originalLength + 1);
 
           expect(
             await verifySignature({
@@ -190,8 +190,8 @@ describe.concurrent('OpenCert signature verify', () => {
           const modifiedData: any = cloneDeep(document.data);
           const originalLength = modifiedData.transcript.length;
           modifiedData.transcript.push(null);
-          expect(modifiedData.transcript.length).toBe(originalLength + 1);
-          expect(modifiedData.transcript[originalLength]).toBe(null);
+          expect(modifiedData.transcript).toHaveLength(originalLength + 1);
+          expect(modifiedData.transcript[originalLength]).toBeNull();
 
           expect(
             await verifySignature({

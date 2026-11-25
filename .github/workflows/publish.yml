@@ -42,7 +42,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
       - name: Setup SSH
-        uses: webfactory/ssh-agent@v0.5.4
+        uses: webfactory/ssh-agent@fc49353b67b2b7c1e0e6a600572d01a69f2672dd # v0.5.4
         with:
           ssh-private-key: ${{ secrets.SSH_DEPLOY_KEYS_TRUSTVC_TRUSTVC_PK }}
       - uses: actions/setup-node@v4

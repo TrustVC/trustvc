@@ -1,11 +1,12 @@
 import forge from 'node-forge';
-import {
+import { utils } from '@tradetrust-tt/tradetrust';
+
+export {
   getData as getDataV2,
   isSchemaValidationError,
   obfuscateDocument,
   SchemaId,
   SUPPORTED_SIGNING_ALGORITHM,
-  utils,
   validateSchema,
 } from '@tradetrust-tt/tradetrust';
 
@@ -66,15 +67,6 @@ const {
   diagnose,
   getTemplateURL,
 } = utils;
-
-export {
-  getDataV2,
-  isSchemaValidationError,
-  obfuscateDocument,
-  SchemaId,
-  SUPPORTED_SIGNING_ALGORITHM,
-  validateSchema,
-};
 
 // utils
 export {

@@ -50,7 +50,10 @@ describe.concurrent('fetch endorsement chain', () => {
       },
     );
 
-  it('default test', () => true);
+  // Keeps the suite non-empty when the filter above yields nothing (e.g. on CI).
+  it('has live-network fixtures', () => {
+    expect(testCases.filter((a) => !a.mock).length).toBeGreaterThan(0);
+  });
 });
 
 // Mocked test cannot run concurrently
@@ -123,7 +126,10 @@ describe('fetch endorsement chain - Mocked', () => {
       },
     );
 
-  it('default test', () => true);
+  // Keeps the suite non-empty and guards against the mocked fixtures disappearing.
+  it('has mocked fixtures', () => {
+    expect(testCases.filter((a) => a.mock).length).toBeGreaterThan(0);
+  });
 });
 
 describe('fetch endorsement chain - Mocked - Web Provider', () => {

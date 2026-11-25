@@ -40,7 +40,7 @@ const makeCipher = (encryptionKey: string = generateEncryptionKey()) => {
  */
 export const encryptString = (document: string, key?: string): IEncryptionResults => {
   if (typeof document !== 'string') {
-    throw new Error('encryptString only accepts strings');
+    throw new TypeError('encryptString only accepts strings');
   }
 
   const { cipher, encryptionKey, iv } = makeCipher(key);

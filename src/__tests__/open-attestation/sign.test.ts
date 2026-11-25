@@ -22,7 +22,7 @@ describe.concurrent('V3 sign', () => {
     );
 
     const { proof } = signedWrappedDocument;
-    expect(Object.keys(proof).length).toBe(9);
+    expect(Object.keys(proof)).toHaveLength(9);
     expect(proof.key).toBe('did:ethr:0xE712878f6E8d5d4F9e87E10DA604F9cB564C9a89#controller');
     expect(proof.signature).toMatchInlineSnapshot(
       `"0x8901a4a95890a45892c0abadf36414d0ea409ffd2f424d54e9c760427aa4d0a47bbe2d2941bb8887ca15912d732efa96acbda8f44bf18653929a04c9d4003b6a1b"`,
@@ -36,7 +36,7 @@ describe.concurrent('V3 sign', () => {
     );
 
     const { proof } = signedWrappedDocument;
-    expect(Object.keys(proof).length).toBe(9);
+    expect(Object.keys(proof)).toHaveLength(9);
     expect(proof.key).toBe('did:ethr:0x906FB815De8976b1e38D9a4C1014a3acE16Ce53C#controller');
     expect(proof.signature).toMatchInlineSnapshot(
       `"0x54f1f3ea7c237b672f1f9d344adc83fca3cdaa358714acc8893ac3c6decf6cca799aae4d54c31563b162d0b19fa82c2a05c2ce7c5dbb2b42230718b4698789a01b"`,
@@ -90,7 +90,7 @@ describe.concurrent('V2 sign', () => {
   it('should sign a document', async () => {
     const signedWrappedDocument: any = await signOA(WRAPPED_DOCUMENT_DID_V2, SAMPLE_SIGNING_KEYS);
     const { proof } = signedWrappedDocument;
-    expect(Object.keys(proof).length).toBe(1);
+    expect(Object.keys(proof)).toHaveLength(1);
     expect(proof?.[0].verificationMethod).toBe(SAMPLE_SIGNING_KEYS.public);
     expect(proof?.[0].signature).toMatchInlineSnapshot(
       `"0x6706675e86e388962cc914dda6594850d995088e87f2bb4e6153cd345a3409503a111298efdcf95b9e55416008229e48eeb87f5f6ff3d4058c0681fa3f7d39de1b"`,
@@ -101,7 +101,7 @@ describe.concurrent('V2 sign', () => {
     const signedWrappedDocument: any = await signOA(WRAPPED_DOCUMENT_DID_V2, wallet);
 
     const { proof } = signedWrappedDocument;
-    expect(Object.keys(proof).length).toBe(1);
+    expect(Object.keys(proof)).toHaveLength(1);
     expect(proof?.[0].verificationMethod).toBe(
       'did:ethr:0x906FB815De8976b1e38D9a4C1014a3acE16Ce53C#controller',
     );

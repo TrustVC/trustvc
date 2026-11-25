@@ -18,7 +18,7 @@ describe.concurrent('Encrpytion', () => {
     const decrypted = decrypt(encrypted, key, nonce);
     expect(decrypted).toBe(message);
   });
-  it('should be able to  verify encryption on variable length key', async ({ expect }) => {
+  it('should verify encryption on variable length key with a custom nonce', async ({ expect }) => {
     const key = 'a013fb9d-bb03-4056-b696-05575eceaf42';
     const nonce = '12bytenonce';
     const message = 'Hello, World!';
@@ -32,7 +32,7 @@ describe.concurrent('Encrpytion', () => {
     const message = 'a'.repeat(120);
     const encrypted = encrypt(message, key, nonce);
 
-    expect(encrypted.length).toBe(240);
+    expect(encrypted).toHaveLength(240);
   });
   it('successfully decrypts a message when the key is less than 32 bytes', async ({ expect }) => {
     const key = 'a013fb9d-bb03-4056-b696';
