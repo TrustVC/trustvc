@@ -146,17 +146,17 @@ describe.concurrent('documents', () => {
   describe.concurrent('getChainId', () => {
     it('getChainId - VALID W3C VC Transferable Record Document', () => {
       const chainId = getChainId(W3C_TRANSFERABLE_RECORD);
-      expect(chainId).toBe(80002);
+      expect(Number(chainId)).toBe(80002);
     });
 
     it('getChainId - VALID OA V2 Transferable Record Document', () => {
       const chainId = getChainId(WRAPPED_DOCUMENT_DID_TOKEN_REGISTRY_V2);
-      expect(chainId).toBe(80002);
+      expect(Number(chainId)).toBe(80002);
     });
 
     it('getChainId - VALID OA V3 Transferable Record Document', () => {
       const chainId = getChainId(WRAPPED_DOCUMENT_DID_TOKEN_REGISTRY_V3);
-      expect(chainId).toBe(80002);
+      expect(Number(chainId)).toBe(80002);
     });
 
     it('getChainId - INVALID W3C VC Transferable Record Document', () => {
