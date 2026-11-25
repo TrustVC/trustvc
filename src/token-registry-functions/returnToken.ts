@@ -66,12 +66,12 @@ const returnToIssuer = async (
 
   if (titleEscrowVersion === undefined) {
     [isV4TT, isV5TT] = await Promise.all([
-      await isTitleEscrowVersion({
+      isTitleEscrowVersion({
         titleEscrowAddress,
         versionInterface: TitleEscrowInterface.V4,
         provider: signer.provider,
       }),
-      await isTitleEscrowVersion({
+      isTitleEscrowVersion({
         titleEscrowAddress,
         versionInterface: TitleEscrowInterface.V5,
         provider: signer.provider,

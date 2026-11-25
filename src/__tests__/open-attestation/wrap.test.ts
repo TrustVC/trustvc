@@ -18,8 +18,8 @@ describe.concurrent('wrap document', () => {
   it('given a valid v2 document, should wrap correctly', async ({ expect }) => {
     const wrapped = await wrapOADocument(RAW_DOCUMENT_DID_V2);
     const { signature } = wrapped;
-    expect(signature.merkleRoot.length).toBe(64);
-    expect(signature.targetHash.length).toBe(64);
+    expect(signature.merkleRoot).toHaveLength(64);
+    expect(signature.targetHash).toHaveLength(64);
     expect(signature.type).toBe('SHA3MerkleProof');
     expect(signature).not.toHaveProperty('key');
     expect(signature).not.toHaveProperty('signature');
@@ -58,10 +58,10 @@ describe.concurrent('wrap document', () => {
 describe.concurrent('wrap documents', () => {
   it('given an array of valid v2 documents, should wrap correctly', async ({ expect }) => {
     const wrapped = await wrapOADocuments(BATCHED_RAW_DOCUMENTS_DID_V2);
-    expect(wrapped.length).toBe(2);
+    expect(wrapped).toHaveLength(2);
     for (const { signature } of wrapped) {
-      expect(signature.merkleRoot.length).toBe(64);
-      expect(signature.targetHash.length).toBe(64);
+      expect(signature.merkleRoot).toHaveLength(64);
+      expect(signature.targetHash).toHaveLength(64);
       expect(signature.type).toBe('SHA3MerkleProof');
       expect(signature).not.toHaveProperty('key');
       expect(signature).not.toHaveProperty('signature');
@@ -215,8 +215,8 @@ describe.concurrent('v2.0 wrap document', () => {
   it('given a valid v2 document, should wrap correctly', async ({ expect }) => {
     const wrapped = await wrapOADocumentV2(RAW_DOCUMENT_DID_V2);
     const { signature } = wrapped;
-    expect(signature.merkleRoot.length).toBe(64);
-    expect(signature.targetHash.length).toBe(64);
+    expect(signature.merkleRoot).toHaveLength(64);
+    expect(signature.targetHash).toHaveLength(64);
     expect(signature.type).toBe('SHA3MerkleProof');
     expect(signature).not.toHaveProperty('key');
     expect(signature).not.toHaveProperty('signature');
@@ -240,10 +240,10 @@ describe.concurrent('v2.0 wrap document', () => {
 describe.concurrent('v2.0 wrap documents', () => {
   it('given an array of valid v2 documents, should wrap correctly', async ({ expect }) => {
     const wrapped = await wrapOADocumentsV2(BATCHED_RAW_DOCUMENTS_DID_V2);
-    expect(wrapped.length).toBe(2);
+    expect(wrapped).toHaveLength(2);
     for (const { signature } of wrapped) {
-      expect(signature.merkleRoot.length).toBe(64);
-      expect(signature.targetHash.length).toBe(64);
+      expect(signature.merkleRoot).toHaveLength(64);
+      expect(signature.targetHash).toHaveLength(64);
       expect(signature.type).toBe('SHA3MerkleProof');
       expect(signature).not.toHaveProperty('key');
       expect(signature).not.toHaveProperty('signature');

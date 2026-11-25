@@ -1,4 +1,4 @@
-import {
+export {
   v4RoleHash,
   v4ContractAddress,
   v4SupportInterfaceIds,
@@ -9,7 +9,7 @@ import {
   v4GetEventFromReceipt,
   v4ComputeInterfaceId,
 } from './token-registry-v4';
-import {
+export {
   v5RoleHash,
   v5ContractAddress,
   v5SupportInterfaceIds,
@@ -19,7 +19,7 @@ import {
   v5GetEventFromReceipt,
   v5ComputeInterfaceId,
 } from './token-registry-v5';
-import {
+export {
   deployDocumentStore,
   documentStoreGrantRole,
   documentStoreRevokeRole,
@@ -30,7 +30,7 @@ import {
   getRoleString,
   documentStoreTransferOwnership,
 } from './document-store';
-import { cancelTransaction } from './transaction';
+export { cancelTransaction } from './transaction';
 export type { TypedContractMethod } from './token-registry-v5/typedContractMethod';
 export type { CancelTransactionSigner } from './transaction';
 export * from './token-registry-functions';
@@ -45,33 +45,3 @@ export * from './utils';
 export * from './dnsprove';
 export * from './transaction';
 export * from './inline-html-template';
-
-export {
-  v4SupportInterfaceIds,
-  v4ContractAddress,
-  v4RoleHash,
-  v4Contracts,
-  v5SupportInterfaceIds,
-  v5ContractAddress,
-  v4Utils,
-  v4ComputeTitleEscrowAddress,
-  v4EncodeInitParams,
-  v4GetEventFromReceipt,
-  v4ComputeInterfaceId,
-  v5RoleHash,
-  v5Contracts,
-  v5Utils,
-  v5EncodeInitParams,
-  v5GetEventFromReceipt,
-  v5ComputeInterfaceId,
-  deployDocumentStore,
-  documentStoreGrantRole,
-  documentStoreRevokeRole,
-  documentStoreIssue,
-  documentStoreRevoke,
-  getRoleString,
-  documentStoreTransferOwnership,
-  DocumentStore__factory,
-  TransferableDocumentStore__factory,
-  cancelTransaction,
-};

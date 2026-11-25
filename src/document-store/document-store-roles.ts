@@ -33,7 +33,7 @@ export const getRoleString = async (
 
   // Role should be the actual contract method name (e.g., 'DEFAULT_ADMIN_ROLE', 'ISSUER_ROLE', 'REVOKER_ROLE')
   if (typeof documentStore[role as keyof typeof documentStore] !== 'function') {
-    throw new Error(`Invalid role: ${role}`);
+    throw new TypeError(`Invalid role: ${role}`);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

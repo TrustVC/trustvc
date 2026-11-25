@@ -30,7 +30,7 @@ vi.mock('../../token-registry-functions/utils', async (importOriginal) => {
       Deployer: '0x3234567890123456789012345678901234567890',
     }),
     isSupportedTitleEscrowFactory: vi.fn().mockResolvedValue(true),
-    isValidAddress: vi.fn((addr: string) => addr && addr.startsWith('0x') && addr.length === 42),
+    isValidAddress: vi.fn((addr: string) => addr?.startsWith('0x') && addr.length === 42),
   };
 });
 

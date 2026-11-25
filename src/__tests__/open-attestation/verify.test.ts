@@ -173,7 +173,7 @@ describe.concurrent('v3 verify', () => {
           const modifiedCredentialSubject: any = cloneDeep(document.credentialSubject);
           expect(modifiedCredentialSubject.packages[1]).toBeUndefined();
           modifiedCredentialSubject.packages.push(null as any);
-          expect(modifiedCredentialSubject.packages[1]).toBe(null);
+          expect(modifiedCredentialSubject.packages[1]).toBeNull();
 
           expect(
             await verifyOASignature({

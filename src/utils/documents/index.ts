@@ -54,7 +54,7 @@ export const getTokenRegistryAddress = (
   } else {
     issuerAddress = getIssuerAddress(document);
   }
-  return issuerAddress instanceof Array ? issuerAddress[0] : issuerAddress;
+  return Array.isArray(issuerAddress) ? issuerAddress[0] : issuerAddress;
 };
 
 export const getTokenId = (
@@ -77,7 +77,7 @@ function processOAChainId(
   document: v2.OpenAttestationDocument | v3.OpenAttestationDocument,
 ): CHAIN_ID | undefined {
   if (document.network?.chainId) {
-    const chainId = parseInt(document.network.chainId, 10);
+    const chainId = Number.parseInt(document.network.chainId, 10);
     if (Object.values(CHAIN_ID).map(Number).includes(chainId)) {
       return chainId as unknown as CHAIN_ID;
     }

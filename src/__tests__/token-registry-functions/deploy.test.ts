@@ -402,8 +402,23 @@ describe('Deploy Token Registry', () => {
 
       (getChainIdSafe as any).mockResolvedValue(CHAIN_ID.sepolia as unknown as number);
 
-      await deployTokenRegistry(mockRegistryName, mockRegistrySymbol, wallet, {
-        chainId: mockChainId,
+      // Set quick-start defaults explicitly; earlier tests override this mock and
+      // vi.clearAllMocks() does not reset return values.
+      (getDefaultContractAddress as any).mockReturnValue({
+        TitleEscrowFactory: '0x1234567890123456789012345678901234567890',
+        TokenImplementation: '0x2234567890123456789012345678901234567890',
+        Deployer: '0x3234567890123456789012345678901234567890',
+      });
+
+      // No chainId in options, so deployTokenRegistry must resolve it from the signer.
+      const result = await deployTokenRegistry(mockRegistryName, mockRegistrySymbol, wallet, {});
+
+      expect(getChainIdSafe).toHaveBeenCalledWith(wallet);
+      expect(getDefaultContractAddress).toHaveBeenCalledWith(CHAIN_ID.sepolia);
+      expect(mockContract.deploy).toHaveBeenCalledTimes(1);
+      expect(result).toEqual({
+        address: '0xAutoChainIdRegistry',
+        transactionHash: 'auto_chain_tx_hash',
       });
     });
   });
@@ -414,7 +429,7 @@ describe('Deploy Token Registry', () => {
       (isV6EthersProvider as any).mockReturnValue(false);
 
       (isValidAddress as any).mockImplementation(
-        (addr: any) => addr && addr.startsWith('0x') && addr.length === 42,
+        (addr: any) => addr?.startsWith('0x') && addr.length === 42,
       );
 
       const wallet: any = {

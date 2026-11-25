@@ -52,7 +52,7 @@ const providers: ProviderInfo[] = [
 ];
 
 providers.forEach(({ ethersVersion, titleEscrowVersion }) => {
-  describe(`Reject Transfer Functions E2E Tests -with ethers ${ethersVersion} and token registry ${titleEscrowVersion}`, async function () {
+  describe(`Reject Transfer Functions E2E Tests -with ethers ${ethersVersion} and token registry ${titleEscrowVersion}`, function () {
     let TradeTrustTokenContract: any;
     let TitleEscrowFactoryContract: any;
     let titleEscrowFactoryAddress: any;

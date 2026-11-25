@@ -33,7 +33,7 @@ export const gasStation: GasStationFunction =
 
 const safeParseUnits = (_value: number | string, decimals: number): BigNumber => {
   const value = String(_value);
-  if (!value.match(/^[0-9.]+$/)) {
+  if (!/^[0-9.]+$/.test(value)) {
     throw new Error(`invalid gwei value: ${_value}`);
   }
 
@@ -54,7 +54,7 @@ const safeParseUnits = (_value: number | string, decimals: number): BigNumber =>
   }
 
   // Too many decimals and some non-zero ending, take the ceiling
-  if (comps[1].length > 9 && !comps[1].substring(9).match(/^0+$/)) {
+  if (comps[1].length > 9 && !/^0+$/.test(comps[1].substring(9))) {
     comps[1] = BigNumber.from(comps[1].substring(0, 9)).add(BigNumber.from(1)).toString();
   }
 
@@ -66,7 +66,7 @@ export const scaleBigNumber = (
   multiplier: number,
   precision = 2,
 ): BigNumber => {
-  if (wei === null || typeof wei === 'undefined') {
+  if (wei === null || wei === undefined) {
     throw new Error('Wei not specified');
   }
   const padding = Math.pow(10, precision);
@@ -81,10 +81,10 @@ export const calculateMaxFee = (
   priorityFee: BigNumber | null | undefined,
   scale: number,
 ): BigNumber => {
-  if (maxFee === null || typeof maxFee === 'undefined') {
+  if (maxFee === null || maxFee === undefined) {
     throw new Error('Max Fee not specified');
   }
-  if (priorityFee === null || typeof priorityFee === 'undefined') {
+  if (priorityFee === null || priorityFee === undefined) {
     throw new Error('Priority Fee not specified');
   }
   if (scale === 1) {

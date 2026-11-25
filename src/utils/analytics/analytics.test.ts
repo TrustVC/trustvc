@@ -112,7 +112,7 @@ describe('validateGaEvent', () => {
       label: undefined,
       value: undefined,
     });
-    expect(true).toBe(true);
+    expect(consoleError).not.toHaveBeenCalled();
   });
 
   it('passes for all values', () => {
@@ -122,7 +122,7 @@ describe('validateGaEvent', () => {
       label: 'Start Foobar',
       value: 2,
     });
-    expect(true).toBe(true);
+    expect(consoleError).not.toHaveBeenCalled();
   });
 });
 
@@ -139,8 +139,12 @@ describe('gaEvent', () => {
   });
 
   it('does not fail if gtag is not present', () => {
-    gaEvent(mockGaEvent as any);
-    expect(true).toBe(true);
+    // beforeEach installs gtag; remove it so this test covers the missing-gtag path.
+    window.gtag = undefined as any;
+    (globalThis as any).gtag = undefined;
+
+    expect(() => gaEvent(mockGaEvent as any)).not.toThrow();
+    expect(consoleWarn).toHaveBeenCalledWith('gtag is not initialised');
   });
 
   it('sends and log gtag event if window.gtag is present', () => {

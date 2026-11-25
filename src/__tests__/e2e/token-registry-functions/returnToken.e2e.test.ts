@@ -61,7 +61,7 @@ const providers: ProviderInfo[] = [
 ];
 
 providers.forEach(({ ethersVersion, titleEscrowVersion }) => {
-  describe(`Return Token Functions E2E Tests -with ethers ${ethersVersion} and token registry ${titleEscrowVersion}`, async function () {
+  describe(`Return Token Functions E2E Tests -with ethers ${ethersVersion} and token registry ${titleEscrowVersion}`, function () {
     let TradeTrustTokenContract: any;
     let TitleEscrowFactoryContract: any;
     let titleEscrowFactoryAddress: any;
@@ -190,7 +190,7 @@ providers.forEach(({ ethersVersion, titleEscrowVersion }) => {
       };
     });
     describe('returnToIssuer', () => {
-      describe.only('Successful Return to Issuer', () => {
+      describe('Successful Return to Issuer', () => {
         beforeEach(async () => {
           await new Promise((resolve) => setTimeout(resolve, 1000));
           const contractOptions = {

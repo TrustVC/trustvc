@@ -100,12 +100,12 @@ describe.concurrent('documents', () => {
 
     it('getTokenRegistryAddress - INVALID W3C VC Transferable Record Document', () => {
       const tokenRegistryAddress = getTokenRegistryAddress(W3C_VERIFIABLE_DOCUMENT);
-      expect(tokenRegistryAddress).toBe(undefined);
+      expect(tokenRegistryAddress).toBeUndefined();
     });
 
     it('getTokenRegistryAddress - INVALID OA V2 Transferable Record Document', () => {
       const tokenRegistryAddress = getTokenRegistryAddress(WRAPPED_DOCUMENT_DID_V2);
-      expect(tokenRegistryAddress).toBe(undefined);
+      expect(tokenRegistryAddress).toBeUndefined();
     });
   });
 
@@ -127,7 +127,7 @@ describe.concurrent('documents', () => {
 
     it('getTokenId - INVALID W3C VC Transferable Record Document', () => {
       const tokenId = getTokenId(W3C_VERIFIABLE_DOCUMENT);
-      expect(tokenId).toBe(undefined);
+      expect(tokenId).toBeUndefined();
     });
 
     it('getTokenId - INVALID OA V2 Transferable Record Document', async () => {
@@ -161,22 +161,22 @@ describe.concurrent('documents', () => {
 
     it('getChainId - INVALID W3C VC Transferable Record Document', () => {
       const chainId = getChainId(W3C_VERIFIABLE_DOCUMENT);
-      expect(chainId).toBe(undefined);
+      expect(chainId).toBeUndefined();
     });
 
     it('getChainId - INVALID OA V2 Transferable Record Document', async () => {
       const chainId = getChainId(WRAPPED_DOCUMENT_DID_V2);
-      expect(chainId).toBe(undefined);
+      expect(chainId).toBeUndefined();
     });
 
     it('getChainId - INVALID OA V3 Transferable Record Document', async () => {
       const chainId = getChainId(WRAPPED_DOCUMENT_DNS_DID_V3);
-      expect(chainId).toBe(undefined);
+      expect(chainId).toBeUndefined();
     });
 
     it('getChainId - Empty Document', async () => {
       const chainId = getChainId({} as any);
-      expect(chainId).toBe(undefined);
+      expect(chainId).toBeUndefined();
     });
   });
 });

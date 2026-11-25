@@ -10,7 +10,7 @@ import { CredentialStatusResult } from '@trustvc/w3c-vc';
 import { TYPES } from '../errorMessages/VerificationErrorMessages';
 import { errorMessages as CONSTANTS } from '../errorMessages';
 
-interface interpretFragmentsReturnTypes {
+interface InterpretFragmentsReturnTypes {
   hashValid: boolean;
   issuedValid: boolean;
   identityValid: boolean;
@@ -39,7 +39,7 @@ const certificateRevokedOnDidIdentified = (fragments: VerificationFragment[]): b
  */
 export const interpretFragments = (
   fragments: VerificationFragment[],
-): interpretFragmentsReturnTypes => {
+): InterpretFragmentsReturnTypes => {
   const hashValid = isValid(fragments, ['DOCUMENT_INTEGRITY']);
   const issuedValid = isValid(fragments, ['DOCUMENT_STATUS']);
   const identityValid = isValid(fragments, ['ISSUER_IDENTITY']);
